@@ -1,6 +1,6 @@
 {
- "fecha": "2026-11-02T02:44:19.930Z",
- "total": 111,
+ "fecha": "2026-11-02T16:46:38.890Z",
+ "total": 135,
  "fallas": 0,
  "checks": [
   {
@@ -66,11 +66,35 @@
    "pass": true
   },
   {
-   "name": "Biblioteca · 20 libros en un solo librero, con 4 separadores de sección",
+   "name": "Biblioteca · 14 libros visibles (sin los 6 que solo usa el reel 6), con 4 separadores de sección",
    "pass": true
   },
   {
-   "name": "Libro abierto · gancho, historia, ecuación con símbolos, frase y «Con tus números» (21,1 min)",
+   "name": "Biblioteca · ningún libro exclusivo de la fila (reel 6 sin publicar), ni en la portada",
+   "pass": true
+  },
+  {
+   "name": "Biblioteca · el texto cuenta lo visible: «Catorce fuentes en cuatro estantes» y no promete calcular todo",
+   "pass": true
+  },
+  {
+   "name": "Libro abierto · gancho, historia, ecuación con símbolos, frase y «Con tus números» (16,0 min)",
+   "pass": true
+  },
+  {
+   "name": "Libro · numeración sobre los visibles (Ficha 01 / 14)",
+   "pass": true
+  },
+  {
+   "name": "Lindley · «La usamos en» solo muestra el reel publicado y el cálculo usa tu carga del andén (20 min)",
+   "pass": true,
+   "got": {
+    "uses": "#bailey",
+    "live": "Con tus númerosSi esperaste 5 min, tu carga dura 20 min y el siguiente camión llega 6 min después que tú: espera 19 min."
+   }
+  },
+  {
+   "name": "Kaandorp · α_W se ve con subíndice y sin «la base»",
    "pass": true
   },
   {
@@ -117,7 +141,7 @@
    "got": []
   },
   {
-   "name": "Link ?reel=6 abre directo el laboratorio, sin pasar por el inicio",
+   "name": "Link ?caso=fila abre directo el laboratorio, sin pasar por el inicio",
    "pass": true
   },
   {
@@ -191,8 +215,8 @@
    "pass": true,
    "got": {
     "txy": [
-     124.63154841844523,
-     289.8876958111084
+     124.7126255356698,
+     290.018057542822
     ],
     "bub": "En fila hace 27 min"
    }
@@ -210,7 +234,7 @@
    "pass": true,
    "got": {
     "mode": "run",
-    "prog": 52.3,
+    "prog": 52.7,
     "clock": "11:06",
     "skip": true
    }
@@ -427,7 +451,7 @@
   {
    "name": "IKEA · distingue esta partida del promedio",
    "pass": true,
-   "got": "Esta partida: 2 de 100 entregas · el grande es el promedio"
+   "got": "Esta partida: 0 de 100 llegaron incompletos · el grande es el promedio"
   },
   {
    "name": "IKEA · armado → cajas: explica el trade-off (5 viajes en vez de 34) y no celebra",
@@ -530,7 +554,7 @@
      "jq": false,
      "cv": 10
     },
-    "rv": "1 puertas · 10 camiones por hora · 15 min de descarga en promedio"
+    "rv": "1 puerta · 10 camiones por hora · 15 min de descarga en promedio"
    }
   },
   {
@@ -580,13 +604,13 @@
    "got": "#nivel"
   },
   {
-   "name": "Reels · ?reel=6 abre #fila",
-   "pass": true,
-   "got": "#fila"
+   "name": "Reels · ?reel=6 (sin publicar) cae en el inicio, no abre la fila",
+   "pass": true
   },
   {
-   "name": "Reels · ?caso=fila sigue funcionando aunque no esté en portada",
-   "pass": true
+   "name": "Reels · ?caso=fila sigue funcionando aunque no esté en portada, y el título no dice «Reel #6»",
+   "pass": true,
+   "got": "Andenes · Fila única¿A qué puerta mandas cada camión?▾"
   },
   {
    "name": "Resultado · «Copiar resultado» es un botón primario grande y visible",
@@ -690,6 +714,146 @@
   {
    "name": "Sin menciones a Christian ni Ruck",
    "pass": true
+  },
+  {
+   "name": "Bailey · «De 6 en 6» con todos puntuales no cuenta como ganarle al modelo",
+   "pass": true,
+   "got": {
+    "pct": "—",
+    "v": "No cuenta",
+    "why": "Con todos puntuales cualquier agenda escalonada empata: ganarle al modelo exige atrasos. Pon ±10 min o más.",
+    "txt": "Mira cómo baja la espera en el andén de 40,0 a 0,0 min con los mismos 6 andenes, solo cambiando la hora de cita. Frente al reel: — · No cuenta. ¿Le ganas? http://127.0.0.1:8790/index.html?caso=bailey&regla=turno"
+   }
+  },
+  {
+   "name": "Bailey · con ±10 min una agenda propia (g=12, I=24) sí le gana al modelo (~141 %)",
+   "pass": true,
+   "got": {
+    "pct": "141 %",
+    "v": "¡Le ganaste al modelo!",
+    "why": "",
+    "txt": "Mira cómo baja la espera en el andén de 40,0 a 11,4 min con los mismos 6 andenes, solo cambiando la hora de cita. Frente al reel: 141 % · ¡Le ganaste al modelo! ¿Le ganas? http://127.0.0.1:8790/index.html?caso=bailey&desorden=10&regla=propia&i=24"
+   }
+  },
+  {
+   "name": "Bailey · la opción rápida sigue a las palancas: «De 6 en 6 cada 20 min»",
+   "pass": true,
+   "got": "Todos a las 7:00All at 7:00|De 6 en 6 cada 20 min6 at a time every 20 min|Regla de BaileyBailey's rule"
+  },
+  {
+   "name": "Bailey · con 4 andenes y 15 min la opción dice «De 4 en 4 cada 15 min»",
+   "pass": true,
+   "got": "Todos a las 7:00All at 7:00|De 4 en 4 cada 15 min4 at a time every 15 min|Regla de BaileyBailey's rule"
+  },
+  {
+   "name": "IKEA · con 11 cajas no cuenta (cambiaste de producto)",
+   "pass": true,
+   "got": {
+    "pct": "—",
+    "v": "No cuenta",
+    "why": "Cambiaste de producto: el reel compara 12 cajas. Cambia el cuidado por caja, no la cantidad.",
+    "txt": "Si cada caja falla 1 de cada 100, 10,5 de cada 100 clósets de 11 cajas llegan incompletos a la casa. Armado llegan casi todos, pero el furgón hace 34 viajes en vez de 5. Frente al reel: — · No cuenta. ¿Le ganas? http://127.0.0.1:8790/index.html?caso=ikea&cajas=11&empaque=cajas"
+   }
+  },
+  {
+   "name": "UPS · espera 0 y siempre doblar: porcentaje acotado (≥200 %), nada absurdo",
+   "pass": true,
+   "got": {
+    "pct": "≥200 %",
+    "v": "¡Le ganaste al modelo!",
+    "why": "",
+    "txt": "Con 0 s de espera y 150 m de desvío, conviene doblar: evitar el giro pierde 21,6 s por maniobra. Frente al reel: ≥200 % · ¡Le ganaste al modelo! ¿Le ganas? http://127.0.0.1:8790/index.html?caso=ups&espera=0&regla=dobla"
+   }
+  },
+  {
+   "name": "UPS · reordenar paradas llega como máximo a 50 % y advierte que no es gratis",
+   "pass": true,
+   "got": {
+    "rmax": 50,
+    "upr": {
+     "pct": "≥200 %",
+     "v": "¡Le ganaste al modelo!",
+     "why": "Reordenar paradas no es gratis: en la realidad alarga otros tramos de la ruta. Por eso aquí llega como máximo al 50 %.",
+     "txt": "Doblar a la izquierda le cuesta a cada camión 20,0 min al día. Evitándolo con 150 m de desvío se ahorran 61 h al año por camión. Frente al reel: ≥200 % · ¡Le ganaste al modelo! ¿Le ganas? http://127.0.0.1:8790/index.html?caso=ups&regla=conviene&reorden=90"
+    }
+   }
+  },
+  {
+   "name": "Nivel · medir el mes completo (la solución del reel) da «Igual que el reel»",
+   "pass": true,
+   "got": {
+    "pct": "100 %",
+    "v": "Igual que el reel",
+    "why": "",
+    "txt": "Cumplo 98,0 % por parada: medido día a día me penalizan 24,2 % de los días; medido por mes, 4,9 %. Frente al reel: 100 % · Igual que el reel. ¿Le ganas? http://127.0.0.1:8790/index.html?caso=nivel&eval=mes"
+   }
+  },
+  {
+   "name": "Nivel · solo la perilla extra (excluir fallas ajenas) le gana al reel",
+   "pass": true,
+   "got": {
+    "pct": "≥200 %",
+    "v": "¡Le ganaste al modelo!",
+    "why": "",
+    "txt": "Cumplo 98,0 % por parada: medido día a día me penalizan 11,7 % de los días; medido por mes, 0,0 %. Frente al reel: ≥200 % · ¡Le ganaste al modelo! ¿Le ganas? http://127.0.0.1:8790/index.html?caso=nivel&eval=mes&excluye=30"
+   }
+  },
+  {
+   "name": "Nivel · texto por semana sin repetir: «medido día a día … medido por semana»",
+   "pass": true,
+   "got": "Cumplo 98,0 % por parada: medido día a día me penalizan 24,2 % de los días; medido por semana, 22,6 %. Frente al reel: 100 % · Igual que el reel. ¿Le ganas? http://127.0.0.1:8790/index.html?caso=nivel&eval=semana"
+  },
+  {
+   "name": "Barrido de palancas (mín/máx, ES/EN): ningún texto para copiar con NaN, ∞, «−-0 %» ni «1 puertas»",
+   "pass": true,
+   "got": []
+  },
+  {
+   "name": "Fila · carga muy baja con jefe de patio (4 puertas, 1/h): sin NaN y sin «colapsa»",
+   "pass": true,
+   "got": "Con 4 puertas y 1 camión por hora casi nadie espera: 0,0 min con jefe de patio y 0,0 min con 1 fila única. Frente al reel: 100 % · Igual que el reel. ¿Le ganas? http://127.0.0.1:8790/index.html?caso=fila&puertas=4&camiones=1&regla=separadas&jefe=1"
+  },
+  {
+   "name": "Compartir · el enlace mostrado conserva «&regla» (sin ® ni ¶)",
+   "pass": true,
+   "got": "http://127.0.0.1:8790/index.html?caso=fila&puertas=2&regla=unica"
+  },
+  {
+   "name": "Compartir · la hoja invita a dejarlo en los comentarios del reel",
+   "pass": true
+  },
+  {
+   "name": "Inglés · las fichas de portada están en inglés (38 s / turn, 24.2%)",
+   "pass": true,
+   "got": "24.2%|40 → 16 min|11 / 100|50 → 10 m|38 s / turn"
+  },
+  {
+   "name": "Inglés · el título de la pestaña cambia con el idioma",
+   "pass": true
+  },
+  {
+   "name": "Español · título de la pestaña en español",
+   "pass": true
+  },
+  {
+   "name": "Veredictos y barrido · sin errores de JavaScript",
+   "pass": true,
+   "got": []
+  },
+  {
+   "name": "Publicar el reel 6 = cambiar una bandera: 20 libros, «Veinte fuentes», ?reel=6 abre la fila con «Reel #6» y 6 portadas",
+   "pass": true,
+   "got": {
+    "pb": {
+     "books": 20,
+     "intro": "Veinte fuentes en cuatro estantes. Cada libro cuenta su idea, trae su ecuación o su dato clave y, cuando se puede, lo calcula con tus números.Twenty sources on four shelves. Each book tells its idea, brings its equation or key figure and, where possible, computes it with your numbers."
+    },
+    "pr": {
+     "h": "#fila",
+     "t": "Reel #6 · Andenes · Fila única¿A qué puerta mandas cada camión?▾"
+    },
+    "pc": 6
+   }
   },
   {
    "name": "GoatCounter bloqueado · la página simula y muestra el resultado igual, sin errores",
