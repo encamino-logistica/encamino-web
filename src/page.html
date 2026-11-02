@@ -5,7 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0F1729">
 <title>En Camino Logística · Laboratorio</title>
-<meta name="description" content="Juega la matemática detrás de los reels de En Camino Logística: maquetas 3D, misiones y una biblioteca con las ecuaciones.">
+<meta name="description" content="Simula la matemática detrás de los reels de En Camino Logística: maquetas 3D, una regla por caso y una biblioteca con las fuentes.">
+<link rel="canonical" href="https://encamino-logistica.github.io/encamino-web/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Laboratorio En Camino">
+<meta property="og:description" content="Simula la matemática detrás de los reels de En Camino Logística: maquetas 3D, una regla por caso y una biblioteca con las fuentes.">
+<meta property="og:url" content="https://encamino-logistica.github.io/encamino-web/">
+<meta property="og:locale" content="es_419">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://encamino-logistica.github.io/encamino-web/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Laboratorio En Camino: la matemática detrás de cómo llegan tus cosas">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/jpeg;base64,@@LOGO@@">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -403,13 +415,13 @@ footer .wrap{padding-block:28px 60px;display:flex;flex-wrap:wrap;gap:10px 22px;a
     <div class="cta-row"><button class="btn y" type="button" id="cta-play"><span class="es">Entrar al laboratorio</span><span class="en">Enter the lab</span></button><a class="btn o" href="#biblioteca"><span class="es">La biblioteca</span><span class="en">The library</span></a></div></div></div>
   <div class="wrap">
    <section class="sec" id="labs"><div class="sec-h"><h2><span class="es">Elige un <em>reel</em></span><span class="en">Pick a <em>reel</em></span></h2><div class="filters" id="filters" role="group" aria-label="Filtrar" data-al-es="Filtrar" data-al-en="Filter"></div></div><div class="cards" id="cards"></div></section>
-   <div class="steps3"><div><i>1</i><b><span class="es">Toca</span><span class="en">Tap</span></b><span><span class="es">Elige una regla y aprieta ▶ Simular.</span><span class="en">Pick a rule and press ▶ Simulate.</span></span></div><div><i>2</i><b><span class="es">Compara</span><span class="en">Compare</span></b><span><span class="es">Prueba la regla del reel y mira cuánto cambia.</span><span class="en">Try the reel's rule and see how much changes.</span></span></div><div><i>3</i><b><span class="es">Compártelo</span><span class="en">Share it</span></b><span><span class="es">Manda el caso por WhatsApp con tus propios números.</span><span class="en">Send the case on WhatsApp with your own numbers.</span></span></div></div>
-   <a class="libteaser" href="#biblioteca"><div class="txt"><div class="eyebrow" style="color:#FFE9A8"><span class="es">Biblioteca</span><span class="en">Library</span></div><h2><span class="es">Cada libro trae <em>su ecuación</em></span><span class="en">Every book brings <em>its equation</em></span></h2><p><span class="es">Ábrelo y la calcula con tus números de ahora. De Bernoulli en 1713 al software de UPS.</span><span class="en">Open it and it computes with your current numbers. From Bernoulli in 1713 to UPS's software.</span></p></div><div><div class="shelfrow" id="homeshelf"></div><div class="plank"></div></div></a>
+   <div class="steps3"><div><i>1</i><b><span class="es">Toca</span><span class="en">Tap</span></b><span><span class="es">Elige una regla y aprieta ▶ Simular.</span><span class="en">Pick a rule and press ▶ Simulate.</span></span></div><div><i>2</i><b><span class="es">Compara</span><span class="en">Compare</span></b><span><span class="es">Prueba la regla del reel y mira cuánto cambia.</span><span class="en">Try the reel's rule and see how much changes.</span></span></div><div><i>3</i><b><span class="es">Compártelo</span><span class="en">Share it</span></b><span><span class="es">Copia tu resultado y déjalo en los comentarios del reel.</span><span class="en">Copy your result and drop it in the reel's comments.</span></span></div></div>
+   <a class="libteaser" href="#biblioteca"><div class="txt"><div class="eyebrow" style="color:#FFE9A8"><span class="es">Biblioteca</span><span class="en">Library</span></div><h2><span class="es">Cada libro trae <em>su ecuación</em></span><span class="en">Every book brings <em>its equation</em></span></h2><p><span class="es">Ábrelo: cuando se puede, la calcula con tus números de ahora. De Bernoulli en 1713 al software de UPS.</span><span class="en">Open it: where possible, it computes with your current numbers. From Bernoulli in 1713 to UPS's software.</span></p></div><div><div class="shelfrow" id="homeshelf"></div><div class="plank"></div></div></a>
   </div>
  </section>
  <section id="v-lab" class="view" hidden></section>
  <section id="v-biblioteca" class="view" hidden><div class="wrap">
-  <div class="lib-h"><div class="eyebrow"><span class="es">Biblioteca</span><span class="en">Library</span></div><h1><span class="es">Saca un libro. <em>Ábrelo.</em></span><span class="en">Pull a book. <em>Open it.</em></span></h1><p><span class="es">Veinte fuentes en cuatro estantes. Cada libro cuenta su idea, trae su ecuación y la calcula con los números que dejaste en el laboratorio.</span><span class="en">Twenty sources on four shelves. Each book tells its idea, brings its equation and computes it with the numbers you left in the lab.</span></p></div>
+  <div class="lib-h"><div class="eyebrow"><span class="es">Biblioteca</span><span class="en">Library</span></div><h1><span class="es">Saca un libro. <em>Ábrelo.</em></span><span class="en">Pull a book. <em>Open it.</em></span></h1><p id="libintro"><span class="es">Cada libro cuenta su idea, trae su ecuación o su dato clave y, cuando se puede, lo calcula con tus números.</span><span class="en">Each book tells its idea, brings its equation or key figure and, where possible, computes it with your numbers.</span></p></div>
   <div class="filters" id="libfilters" role="group" aria-label="Estantes" data-al-es="Estantes" data-al-en="Shelves" style="margin-bottom:26px"></div>
   <div id="shelves"></div>
   <p class="libnote"><span class="es">Las fuentes pertenecen a sus autores y editores. Cada ficha es un resumen propio, no una reproducción; los enlaces llevan a los sitios de los editores, a buscadores académicos o a las páginas oficiales. Las marcas mencionadas (IKEA, UPS, Amazon) se citan con fines educativos y no respaldan este sitio.</span><span class="en">Sources belong to their authors and publishers. Each card is our own summary, not a reproduction; links go to publishers' sites, academic search engines or official pages. Brands mentioned (IKEA, UPS, Amazon) are cited for educational purposes and do not endorse this site.</span></p>

@@ -227,7 +227,7 @@ function sceneIkea(st){const n=st.pack==="armado"?1:st.n,big=st.pack==="armado",
  S.apply=(st2)=>{cur=Object.assign({},st2);reset()};
  S.prewarm=()=>{reset()};
  S.startRun=()=>{reset();S.done=false;S.obs=null};S.progress=()=>ms/dur;
- S.tick=(dt,sp)=>{if(!batch)reset();ms+=dt*1000*sp;if(ms>=dur){ms=dur;S.done=true;const bad=batch.filter(o=>o.bad).length;S.obs=()=>({v:bad+" "+T("de 100","of 100"),l:T("entregas","deliveries")})}return at(dt)};
+ S.tick=(dt,sp)=>{if(!batch)reset();ms+=dt*1000*sp;if(ms>=dur){ms=dur;S.done=true;const bad=batch.filter(o=>o.bad).length;S.obs=()=>({v:bad+" "+T("de 100","of 100"),l:T("llegaron incompletos","arrived incomplete")})}return at(dt)};
  return S}
 
 /* ---------------- UPS · the race repeats ---------------- */
@@ -260,7 +260,7 @@ function sceneUps(st){const a=st.X/40,b=st.X/40;const W=Math.max(32,2*(a+6)),D=M
   S.labels=[{x:pa[0],y:2.2,z:pa[1],html:`<span class="y">${T("Dobla","Turns")}</span>`},{x:pb[0],y:2.2,z:pb[1],html:`<span class="g">${T("Evita","Avoids")}</span>`}];
   S.clock=`${nf(Math.min(t,Math.max(tA,tB)),0)} s`;
   if(t>=Math.max(tA,tB))S.cap=tA>tB?T(`Ganó el que ${B_("evita el giro")} por ${B_(nf(tA-tB,1)+" s")}.`,`The truck that ${B_("avoids the turn")} wins by ${B_(nf(tA-tB,1)+" s")}.`):tA<tB?T(`Ganó el que ${B_("dobla")} por ${B_(nf(tB-tA,1)+" s")}: el desvío salió más caro.`,`The truck that ${B_("turns")} wins by ${B_(nf(tB-tA,1)+" s")}: the detour cost more.`):T("Empate.","A tie.");
-  else if(waiting)S.cap=T(`El amarillo espera para doblar: ${B_(nf(t-tStop)+" s")} con el motor andando.`,`The yellow truck waits to turn: ${B_(nf(t-tStop)+" s")} with the engine running.`);
+  else if(waiting)S.cap=T(`El amarillo espera para doblar: ${B_(nf(t-tStop)+" s")} con el motor encendido.`,`The yellow truck waits to turn: ${B_(nf(t-tStop)+" s")} with the engine running.`);
   else S.cap=T(`El verde da la vuelta a la manzana: ${B_("+"+cur.X+" m")} pero sin esperar.`,`The green one goes around the block: ${B_("+"+cur.X+" m")} but no waiting.`);return true}
  S.fleet=F;S.info=i=>i===0?T(`Dobla a la izquierda · espera <b>${Wr} s</b> en el cruce`,`Turns left · waits <b>${Wr} s</b> at the crossing`):T(`Evita el giro · <b>+${cur.X} m</b> sin esperar`,`Avoids the turn · <b>+${cur.X} m</b> without waiting`);
  S.apply=(st2)=>{cur=Object.assign({},st2);newRace()};
