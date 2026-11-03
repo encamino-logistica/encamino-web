@@ -1,5 +1,5 @@
 {
- "fecha": "2026-11-03T18:47:05.598Z",
+ "fecha": "2026-11-03T18:54:03.286Z",
  "total": 155,
  "fallas": 0,
  "checks": [
@@ -62,17 +62,29 @@
    ]
   },
   {
-   "name": "Inicio · 5 portadas (reels publicados) con miniatura 3D y número de reel, sin estrellas",
+   "name": "Inicio · 6 portadas (reels publicados) con miniatura 3D y número de reel, sin estrellas",
    "pass": true
   },
   {
-   "name": "Biblioteca · 14 libros visibles (sin los 6 que solo usa el reel 6), con 5 separadores de sección",
+   "name": "Biblioteca · 20 libros visibles, con 7 separadores de sección",
    "pass": true
   },
   {
-   "name": "Biblioteca por reel, del más nuevo al primero: Compartidos · Reel #3 y Reel #5 / Reel #4 · Bailey / Reel #3 · IKEA / Reel #2 · Amazon / Reel #1 · UPS",
+   "name": "Biblioteca por reel, del más nuevo al primero: Reel #6 · Fila única / Andenes · compartidos (Reel #4 y Reel #6) / Compartidos · Reel #3 y Reel #5 / Reel #4 · Bailey / Reel #3 · IKEA / Reel #2 · Amazon / Reel #1 · UPS",
    "pass": true,
    "got": [
+    {
+     "k": "fila",
+     "t": "Reel #6 · Fila única",
+     "b": "atri2024,erlang1917,lu2013,odoni,weber1978,winston1977",
+     "e": "REEL #6 FILA ÚNICA"
+    },
+    {
+     "k": "fila+bailey",
+     "t": "Andenes · compartidos (Reel #4 y Reel #6)",
+     "b": "lindley1952",
+     "e": "ANDENES · COMPARTIDOS REEL #4 Y REEL #6"
+    },
     {
      "k": "nivel+ikea",
      "t": "Compartidos · Reel #3 y Reel #5",
@@ -82,7 +94,7 @@
     {
      "k": "bailey",
      "t": "Reel #4 · Bailey",
-     "b": "bailey1952,kaandorp2007,lindley1952,welch1952",
+     "b": "bailey1952,kaandorp2007,welch1952",
      "e": "REEL #4 BAILEY"
     },
     {
@@ -106,12 +118,12 @@
    ]
   },
   {
-   "name": "Biblioteca · con la fila oculta, Lindley (reel 4 y 6) va solo en «Reel #4 · Bailey» y no hay sección compartida de Andenes",
+   "name": "Biblioteca · fila publicada: Lindley (reel 4 y 6) va en «Andenes · compartidos» y sale de «Reel #4 · Bailey»",
    "pass": true,
    "got": {
     "k": "bailey",
     "t": "Reel #4 · Bailey",
-    "b": "bailey1952,kaandorp2007,lindley1952,welch1952",
+    "b": "bailey1952,kaandorp2007,welch1952",
     "e": "REEL #4 BAILEY"
    }
   },
@@ -123,15 +135,17 @@
    "name": "Biblioteca · el filtro «Andenes» deja solo las secciones de reels de andenes",
    "pass": true,
    "got": [
+    "fila",
+    "fila+bailey",
     "bailey"
    ]
   },
   {
-   "name": "Biblioteca · ningún libro exclusivo de la fila (reel 6 sin publicar), ni en la portada",
+   "name": "Biblioteca · los 6 libros exclusivos de la fila están en la estantería",
    "pass": true
   },
   {
-   "name": "Biblioteca · el texto cuenta lo visible: «Catorce fuentes de cinco reels» y no promete calcular todo",
+   "name": "Biblioteca · el texto cuenta lo visible: «Veinte fuentes de seis reels» y no promete calcular todo",
    "pass": true
   },
   {
@@ -139,14 +153,14 @@
    "pass": true
   },
   {
-   "name": "Libro · numeración sobre los visibles (Ficha 01 / 14)",
+   "name": "Libro · numeración sobre los visibles (Ficha 01 / 20)",
    "pass": true
   },
   {
    "name": "Lindley · «La usamos en» solo muestra reels publicados y el cálculo usa tu carga del andén (20 min)",
    "pass": true,
    "got": {
-    "uses": "#bailey",
+    "uses": "#bailey,#fila",
     "live": "Con tus númerosSi esperaste 5 min, tu carga dura 20 min y el siguiente camión llega 6 min después que tú: espera 19 min."
    }
   },
@@ -296,8 +310,8 @@
    "pass": true,
    "got": {
     "mode": "run",
-    "prog": 51.7,
-    "clock": "11:04",
+    "prog": 52,
+    "clock": "11:05",
     "skip": true
    }
   },
@@ -676,9 +690,9 @@
    "got": "juntos"
   },
   {
-   "name": "Reels · portada en orden 5→1 sin la fila (no publicada): nivel, bailey, ikea, amazon, ups",
+   "name": "Reels · portada en orden 6→1: fila, nivel, bailey, ikea, amazon, ups",
    "pass": true,
-   "got": "#nivel,#bailey,#ikea,#amazon,#ups"
+   "got": "#fila,#nivel,#bailey,#ikea,#amazon,#ups"
   },
   {
    "name": "Reels · ?reel=1 abre #ups",
@@ -706,13 +720,13 @@
    "got": "#nivel"
   },
   {
-   "name": "Reels · ?reel=6 (sin publicar) cae en el inicio, no abre la fila",
+   "name": "Reels · ?reel=6 abre #fila",
    "pass": true
   },
   {
-   "name": "Reels · ?caso=fila sigue funcionando aunque no esté en portada, y el título no dice «Reel #6»",
+   "name": "Reels · ?caso=fila abre la fila y el título dice «Reel #6»",
    "pass": true,
-   "got": "Andenes · Fila única¿A qué puerta mandas cada camión?▾"
+   "got": "Reel #6 · Andenes · Fila única¿A qué puerta mandas cada camión?▾"
   },
   {
    "name": "Resultado · «Copiar resultado» es un botón primario grande y visible",
@@ -1005,7 +1019,7 @@
   {
    "name": "Inglés · las fichas de portada están en inglés (38 s / turn, 24.2%)",
    "pass": true,
-   "got": "24.2%|40 → 16 min|11 / 100|50 → 10 m|38 s / turn"
+   "got": "75 → 21 min|24.2%|40 → 16 min|11 / 100|50 → 10 m|38 s / turn"
   },
   {
    "name": "Inglés · el título de la pestaña cambia con el idioma",
