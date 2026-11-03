@@ -1576,6 +1576,7 @@ function thumbs(done){if(!HAS3||!renderer()){done&&done();return}const todo=LABS
 function mountHero(){const host=$("hero-stage");if(!host||!HAS3||!renderer()||V.id)return;const S=sceneHero();attach(host,S);S.prewarm()}
 
 /* ---------- router & language ---------- */
+/* which platform the visit came from: each bio carries ?src=ig|tt|yt (in-app browsers hide the referrer); counted once per visit as an event */(function(){try{const s=new URLSearchParams(location.search).get("src");if(s&&/^(ig|tt|yt)$/.test(s))gc("origen-"+s,1)}catch(e){}})();
 function route(){V.running=false;V.skip=false;V.settle=0;clearTimeout(sceneT);/* a run never survives a change of page */const h=(location.hash||"#inicio").slice(1);const id=LAB[h]?h:null;const view=id?"lab":(h==="biblioteca"?"biblioteca":"inicio");gc(location.pathname+"#"+(id||view));
  closeBook();if(SHEET.kind)closeSheet();$("v-inicio").hidden=view!=="inicio";$("v-lab").hidden=view!=="lab";$("v-biblioteca").hidden=view!=="biblioteca";body.classList.toggle("in-app",view==="lab");
  qsa(".top [data-nav]").forEach(a=>a.setAttribute("aria-current",(a.dataset.nav===view)?"page":"false"));
