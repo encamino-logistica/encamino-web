@@ -8,5 +8,5 @@ bilingüe (ES/EN), pensada para abrirse desde reels de Instagram en el celular.
 - `tests/` — pruebas automáticas con Playwright (`node tests/verify.js`).
 - `capturas/` — capturas de pantalla que dejan las pruebas.
 
-Enlaces profundos por número de reel: `?reel=1` giros UPS, `?reel=2` pasillo de Amazon, `?reel=3` entregas IKEA, `?reel=4` andenes, `?reel=5` nivel de servicio, `?reel=6` fila de camiones;
+Enlaces profundos por número de reel: `?reel=1` giros UPS, `?reel=2` pasillo de Amazon, `?reel=3` entregas IKEA, `?reel=4` andenes, `?reel=5` nivel de servicio;
 `?caso=<id>` también funciona.

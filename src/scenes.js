@@ -80,7 +80,7 @@ function sceneFila(st){const c=st.c,MAXQ=5,LW=3.5,TL=0.92,SP=3.5;const W=Math.ma
  const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,3,D/2)),{root:g,long:"z",az:0.62,azP:0.28,el:0.74,anchor:{x:0,y:3.6,z:bz+0.6}});
  let cur=Object.assign({},st),rng=EC.rngFrom(4242),t=0,nextA=0,trucks=[],q=[],pool=[],busy=new Array(c).fill(-1),free=[];for(let i=NMAX-1;i>=0;i--)free.push(i);
  for(let k=0;k<c;k++)q.push([]);
- const pol=()=>cur.pol==="pool"?"pool":(cur.jq?"jsq":"asig");
+ const pol=()=>cur.pol==="pool"||cur.pol==="jsq"?cur.pol:"asig";
  const expo=m=>-Math.log(1-rng())*m;
  function svc(){const cv=cur.cv/10;if(cv>=0.999)return expo(cur.S);const k=1/(cv*cv);let s=0;for(let i=0;i<3;i++)s+=expo(1);return Math.max(0.2*cur.S,cur.S*(1+(s/3-1)*cv*1.7))}
  function assign(tr){const p=pol();if(p==="pool")pool.push(tr);else if(p==="asig"){tr.lane=Math.floor(rng()*c);q[tr.lane].push(tr)}else{let b=0,bn=1e9;for(let k=0;k<c;k++){const n=q[k].length+(busy[k]!==-1?1:0);if(n<bn){bn=n;b=k}}tr.lane=b;q[b].push(tr)}}
@@ -227,7 +227,7 @@ function sceneIkea(st){const n=st.pack==="armado"?1:st.n,big=st.pack==="armado",
  S.apply=(st2)=>{cur=Object.assign({},st2);reset()};
  S.prewarm=()=>{reset()};
  S.startRun=()=>{reset();S.done=false;S.obs=null};S.progress=()=>ms/dur;
- S.tick=(dt,sp)=>{if(!batch)reset();ms+=dt*1000*sp;if(ms>=dur){ms=dur;S.done=true;const bad=batch.filter(o=>o.bad).length;S.obs=()=>({v:bad+" "+T("de 100","of 100"),l:T("entregas","deliveries")})}return at(dt)};
+ S.tick=(dt,sp)=>{if(!batch)reset();ms+=dt*1000*sp;if(ms>=dur){ms=dur;S.done=true;const bad=batch.filter(o=>o.bad).length;S.obs=()=>({v:bad+" "+T("de 100","of 100"),l:T("llegaron incompletos","arrived incomplete")})}return at(dt)};
  return S}
 
 /* ---------------- UPS · the race repeats ---------------- */
@@ -260,7 +260,7 @@ function sceneUps(st){const a=st.X/40,b=st.X/40;const W=Math.max(32,2*(a+6)),D=M
   S.labels=[{x:pa[0],y:2.2,z:pa[1],html:`<span class="y">${T("Dobla","Turns")}</span>`},{x:pb[0],y:2.2,z:pb[1],html:`<span class="g">${T("Evita","Avoids")}</span>`}];
   S.clock=`${nf(Math.min(t,Math.max(tA,tB)),0)} s`;
   if(t>=Math.max(tA,tB))S.cap=tA>tB?T(`Ganó el que ${B_("evita el giro")} por ${B_(nf(tA-tB,1)+" s")}.`,`The truck that ${B_("avoids the turn")} wins by ${B_(nf(tA-tB,1)+" s")}.`):tA<tB?T(`Ganó el que ${B_("dobla")} por ${B_(nf(tB-tA,1)+" s")}: el desvío salió más caro.`,`The truck that ${B_("turns")} wins by ${B_(nf(tB-tA,1)+" s")}: the detour cost more.`):T("Empate.","A tie.");
-  else if(waiting)S.cap=T(`El amarillo espera para doblar: ${B_(nf(t-tStop)+" s")} con el motor andando.`,`The yellow truck waits to turn: ${B_(nf(t-tStop)+" s")} with the engine running.`);
+  else if(waiting)S.cap=T(`El amarillo espera para doblar: ${B_(nf(t-tStop)+" s")} con el motor encendido.`,`The yellow truck waits to turn: ${B_(nf(t-tStop)+" s")} with the engine running.`);
   else S.cap=T(`El verde da la vuelta a la manzana: ${B_("+"+cur.X+" m")} pero sin esperar.`,`The green one goes around the block: ${B_("+"+cur.X+" m")} but no waiting.`);return true}
  S.fleet=F;S.info=i=>i===0?T(`Dobla a la izquierda · espera <b>${Wr} s</b> en el cruce`,`Turns left · waits <b>${Wr} s</b> at the crossing`):T(`Evita el giro · <b>+${cur.X} m</b> sin esperar`,`Avoids the turn · <b>+${cur.X} m</b> without waiting`);
  S.apply=(st2)=>{cur=Object.assign({},st2);newRace()};
