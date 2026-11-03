@@ -59,7 +59,7 @@ function sceneBailey(st){const c=st.c,N=st.N;const BW=Math.max(c*3.2+3,14);const
  S.apply=(st2,kind)=>{cur=Object.assign({},st2);if(kind!=="live"||!day)newDay()};
  S.prewarm=()=>{if(!day)newDay();Tm=T0+3+cur.s*0.9;for(let k=0;k<5;k++)at(Tm,10);for(let i=0;i<N;i++)if(F.on[i])F.snap(i);F.commit()};
  S.startRun=()=>{newDay();Tm=T0;S.done=false;S.obs=null};S.progress=()=>day?(Tm-T0)/(T1-T0):0;
- S.tick=(dt,sp)=>{if(!day)newDay();Tm+=dt*SPEED*sp;if(Tm>=T1){Tm=T1;S.done=true}return at(Tm,dt)};
+ S.tick=(dt,sp)=>{if(!day)newDay();Tm+=dt*SPEED*sp*Math.max(1,(T1-T0)/150);if(Tm>=T1){Tm=T1;S.done=true}return at(Tm,dt)};
  S.ff=st2=>{cur=Object.assign({},st2);newDay();Tm=T0};
  return S}
 
@@ -146,9 +146,9 @@ function sceneNivel(st){const days=st.days,cols=6,rows=Math.ceil(days/cols);cons
   if(fin){S.cap=T(`Mes terminado: ${B_(red+(red===1?" día penalizado":" días penalizados"))} de ${days}.`,`Month over: ${B_(red+(red===1?" penalized day":" penalized days"))} out of ${days}.`);S.obs=()=>({v:nf(red/days*100,1)+" %",l:T(`este mes: ${red} de ${days} días`,`this month: ${red} of ${days} days`)})}
   else{const fm=EC.fmaxOf(month.n-D0.e,month.meta,month.round);const ok=EC.okDay(D0.f,month.n-D0.e,month.meta,month.round);
    S.cap=L===1?T(`Día ${d+1}: ${B_(D0.f+(D0.f===1?" falla":" fallas"))}. Puedes fallar ${fm}: ${ok?"día pagado":B_("día penalizado")}.`,`Day ${d+1}: ${B_(D0.f+(D0.f===1?" failure":" failures"))}. You may fail ${fm}: ${ok?"day paid":B_("day penalized")}.`)
-    :T(`Día ${d+1}: ${B_(D0.f+" fallas")}. Se juzga al cerrar ${L===6?"la semana":"el mes"}: los días buenos compensan.`,`Day ${d+1}: ${B_(D0.f+" failures")}. Judged when the ${L===6?"week":"month"} closes: good days make up.`)}
+    :T(`Día ${d+1}: ${B_(D0.f+(D0.f===1?" falla":" fallas"))}. Se juzga al cerrar ${L===6?"la semana":"el mes"}: los días buenos compensan.`,`Day ${d+1}: ${B_(D0.f+(D0.f===1?" failure":" failures"))}. Judged when the ${L===6?"week":"month"} closes: good days make up.`)}
   return true}
- S.fleet=F;S.info=()=>{if(!month)return null;const d=Math.min(days-1,Math.floor(ms/dayDur));return T(`Furgón · día ${d+1}: <b>${month[d].f} fallas</b> de ${month.n} paradas`,`Van · day ${d+1}: <b>${month[d].f} failures</b> of ${month.n} stops`)};
+ S.fleet=F;S.info=()=>{if(!month)return null;const d=Math.min(days-1,Math.floor(ms/dayDur));return T(`Furgón · día ${d+1}: <b>${month[d].f} ${month[d].f===1?"falla":"fallas"}</b> de ${month.n} paradas`,`Van · day ${d+1}: <b>${month[d].f} ${month[d].f===1?"failure":"failures"}</b> of ${month.n} stops`)};
  S.apply=(st2,kind)=>{cur=Object.assign({},st2);newMonth()};
  S.prewarm=()=>{newMonth();ms=dayDur*Math.min(days-1,7.5);for(let k=0;k<6;k++)at(1);tiles.forEach(t=>{t.col=t.tc;t.ang=0;t.m.rotation.y=0;t.m.material=mat(t.col)})};
  S.startRun=()=>{newMonth();ms=0;S.done=false;S.obs=null};S.progress=()=>month?ms/(days*dayDur):0;
