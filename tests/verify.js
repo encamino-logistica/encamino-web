@@ -75,9 +75,10 @@ const es1=x=>x.toLocaleString("es-CL",{minimumFractionDigits:1,maximumFractionDi
  const ui=await p.evaluate(()=>({canvas:(c=>c.width===innerWidth&&c.height===innerHeight)(document.querySelector(".game canvas").getBoundingClientRect()),scroll:document.documentElement.scrollHeight-innerHeight,ta:getComputedStyle(document.getElementById("stage")).touchAction,os:getComputedStyle(document.documentElement).overscrollBehaviorY,sw:document.documentElement.scrollWidth,inputs:document.querySelectorAll("#app input").length,buttons:[...document.querySelectorAll("#app button")].filter(b=>b.offsetParent).length,mode:ECAPP.mode}));
  ok("Escena 3D a pantalla completa, sin scroll ni desborde",ui.canvas&&ui.scroll<=1&&ui.sw<=390,ui);
  ok("Lienzo con touch-action:none y sin «tirar para recargar»",ui.ta==="none"&&ui.os==="none",ui);
- ok("Pantalla tranquila al llegar: título, situación, 2 reglas, ▶ Simular y 2 enlaces",ui.mode==="ready"&&ui.inputs===0&&ui.buttons<=7,ui);
+ ok("Pantalla tranquila al llegar: título, situación, 3 reglas (A, B, C), ▶ Simular y 2 enlaces",ui.mode==="ready"&&ui.inputs===0&&ui.buttons<=8,ui);
  ok("La situación en una línea: «3 puertas · 10 camiones por hora · 15 min de descarga»",(await p.textContent(".sit")).includes("3 puertas · 10 camiones por hora"));
- ok("Elegir la regla: «Filas separadas» o «1 fila única»",(await p.$$("#rulepick button")).length===2&&(await p.getAttribute('#rulepick button[data-v="asig"]',"aria-pressed"))==="true");
+ const rp=await p.$$eval("#rulepick button",a=>a.map(b=>b.dataset.v+":"+b.innerText.replace(/\s+/g," ").trim()).join("|"));ok("Elegir la regla como en el reel: «A · Puerta fija», «B · Fila más corta», «C · Fila única» (A marcada)",rp==="asig:A · Puerta fija|jsq:B · Fila más corta|pool:C · Fila única"&&(await p.getAttribute('#rulepick button[data-v="asig"]',"aria-pressed"))==="true",rp);
+ ok("Ayuda de A: «Cada camión llega con su puerta asignada…»",/^Cada camión llega con su puerta asignada: si la suya está ocupada, espera aunque la de al lado esté libre\.$/.test(await p.textContent("#rulehint")));
  ok("Un solo botón protagonista: «▶ Simular la hora punta»",(await p.textContent("#play")).includes("Simular la hora punta"));
  ok("Una manito muestra dónde tocar, sin texto",await p.evaluate(()=>ECAPP.coach));
  await shot(p,"celular_ig_fila_preparar");
@@ -97,10 +98,10 @@ const es1=x=>x.toLocaleString("es-CL",{minimumFractionDigits:1,maximumFractionDi
  ok("▶ Simular corre la hora punta con reloj, barra de avance y «Saltar al final»",run.mode==="run"&&run.prog>3&&/\d:\d\d/.test(run.clock)&&run.skip,run);
  await shot(p,"celular_ig_fila_simulando");
  await p.waitForFunction(()=>ECAPP.mode==="done",null,{timeout:40000});await p.waitForTimeout(1000);
- ok("Al terminar aparece el resultado: 75,0 min de espera con 3 filas separadas",(await p.textContent("#rv"))==="75,0"&&(await p.textContent(".rl")).includes("3 filas separadas"));
- ok("El resultado propone probar la solución del reel",(await p.textContent("#trysol")).includes("1 fila única"));
+ ok("Al terminar aparece el resultado: 75,0 min de espera con puerta fija (3 filas separadas)",(await p.textContent("#rv"))==="75,0"&&(await p.textContent(".rl")).includes("puerta fija (3 filas separadas)"),await p.textContent(".rl"));
+ ok("El resultado propone probar la solución del reel: «C · Fila única»",(await p.textContent("#trysol")).includes("C · Fila única"),await p.textContent("#trysol"));
  await shot(p,"celular_ig_fila_resultado");
- await p.tap("#trysol");await p.waitForTimeout(1200);ok("«Probar 1 fila única» vuelve a simular",(await p.evaluate(()=>ECAPP.mode))==="run");
+ await p.tap("#trysol");await p.waitForTimeout(1200);ok("«Probar C · Fila única» vuelve a simular",(await p.evaluate(()=>ECAPP.mode))==="run");
  await p.tap("#skip");await p.waitForFunction(()=>ECAPP.mode==="done",null,{timeout:40000});await p.waitForTimeout(1200);
  const res2=await p.evaluate(()=>({v:document.getElementById("rv").textContent,cmp:(document.querySelector(".rcmp")||{}).textContent||"",aha:(document.querySelector(".raha")||{}).textContent||""}));
  ok("Comparación con la corrida anterior: 75,0 → 21,1 min (−72 %) y el ajá",res2.v==="21,1"&&res2.cmp.includes("75,0")&&res2.cmp.includes("−72 %")&&res2.aha.includes("Mismas puertas"),res2);
@@ -110,6 +111,14 @@ const es1=x=>x.toLocaleString("es-CL",{minimumFractionDigits:1,maximumFractionDi
  await p.tap('#sheet [data-book="erlang1917"]');await p.waitForTimeout(1600);ok("Libro de Erlang con la ecuación y tus números (21,1 min)",(await p.textContent(".blive")).includes("21,1"));await shot(p,"celular_ig_libro");await p.tap(".bk-x");await p.waitForTimeout(500);
  await p.tap('#panel [data-sheet="share"]');await p.waitForTimeout(700);ok("Compartir: un solo botón «Copiar mi resultado», sin WhatsApp ni Instagram",(await p.$$("#sheet-body .cta")).length===1&&!(await p.$("#wa"))&&!(await p.$("#igc")));
  await p.tap("#copy");await p.waitForTimeout(300);const clip=await p.evaluate(()=>navigator.clipboard.readText().catch(()=>window.__lastShare));ok("Copiar mi resultado: frase con la mejora (75,0 → 21,1 min, −72 %) y link con la configuración",clip.includes("75,0 min")&&clip.includes("21,1 min")&&clip.includes("−72 %")&&/Frente al reel: \d+ %/.test(clip)&&clip.includes("¿Le ganas?")&&clip.includes("caso=fila")&&clip.includes("regla=unica"),clip);await p.tap(".sh-x");await p.waitForTimeout(400);
+ /* B · fila más corta (jefe de patio): the reel's ≈25 min, between A and C */
+ if(await p.$("#again")){await p.tap("#again");await p.waitForTimeout(400)}
+ await p.tap('#rulepick button[data-v="jsq"]');await p.waitForTimeout(500);
+ ok("Ayuda de B: el jefe de patio manda a la puerta con menos cola",/^El jefe de patio manda cada camión a la puerta con menos cola al llegar\.$/.test(await p.textContent("#rulehint")));await shot(p,"celular_ig_fila_regla_b");
+ await p.tap("#play");await p.waitForTimeout(400);await p.tap("#skip").catch(()=>{});await p.waitForFunction(()=>ECAPP.mode==="done",null,{timeout:40000});await p.waitForTimeout(900);
+ const rB=await p.evaluate(()=>({v:document.getElementById("rv").textContent,l:document.querySelector(".rl").textContent,sol:(document.getElementById("trysol")||{}).textContent||"",ouch:(document.querySelector(".rouch")||{}).textContent||"",url:ECAPP.shareURL("fila"),txt:ECAPP.shareText("fila")}));const nB=parseFloat(rB.v.replace(",","."));
+ ok("B · Fila más corta con los números del reel: entre 23 y 27 min (el reel dice ≈25)",nB>=23&&nB<=27&&/fila más corta \(jefe de patio\)/.test(rB.l),rB);
+ ok("B · propone probar «C · Fila única», explica la puerta ociosa y comparte regla=corta",rB.sol.includes("C · Fila única")&&/otra puerta se libera/.test(rB.ouch)&&/regla=corta/.test(rB.url)&&/con la fila más corta \(jefe de patio\) a 21,1 min con 1 fila única/.test(rB.txt),rB);await shot(p,"celular_ig_fila_resultado_b");
  await p.tap("#edit");await p.waitForTimeout(700);
  ok("«Cambiar los números»: sliders, escenarios, vista e idioma, sin teclado",(await p.$$("#sheet input[type=range]")).length>=2&&(await p.$$("#chips .chip")).length===3&&(await p.$$("#sheet [data-view]")).length===2&&(await p.$$("#sheet input[type=number]")).length===0);
  await shot(p,"celular_ig_cambiar_numeros");
@@ -156,7 +165,7 @@ const es1=x=>x.toLocaleString("es-CL",{minimumFractionDigits:1,maximumFractionDi
  const fiO=await q.evaluate(()=>({ouch:(document.querySelector(".rouch")||{}).textContent||"",aha:!!document.querySelector(".raha")}));ok("Fila · volver a filas separadas explica la puerta vacía (no el texto de la fila única)",/puerta puede quedar vacía/.test(fiO.ouch)&&!fiO.aha,fiO);
  await q.evaluate(()=>ECAPP.set("fila",{pol:"pool",c:4}));await q.waitForTimeout(600);await runOnce();
  const fiC=await q.evaluate(()=>({cmp:(document.querySelector(".rcmp")||{}).textContent||"",aha:!!document.querySelector(".raha"),ouch:!!document.querySelector(".rouch")}));ok("Fila · si cambian los números junto con la regla, no dice «mismas puertas»",/otros números/.test(fiC.cmp)&&!fiC.aha&&!fiC.ouch,fiC);
- await q.evaluate(()=>{try{localStorage.setItem("ec5-state",JSON.stringify({fila:{c:5,lam:10,S:15,pol:"asig",jq:false,cv:10}}))}catch(e){}});
+ await q.evaluate(()=>{try{localStorage.setItem("ec5-state",JSON.stringify({fila:{c:5,lam:10,S:15,pol:"asig",cv:10}}))}catch(e){}});
  await q.goto(BASE+"?caso=fila&regla=unica");await q.waitForSelector("#play");await q.waitForTimeout(1200);
  const lk=await q.textContent(".sit");ok("Link compartido · abre con 3 puertas aunque el teléfono tenía 5 guardadas",/^3 puertas/.test(lk),lk);
  await q.goto(BASE+"?caso=nivel&eval=mes");await q.waitForSelector("#play");await q.waitForTimeout(1200);await runOnce();
@@ -177,6 +186,8 @@ const es1=x=>x.toLocaleString("es-CL",{minimumFractionDigits:1,maximumFractionDi
  const v0=await runOnce();await q.tap("#trysol");await q.waitForTimeout(400);await q.tap("#skip").catch(()=>{});await q.waitForFunction(()=>ECAPP.mode==="done",null,{timeout:40000});await q.waitForTimeout(900);
  const en=await q.evaluate(()=>({v:document.querySelector("#rv").textContent,cmp:(document.querySelector(".rcmp")||{}).textContent||"",aha:!!document.querySelector(".raha"),ouch:!!document.querySelector(".rouch")}));
  ok("En inglés (105.0 → 49.0) la comparación y la lección siguen siendo correctas",v0==="105"&&en.v==="49.0"&&/−53 %/.test(en.cmp)&&en.aha&&!en.ouch,{v0,en});await q.evaluate(()=>document.getElementById("lang-es").click());
+ const lnk=await (async()=>{const o={};for(const [u,k] of [["regla=corta","corta"],["regla=separadas","sep"],["regla=unica","uni"],["regla=separadas&jefe=1","jefe"],["regla=unica&jefe=1","unijefe"]]){await q.goto(BASE+"?caso=fila&"+u);await q.waitForSelector("#play");o[k]=await q.evaluate(()=>ECAPP.STATE.fila.pol)}return o})();
+ ok("Links de la fila: regla=corta abre B; separadas y unica siguen funcionando; jefe=1 antiguo abre B salvo con fila única",lnk.corta==="jsq"&&lnk.sep==="asig"&&lnk.uni==="pool"&&lnk.jefe==="jsq"&&lnk.unijefe==="pool"&&!/jefe=/.test(await q.evaluate(()=>ECAPP.shareURL("fila"))),lnk);
  await q.goto(BASE+"?caso=fila&puertas=0&camiones=abc&regla=loquesea");await q.waitForSelector("#play");await q.waitForTimeout(900);
  const inv=await q.evaluate(()=>({st:ECAPP.STATE.fila,rv:document.querySelector(".sit").textContent}));ok("Link con valores inválidos (0 puertas, texto, regla inexistente) se acota al rango y no rompe nada",inv.st.c===1&&inv.st.lam===10&&inv.st.pol==="asig"&&/1 puerta/.test(inv.rv),inv);
  await q.goto(BASE+"?caso=nivel&eval=foo&dias=0");await q.waitForSelector("#play");await q.waitForTimeout(900);const nvI=await runOnce(),nvD=await q.evaluate(()=>[ECAPP.STATE.nivel.period,ECAPP.STATE.nivel.days]);ok("Nivel · link con período inexistente y 0 días: cae en «cada día», 10 días, y da 24,2",nvI==="24,2"&&nvD[0]==="dia"&&nvD[1]===10,{nvI,nvD});
@@ -235,11 +246,11 @@ ok("Sin preserveDrawingBuffer (ahorra GPU en el WebView) y con recuperación del
  const nvx=await verd("nivel",{period:"mes",x:30});ok("Nivel · solo la perilla extra (excluir fallas ajenas) le gana al reel",nvx.v==="¡Le ganaste al modelo!",nvx);
  const nvs=await verd("nivel",{period:"semana"});ok("Nivel · texto por semana sin repetir: «medido día a día … medido por semana»",/medido día a día me penalizan [\d,]+ % de los días; medido por semana, [\d,]+ %/.test(nvs.txt),nvs.txt);
  const sweep=await v.evaluate(()=>{const bad=[];const chk=(id,t)=>{if(/NaN|Infinity|undefined|−-|-0 %|−0 %|-0,0|\b1 (puertas|camiones|filas)\b/.test(t))bad.push([id,t])};for(const id of ["bailey","fila","nivel","amazon","ikea","ups"]){const G=ECAPP.LAB[id].game;const defs=[G.rule].concat(G.sliders,G.ajustes,G.reto||[]);for(const c of defs){const vals=c.type==="seg"?c.opts.map(o=>o[0]):c.type==="check"?[true,false]:[c.min,c.max];for(const x of vals){for(const lg of ["es","en"]){document.getElementById("lang-"+lg).click();Object.assign(ECAPP.STATE[id],ECAPP.LAB[id].def,{[c.k]:x});chk(id+"."+c.k+"="+x,ECAPP.shareText(id))}}}}
-   for(const set of [{c:4,lam:1,S:15,jq:true},{c:1,lam:1,S:15},{c:1,lam:5,S:15,jq:true},{c:5,lam:1,S:3,pol:"pool"}])for(const lg of ["es","en"]){document.getElementById("lang-"+lg).click();Object.assign(ECAPP.STATE.fila,ECAPP.LAB.fila.def,set);chk("fila "+JSON.stringify(set),ECAPP.shareText("fila"))}
+   for(const set of [{c:4,lam:1,S:15,pol:"jsq"},{c:1,lam:1,S:15},{c:1,lam:5,S:15,pol:"jsq"},{c:5,lam:1,S:3,pol:"pool"}])for(const lg of ["es","en"]){document.getElementById("lang-"+lg).click();Object.assign(ECAPP.STATE.fila,ECAPP.LAB.fila.def,set);chk("fila "+JSON.stringify(set),ECAPP.shareText("fila"))}
    for(const set of [{W:21,X:150},{W:22,X:150},{ord:"orden",z:20}])for(const id of ["ups","amazon"]){Object.assign(ECAPP.STATE[id],ECAPP.LAB[id].def,set);chk(id,ECAPP.shareText(id));chk(id+" m",JSON.stringify(ECAPP.metrics(id)))}
    document.getElementById("lang-es").click();return bad});
  ok("Barrido de palancas (mín/máx, ES/EN): ningún texto para copiar con NaN, ∞, «−-0 %» ni «1 puertas»",sweep.length===0,sweep.slice(0,4));
- const fl=await v.evaluate(()=>{Object.assign(ECAPP.STATE.fila,ECAPP.LAB.fila.def,{c:4,lam:1,S:15,jq:true});return{t:ECAPP.shareText("fila"),m:JSON.stringify(ECAPP.metrics("fila"))}});ok("Fila · carga muy baja con jefe de patio (4 puertas, 1/h): sin NaN y sin «colapsa»",!/NaN|colapsa/.test(fl.t+fl.m),fl.t);
+ const fl=await v.evaluate(()=>{Object.assign(ECAPP.STATE.fila,ECAPP.LAB.fila.def,{c:4,lam:1,S:15,pol:"jsq"});return{t:ECAPP.shareText("fila"),m:JSON.stringify(ECAPP.metrics("fila"))}});ok("Fila · carga muy baja con jefe de patio (4 puertas, 1/h): sin NaN y sin «colapsa»",!/NaN|colapsa/.test(fl.t+fl.m),fl.t);
  await v.goto(BASE+"?caso=fila&regla=unica&puertas=2");await v.waitForSelector("#play");await v.evaluate(()=>ECAPP.openSheet("fila","share"));await v.waitForTimeout(400);
  const su=await v.textContent("#share-text .url");ok("Compartir · el enlace mostrado conserva «&regla» (sin ® ni ¶)",/&regla=unica/.test(su)&&!/[®¶]/.test(su),su);
  ok("Compartir · la hoja invita a dejarlo en los comentarios del reel",/comentarios del reel/.test(await v.textContent("#sheet-body .lead")));await v.evaluate(()=>ECAPP.closeSheet());

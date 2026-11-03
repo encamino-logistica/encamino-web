@@ -265,6 +265,8 @@ body.in-app{overflow:hidden;height:100dvh}
 .sit{margin:0;font:500 14px/1.4 var(--f-b);color:var(--muted);text-align:center}
 .seg.big{background:#0F172999;padding:5px;border-radius:20px}
 .seg.big button{min-height:52px;font:700 15px/1.15 var(--f-b);border-radius:16px}
+/* reel 6 has three door rules (A, B, C): keep them compact on short phones */
+@media (max-height:700px){.seg.big.rp-fila button{min-height:40px;font-size:14px;line-height:1.05;padding-top:4px;padding-bottom:4px}.seg.big.rp-fila+.seghint{font-size:12.5px;line-height:1.35}}
 .play{position:relative;width:100%;min-height:58px;border:0;border-radius:999px;background:var(--yellow);color:var(--bg);font:800 19px var(--f-d);cursor:pointer;box-shadow:0 16px 36px -16px var(--yellow)}
 .links{display:flex;justify-content:center;align-items:center;gap:4px 16px;flex-wrap:wrap}
 .play.copy{min-height:50px;font-size:17px;background:var(--mint);box-shadow:none;margin-top:2px}

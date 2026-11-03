@@ -80,7 +80,7 @@ function sceneFila(st){const c=st.c,MAXQ=5,LW=3.5,TL=0.92,SP=3.5;const W=Math.ma
  const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,3,D/2)),{root:g,long:"z",az:0.62,azP:0.28,el:0.74,anchor:{x:0,y:3.6,z:bz+0.6}});
  let cur=Object.assign({},st),rng=EC.rngFrom(4242),t=0,nextA=0,trucks=[],q=[],pool=[],busy=new Array(c).fill(-1),free=[];for(let i=NMAX-1;i>=0;i--)free.push(i);
  for(let k=0;k<c;k++)q.push([]);
- const pol=()=>cur.pol==="pool"?"pool":(cur.jq?"jsq":"asig");
+ const pol=()=>cur.pol==="pool"||cur.pol==="jsq"?cur.pol:"asig";
  const expo=m=>-Math.log(1-rng())*m;
  function svc(){const cv=cur.cv/10;if(cv>=0.999)return expo(cur.S);const k=1/(cv*cv);let s=0;for(let i=0;i<3;i++)s+=expo(1);return Math.max(0.2*cur.S,cur.S*(1+(s/3-1)*cv*1.7))}
  function assign(tr){const p=pol();if(p==="pool")pool.push(tr);else if(p==="asig"){tr.lane=Math.floor(rng()*c);q[tr.lane].push(tr)}else{let b=0,bn=1e9;for(let k=0;k<c;k++){const n=q[k].length+(busy[k]!==-1?1:0);if(n<bn){bn=n;b=k}}tr.lane=b;q[b].push(tr)}}
