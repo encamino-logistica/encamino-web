@@ -173,7 +173,7 @@ function sceneAmazon(st){const bays=Math.max(2,Math.round(Math.min(60,Math.max(4
  const op=person(g,P.yellow,x0-0.5,0,Math.PI/2);const cartM=new THREE.Group();rb(cartM,0.9,0.5,0.6,P.sky,0,0.3,0,0.08);rb(cartM,0.08,0.7,0.6,P.dark,-0.5,0.3,0,0.03);[[-0.3,-0.25],[0.3,-0.25],[-0.3,0.25],[0.3,0.25]].forEach(p=>put(cartM,GEO().wheelS,mat(P.dark),p[0],0.12,p[1]).scale.set(0.6,0.3,0.6));g.add(cartM);
  const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2+1,0,-D/2),new THREE.Vector3(W/2-1,3.4,D/2)),{root:g,az:0.42,azP:0.25,el:0.7,anchor:{x:x0+AL*0.62,y:4.4,z:0}});
  let cur=Object.assign({},st),ord=null,ms=0,dur=1,seed=5,n=0,sum=0,clk=0;
- const effK=()=>cur.ord==="orden"?1:cur.k;
+ const effK=()=>cur.ord==="orden"?1:cur.k,NO=()=>Math.max(1,Math.round(cur.o||4));
  function newOrder(){seed++;const r=EC.rngFrom(seed*65537);const z=cur.z/100;const list=[];for(let j=0;j<effK();j++)list.push({x:r()*z*cur.L,side:r()<0.5?-1:1,lvl:Math.floor(r()*3)});ord={copies:list,near:Math.min(...list.map(c=>c.x))};ms=0;dur=600+1500*ord.near/cur.L;zone.scale.x=Math.max(0.01,z*AL);zone.position.x=x0+z*AL/2;zline.position.x=x0+z*AL;zone.visible=zline.visible=z<0.999}
  function at(dt){clk+=dt;const u=Math.min(1,ms/dur);for(let i=0;i<20;i++){if(i<ord.copies.length){const c=ord.copies[i];const x=x0+c.x/cur.L*AL,y=0.18+c.lvl*1.0,z=c.side*2.35;setI(copies,i,x,y+0.4+Math.sin(clk*4+i)*0.08,z,1,1,1);STAR.set(i,x,y+1.45,z,true);setI(rings,i,x,0.04,c.side*1.45,1+(c.x===ord.near?Math.sin(clk*6)*0.12:0),1+(c.x===ord.near?Math.sin(clk*6)*0.12:0),1,0,-Math.PI/2)}else{copies.setMatrixAt(i,_m4.makeScale(0,0,0));STAR.set(i,0,0,0,false);rings.setMatrixAt(i,_m4.makeScale(0,0,0))}}copies.instanceMatrix.needsUpdate=true;rings.instanceMatrix.needsUpdate=true;
   const d=ord.near/cur.L*AL;let x,walked,dir=1;if(u<0.44){x=d*ease(u/0.44);walked=ord.near*ease(u/0.44)}else if(u<0.56){x=d;walked=ord.near}else{x=d*(1-ease((u-0.56)/0.44));walked=ord.near*(1+ease((u-0.56)/0.44));dir=-1}
@@ -183,8 +183,8 @@ function sceneAmazon(st){const bays=Math.max(2,Math.round(Math.min(60,Math.max(4
   S.cap=T(`La copia más cercana está a ${B_(nf(ord.near,1)+" m")}${effK()>1?` (hay ${effK()} copias)`:" (hay una sola)"}.`,`The nearest copy is ${B_(nf(ord.near,1)+" m")} away${effK()>1?` (${effK()} copies)`:" (only one)"}.`);return true}
  S.apply=(st2)=>{cur=Object.assign({},st2);newOrder()};
  S.prewarm=()=>{newOrder();ms=dur*0.3;at(0.016)};
- S.startRun=()=>{n=0;sum=0;newOrder();S.done=false;S.obs=null};S.progress=()=>Math.min(1,(n+Math.min(1,ms/dur))/4);
- S.tick=(dt,sp)=>{if(!ord)newOrder();ms+=dt*1000*sp;if(ms>=dur){n++;sum+=ord.near;if(n>=4){ms=dur;S.done=true;S.obs=()=>({v:nf(sum/4,1)+" m",l:T("en estos 4 pedidos","in these 4 orders")});return at(dt)}newOrder()}return at(dt)};
+ S.startRun=()=>{n=0;sum=0;newOrder();S.done=false;S.obs=null};S.progress=()=>Math.min(1,(n+Math.min(1,ms/dur))/NO());
+ /* more orders run faster, so the whole run stays about as long as 6 orders */S.tick=(dt,sp)=>{if(!ord)newOrder();ms+=dt*1000*sp*Math.max(1,NO()/6);if(ms>=dur){n++;sum+=ord.near;if(n>=NO()){ms=dur;S.done=true;const N=NO();S.obs=()=>({v:nf(sum/N,1)+" m",l:N===1?T("en este pedido","in this order"):T(`promedio de estos ${N} pedidos`,`average of these ${N} orders`)});return at(dt)}newOrder()}return at(dt)};
  S.ff=st2=>S.apply(st2);
  return S}
 
