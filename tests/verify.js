@@ -40,27 +40,30 @@ const es1=x=>x.toLocaleString("es-CL",{minimumFractionDigits:1,maximumFractionDi
 
  /* ---------- 2. Inicio y biblioteca ---------- */
  await shot(d,"escritorio_inicio",true);
- ok("Inicio · 5 portadas (reels publicados) con miniatura 3D y número de reel, sin estrellas",(await d.$$("#cards .card img")).length===5&&(await d.$$("#cards .reeln")).length===5&&!(await d.textContent("#cards")).includes("★"));
+ const FILAPUB=await d.evaluate(()=>ECAPP.dev.PUBLICADO.fila);/* the reel-6 lab is hidden until Christian publishes; every check below holds in both states */
+ const NREEL=FILAPUB?6:5;
+ ok("Inicio · "+NREEL+" portadas (reels publicados) con miniatura 3D y número de reel, sin estrellas",(await d.$$("#cards .card img")).length===NREEL&&(await d.$$("#cards .reeln")).length===NREEL&&!(await d.textContent("#cards")).includes("★"));
  await d.evaluate(()=>location.hash="biblioteca");await d.waitForSelector("#shelves .book");
- ok("Biblioteca · 14 libros visibles (sin los 6 que solo usa el reel 6), con 5 separadores de sección",(await d.$$("#shelves .book[data-book]")).length===14&&(await d.$$("#shelves .bookend")).length===5);
+ ok(FILAPUB?"Biblioteca · 20 libros visibles, con 7 separadores de sección":"Biblioteca · 14 libros visibles (sin los 6 que solo usa el reel 6), con 5 separadores de sección",(await d.$$("#shelves .book[data-book]")).length===(FILAPUB?20:14)&&(await d.$$("#shelves .bookend")).length===(FILAPUB?7:5));
  const libS=async pg=>pg.evaluate(()=>[...document.querySelectorAll("#shelves .case-grid")].map(g=>({k:g.dataset.sec,t:g.getAttribute("aria-label"),b:[...g.querySelectorAll(".book[data-book]")].map(x=>x.dataset.book).sort().join(),e:g.querySelector(".bookend").innerText.replace(/\s+/g," ").trim()})));
  const ls0=await libS(d);
- ok("Biblioteca por reel, del más nuevo al primero: Compartidos · Reel #3 y Reel #5 (Bernoulli, tras el reel 5) / Reel #4 · Bailey / Reel #3 · IKEA / Reel #2 · Amazon / Reel #1 · UPS",ls0.map(s=>s.k).join()==="nivel+ikea,bailey,ikea,amazon,ups"&&ls0.map(s=>s.t).join("|")==="Compartidos · Reel #3 y Reel #5|Reel #4 · Bailey|Reel #3 · IKEA|Reel #2 · Amazon|Reel #1 · UPS"&&ls0[0].b==="bernoulli1713"&&/REEL #4.*BAILEY/i.test(ls0[1].e),ls0);
- ok("Biblioteca · con la fila oculta, Lindley (reel 4 y 6) va solo en «Reel #4 · Bailey» y no hay sección compartida de Andenes",ls0[1].b==="bailey1952,kaandorp2007,lindley1952,welch1952"&&!ls0.some(s=>/Andenes · compartidos/.test(s.t)),ls0[1]);
+ {const K=FILAPUB?"fila,fila+bailey,nivel+ikea,bailey,ikea,amazon,ups":"nivel+ikea,bailey,ikea,amazon,ups",TT=FILAPUB?"Reel #6 · Fila única|Andenes · compartidos (Reel #4 y Reel #6)|Compartidos · Reel #3 y Reel #5|Reel #4 · Bailey|Reel #3 · IKEA|Reel #2 · Amazon|Reel #1 · UPS":"Compartidos · Reel #3 y Reel #5|Reel #4 · Bailey|Reel #3 · IKEA|Reel #2 · Amazon|Reel #1 · UPS";const iN=ls0.findIndex(x=>x.k==="nivel+ikea"),iB=ls0.findIndex(x=>x.k==="bailey");
+ ok("Biblioteca por reel, del más nuevo al primero: "+TT.split("|").join(" / "),ls0.map(x=>x.k).join()===K&&ls0.map(x=>x.t).join("|")===TT&&ls0[iN].b==="bernoulli1713"&&/REEL #4.*BAILEY/i.test(ls0[iB].e),ls0);
+ ok(FILAPUB?"Biblioteca · fila publicada: Lindley (reel 4 y 6) va en «Andenes · compartidos» y sale de «Reel #4 · Bailey»":"Biblioteca · con la fila oculta, Lindley (reel 4 y 6) va solo en «Reel #4 · Bailey» y no hay sección compartida de Andenes",FILAPUB?(ls0[iB].b==="bailey1952,kaandorp2007,welch1952"&&ls0[1].b==="lindley1952"&&ls0[0].b==="atri2024,erlang1917,lu2013,odoni,weber1978,winston1977"):(ls0[iB].b==="bailey1952,kaandorp2007,lindley1952,welch1952"&&!ls0.some(x=>/Andenes · compartidos/.test(x.t))),ls0[iB]);}
  ok("Biblioteca · ningún libro repetido entre secciones",(()=>{const a=ls0.flatMap(s=>s.b.split(","));return new Set(a).size===a.length})());
  await d.click('#libfilters [data-f="anden"]');await d.waitForTimeout(300);const lsA=await libS(d);await d.click('#libfilters [data-f="todos"]');await d.waitForTimeout(300);
- ok("Biblioteca · el filtro «Andenes» deja solo las secciones de reels de andenes",lsA.map(s=>s.k).join()==="bailey",lsA.map(s=>s.k));
+ ok("Biblioteca · el filtro «Andenes» deja solo las secciones de reels de andenes",lsA.map(s=>s.k).join()===(FILAPUB?"fila,fila+bailey,bailey":"bailey"),lsA.map(s=>s.k));
  const FILAONLY=["erlang1917","winston1977","weber1978","odoni","atri2024","lu2013"];
- ok("Biblioteca · ningún libro exclusivo de la fila (reel 6 sin publicar), ni en la portada",await d.evaluate(F=>F.every(id=>!document.querySelector(`#v-biblioteca [data-book="${id}"]`))&&ECAPP.SOURCES.filter(s=>s.labs.every(l=>l==="fila")).map(s=>s.id).sort().join()===F.slice().sort().join(),FILAONLY));
- ok("Biblioteca · el texto cuenta lo visible: «Catorce fuentes de cinco reels» y no promete calcular todo",/Catorce fuentes de cinco reels, del más nuevo al primero/.test(await d.textContent("#libintro"))&&/cuando se puede/.test(await d.textContent("#libintro")));
+ ok(FILAPUB?"Biblioteca · los 6 libros exclusivos de la fila están en la estantería":"Biblioteca · ningún libro exclusivo de la fila (reel 6 sin publicar), ni en la portada",await d.evaluate(([F,P])=>F.every(id=>!!document.querySelector(`#v-biblioteca [data-book="${id}"]`)===P)&&ECAPP.SOURCES.filter(s=>s.labs.every(l=>l==="fila")).map(s=>s.id).sort().join()===F.slice().sort().join(),[FILAONLY,FILAPUB]));
+ ok("Biblioteca · el texto cuenta lo visible: «"+(FILAPUB?"Veinte fuentes de seis reels":"Catorce fuentes de cinco reels")+"» y no promete calcular todo",(FILAPUB?/Veinte fuentes de seis reels, del más nuevo al primero/:/Catorce fuentes de cinco reels, del más nuevo al primero/).test(await d.textContent("#libintro"))&&/cuando se puede/.test(await d.textContent("#libintro")));
  await shot(d,"escritorio_biblioteca",true);
  await d.click('#shelves [data-book="bailey1952"]');await d.waitForTimeout(1500);
  ok("Libro abierto · gancho, historia, ecuación con símbolos, frase y «Con tus números» (16,0 min)",(await d.textContent(".pstory")).includes("Bailey")&&(await d.$$(".phook")).length===1&&(await d.$$(".syms dt")).length>=3&&(await d.$$(".pfrase")).length===1&&(await d.$$(".bk-page .beq")).length===1&&(await d.textContent(".blive")).includes("16,0 min"));
- ok("Libro · numeración sobre los visibles (Ficha 01 / 14)",/Ficha 01 \/ 14/.test(await d.textContent(".bk-page .pno")));
+ ok("Libro · numeración sobre los visibles (Ficha 01 / "+(FILAPUB?20:14)+")",new RegExp("Ficha \\d\\d \\/ "+(FILAPUB?20:14)).test(await d.textContent(".bk-page .pno")));
  await shot(d,"escritorio_libro_bailey");await d.keyboard.press("Escape");
  await d.evaluate(()=>ECAPP.openBook("lindley1952"));await d.waitForTimeout(400);
  const lin=await d.evaluate(()=>({uses:[...document.querySelectorAll(".bk-page .puses a")].map(a=>a.getAttribute("href")).join(),live:document.querySelector(".blive").textContent}));
- ok("Lindley · «La usamos en» solo muestra el reel publicado y el cálculo usa tu carga del andén (20 min)",lin.uses==="#bailey"&&/tu carga dura 20 min/.test(lin.live),lin);
+ ok("Lindley · «La usamos en» solo muestra reels publicados y el cálculo usa tu carga del andén (20 min)",lin.uses===(FILAPUB?"#bailey,#fila":"#bailey")&&/tu carga dura 20 min/.test(lin.live),lin);
  await d.evaluate(()=>ECAPP.openBook("kaandorp2007"));await d.waitForTimeout(300);
  ok("Kaandorp · α_W se ve con subíndice y sin «la base»",await d.evaluate(()=>{const t=document.querySelector(".pdato");return t.querySelectorAll("sub").length>=3&&!/_W/.test(t.textContent)&&!/la base/.test(document.querySelector(".bk-page").textContent)}));
  await d.evaluate(()=>document.querySelector(".bk-x").click());
@@ -202,10 +205,10 @@ const es1=x=>x.toLocaleString("es-CL",{minimumFractionDigits:1,maximumFractionDi
  const rst=await q.evaluate(()=>ECAPP.STATE.bailey.rule);ok("Bailey · «Volver al ejemplo del reel» tras mover la perilla extra deja la regla del reel, no «propia»",rst==="juntos",rst);
  /* final audit: reel numbers, shared text, primary copy button, Bailey quick rule */
  await q.goto(BASE);await q.waitForTimeout(1200);const ord=await q.evaluate(()=>[...document.querySelectorAll("#cards .card")].map(a=>a.getAttribute("href")).join(","));
- ok("Reels · portada en orden 5→1 sin la fila (no publicada): nivel, bailey, ikea, amazon, ups",ord==="#nivel,#bailey,#ikea,#amazon,#ups",ord);
+ ok(FILAPUB?"Reels · portada en orden 6→1: fila, nivel, bailey, ikea, amazon, ups":"Reels · portada en orden 5→1 sin la fila (no publicada): nivel, bailey, ikea, amazon, ups",ord===(FILAPUB?"#fila,":"")+"#nivel,#bailey,#ikea,#amazon,#ups",ord);
  for(const [n,id] of [[1,"ups"],[2,"amazon"],[3,"ikea"],[4,"bailey"],[5,"nivel"]]){await q.goto(BASE+"?reel="+n);await q.waitForSelector("#play");const h=await q.evaluate(()=>location.hash);ok(`Reels · ?reel=${n} abre #${id}`,h==="#"+id,h)}
- await q.goto(BASE+"?reel=6");await q.waitForSelector("#cards .card");await q.waitForTimeout(600);ok("Reels · ?reel=6 (sin publicar) cae en el inicio, no abre la fila",await q.evaluate(()=>!document.getElementById("v-inicio").hidden&&document.getElementById("v-lab").hidden&&location.hash!=="#fila"));
- await q.goto(BASE+"?caso=fila");await q.waitForSelector("#play");ok("Reels · ?caso=fila sigue funcionando aunque no esté en portada, y el título no dice «Reel #6»",(await q.evaluate(()=>location.hash))==="#fila"&&!/Reel #6/.test(await q.textContent("#reels")),await q.textContent("#reels"));
+ await q.goto(BASE+"?reel=6");await q.waitForTimeout(1200);if(FILAPUB)ok("Reels · ?reel=6 abre #fila",await q.evaluate(()=>location.hash==="#fila"&&!document.getElementById("v-lab").hidden));else ok("Reels · ?reel=6 (sin publicar) cae en el inicio, no abre la fila",await q.evaluate(()=>!document.getElementById("v-inicio").hidden&&document.getElementById("v-lab").hidden&&location.hash!=="#fila"));
+ await q.goto(BASE+"?caso=fila");await q.waitForSelector("#play");ok(FILAPUB?"Reels · ?caso=fila abre la fila y el título dice «Reel #6»":"Reels · ?caso=fila sigue funcionando aunque no esté en portada, y el título no dice «Reel #6»",(await q.evaluate(()=>location.hash))==="#fila"&&(/Reel #6/.test(await q.textContent("#reels"))===FILAPUB),await q.textContent("#reels"));
  await q.goto(BASE+"?caso=fila");await q.waitForSelector("#play");await q.waitForTimeout(1000);await runOnce();
  const cb=await q.evaluate(()=>{const b=document.getElementById("copyres");return b?{cls:b.className,h:Math.round(b.getBoundingClientRect().height),vis:!!b.offsetParent}:null});
  ok("Resultado · «Copiar resultado» es un botón primario grande y visible",!!cb&&/play/.test(cb.cls)&&cb.h>=44&&cb.vis,cb);
