@@ -91,7 +91,7 @@ function mountLabScene(id){const host=$("stage");if(!host)return;if(!HAS3||!rend
 
 /* ---------- the run: prepare → ▶ Simular → result ---------- */
 const RUNSP={fila:8,bailey:2.6,ups:1.1};
-const RUNWORD={bailey:{es:"el día",en:"the day"},fila:{es:"la hora punta",en:"rush hour"},nivel:{es:"el mes",en:"the month"},amazon:{es:"4 pedidos",en:"4 orders"},ikea:{es:"100 entregas",en:"100 deliveries"},ups:{es:"la carrera",en:"the race"}};
+const RUNWORD={bailey:{es:"el día",en:"the day"},fila:{es:"la hora punta",en:"rush hour"},nivel:{es:"el mes",en:"the month"},amazon:{es:"pedidos",en:"orders"},ikea:{es:"100 entregas",en:"100 deliveries"},ups:{es:"la carrera",en:"the race"}};
 const SIT={bailey:st=>T(`${st.N} camiones · ${st.c} andenes · ${st.s} min de carga${st.d?` · llegan ±${st.d} min`:" · llegan puntuales"}`,`${st.N} trucks · ${st.c} docks · ${st.s} min loads${st.d?` · arrive ±${st.d} min`:" · arrive on time"}`),
  fila:st=>T(`${pl(st.c,"puerta","puertas")} · ${pl(st.lam,"camión","camiones")} por hora · ${st.S} min de descarga en promedio`,`${pl(st.c,"","","door","doors")} · ${pl(st.lam,"","","truck","trucks")} per hour · ${st.S} min unloads on average`),
  nivel:st=>T(`${nf(st.p/10,1)} % de éxito por parada · ${st.n} paradas al día${st.n!==85?` (el reel usa 85)`:""} · meta ${st.meta} %${st.round?" (redondea)":""}`,`${nf(st.p/10,1)} % success per stop · ${st.n} stops a day${st.n!==85?` (the reel uses 85)`:""} · ${st.meta} % target${st.round?" (rounded)":""}`),
