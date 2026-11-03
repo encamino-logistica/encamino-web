@@ -1,5 +1,5 @@
 {
- "fecha": "2026-11-03T12:58:04.612Z",
+ "fecha": "2026-11-03T18:47:05.598Z",
  "total": 155,
  "fallas": 0,
  "checks": [
@@ -70,7 +70,7 @@
    "pass": true
   },
   {
-   "name": "Biblioteca por reel, del más nuevo al primero: Compartidos · Reel #3 y Reel #5 (Bernoulli, tras el reel 5) / Reel #4 · Bailey / Reel #3 · IKEA / Reel #2 · Amazon / Reel #1 · UPS",
+   "name": "Biblioteca por reel, del más nuevo al primero: Compartidos · Reel #3 y Reel #5 / Reel #4 · Bailey / Reel #3 · IKEA / Reel #2 · Amazon / Reel #1 · UPS",
    "pass": true,
    "got": [
     {
@@ -143,7 +143,7 @@
    "pass": true
   },
   {
-   "name": "Lindley · «La usamos en» solo muestra el reel publicado y el cálculo usa tu carga del andén (20 min)",
+   "name": "Lindley · «La usamos en» solo muestra reels publicados y el cálculo usa tu carga del andén (20 min)",
    "pass": true,
    "got": {
     "uses": "#bailey",
@@ -296,8 +296,8 @@
    "pass": true,
    "got": {
     "mode": "run",
-    "prog": 52,
-    "clock": "11:05",
+    "prog": 51.7,
+    "clock": "11:04",
     "skip": true
    }
   },
