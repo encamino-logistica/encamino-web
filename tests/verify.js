@@ -3,7 +3,7 @@
 // Uso: node tests/verify.js   (THREE_JS, FONTS_DIR y PW opcionales: ver tests/env.js)
 const {chromium}=require(process.env.PW||"playwright");
 const fs=require("fs"),path=require("path");
-const serve=require("./serve.js"),env=require("./env.js");
+const serve=require("./serve.js"),env=require("./env.js"),filaSweep=require("./fila_sweep.js");
 const OUT=path.resolve(__dirname,"../capturas");fs.mkdirSync(OUT,{recursive:true});
 for(const f of fs.readdirSync(OUT))fs.unlinkSync(path.join(OUT,f));
 const IG="Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 330.0.0.0 (iPhone14,5; iOS 17_5; es_CL; es; scale=3.00; 1170x2532)";
@@ -42,10 +42,17 @@ const es1=x=>x.toLocaleString("es-CL",{minimumFractionDigits:1,maximumFractionDi
  await shot(d,"escritorio_inicio",true);
  ok("Inicio · 5 portadas (reels publicados) con miniatura 3D y número de reel, sin estrellas",(await d.$$("#cards .card img")).length===5&&(await d.$$("#cards .reeln")).length===5&&!(await d.textContent("#cards")).includes("★"));
  await d.evaluate(()=>location.hash="biblioteca");await d.waitForSelector("#shelves .book");
- ok("Biblioteca · 14 libros visibles (sin los 6 que solo usa el reel 6), con 4 separadores de sección",(await d.$$("#shelves .book[data-book]")).length===14&&(await d.$$("#shelves .bookend")).length===4);
+ ok("Biblioteca · 14 libros visibles (sin los 6 que solo usa el reel 6), con 5 separadores de sección",(await d.$$("#shelves .book[data-book]")).length===14&&(await d.$$("#shelves .bookend")).length===5);
+ const libS=async pg=>pg.evaluate(()=>[...document.querySelectorAll("#shelves .case-grid")].map(g=>({k:g.dataset.sec,t:g.getAttribute("aria-label"),b:[...g.querySelectorAll(".book[data-book]")].map(x=>x.dataset.book).sort().join(),e:g.querySelector(".bookend").innerText.replace(/\s+/g," ").trim()})));
+ const ls0=await libS(d);
+ ok("Biblioteca por reel, del más nuevo al primero: Compartidos · Reel #3 y Reel #5 (Bernoulli, tras el reel 5) / Reel #4 · Bailey / Reel #3 · IKEA / Reel #2 · Amazon / Reel #1 · UPS",ls0.map(s=>s.k).join()==="nivel+ikea,bailey,ikea,amazon,ups"&&ls0.map(s=>s.t).join("|")==="Compartidos · Reel #3 y Reel #5|Reel #4 · Bailey|Reel #3 · IKEA|Reel #2 · Amazon|Reel #1 · UPS"&&ls0[0].b==="bernoulli1713"&&/REEL #4.*BAILEY/i.test(ls0[1].e),ls0);
+ ok("Biblioteca · con la fila oculta, Lindley (reel 4 y 6) va solo en «Reel #4 · Bailey» y no hay sección compartida de Andenes",ls0[1].b==="bailey1952,kaandorp2007,lindley1952,welch1952"&&!ls0.some(s=>/Andenes · compartidos/.test(s.t)),ls0[1]);
+ ok("Biblioteca · ningún libro repetido entre secciones",(()=>{const a=ls0.flatMap(s=>s.b.split(","));return new Set(a).size===a.length})());
+ await d.click('#libfilters [data-f="anden"]');await d.waitForTimeout(300);const lsA=await libS(d);await d.click('#libfilters [data-f="todos"]');await d.waitForTimeout(300);
+ ok("Biblioteca · el filtro «Andenes» deja solo las secciones de reels de andenes",lsA.map(s=>s.k).join()==="bailey",lsA.map(s=>s.k));
  const FILAONLY=["erlang1917","winston1977","weber1978","odoni","atri2024","lu2013"];
  ok("Biblioteca · ningún libro exclusivo de la fila (reel 6 sin publicar), ni en la portada",await d.evaluate(F=>F.every(id=>!document.querySelector(`#v-biblioteca [data-book="${id}"]`))&&ECAPP.SOURCES.filter(s=>s.labs.every(l=>l==="fila")).map(s=>s.id).sort().join()===F.slice().sort().join(),FILAONLY));
- ok("Biblioteca · el texto cuenta lo visible: «Catorce fuentes en cuatro estantes» y no promete calcular todo",/Catorce fuentes en cuatro estantes/.test(await d.textContent("#libintro"))&&/cuando se puede/.test(await d.textContent("#libintro")));
+ ok("Biblioteca · el texto cuenta lo visible: «Catorce fuentes de cinco reels» y no promete calcular todo",/Catorce fuentes de cinco reels, del más nuevo al primero/.test(await d.textContent("#libintro"))&&/cuando se puede/.test(await d.textContent("#libintro")));
  await shot(d,"escritorio_biblioteca",true);
  await d.click('#shelves [data-book="bailey1952"]');await d.waitForTimeout(1500);
  ok("Libro abierto · gancho, historia, ecuación con símbolos, frase y «Con tus números» (16,0 min)",(await d.textContent(".pstory")).includes("Bailey")&&(await d.$$(".phook")).length===1&&(await d.$$(".syms dt")).length>=3&&(await d.$$(".pfrase")).length===1&&(await d.$$(".bk-page .beq")).length===1&&(await d.textContent(".blive")).includes("16,0 min"));
@@ -250,6 +257,17 @@ ok("Sin preserveDrawingBuffer (ahorra GPU en el WebView) y con recuperación del
    for(const set of [{W:21,X:150},{W:22,X:150},{ord:"orden",z:20}])for(const id of ["ups","amazon"]){Object.assign(ECAPP.STATE[id],ECAPP.LAB[id].def,set);chk(id,ECAPP.shareText(id));chk(id+" m",JSON.stringify(ECAPP.metrics(id)))}
    document.getElementById("lang-es").click();return bad});
  ok("Barrido de palancas (mín/máx, ES/EN): ningún texto para copiar con NaN, ∞, «−-0 %» ni «1 puertas»",sweep.length===0,sweep.slice(0,4));
+ /* fila (reel 6): sampled sweep with the real code paths; the full one is tests/sweep_fila.js */
+ const fs1=await v.evaluate(filaSweep,{cs:[1,2,3,5,8],lams:[1,7,10,20,40],Ss:[3,15,18,59,60],cvs:[2,10],sims:[[3,10,15,10],[2,7,15,5],[5,20,12,2]],seeds:[1,2],simTrucks:20000,url:"sample",nearOne:false});const fsS=fs1.summary;
+ ok("Fila · barrido (a): ningún número o texto con NaN, «undefined», negativos ni «1 camiones»",fsS.a===0,fs1.a.slice(0,3));
+ ok("Fila · barrido (b): el aviso de colapso salta justo cuando λ ≥ c·60/S y entonces no se muestra ninguna espera numérica",fsS.b===0,fs1.b.slice(0,3));
+ ok("Fila · barrido (c): C ≤ A siempre; con CV = 1, C = Erlang C y A = M/M/1",fsS.c===0,fs1.c.slice(0,3));
+ ok("Fila · barrido (d): B en pantalla queda entre C y A, y en simulación B cae entre C y A",fsS.d.jsqShownOutside===0&&fsS.d.avgViol===0,fsS.d);
+ ok("Fila · barrido (e): 75,0 · ≈24,5 · 21,1 en resultado, texto, libros, pasos y portada (ES/EN)",fsS.e===0,fs1.e);
+ ok("Fila · barrido (f): con 1 camión/h y 3 min nada de «−100 %», veredicto «No cuenta» con su porqué, y C con CV = 1 = 100 %",fsS.f===0,fs1.f.slice(0,3));
+ ok("Fila · barrido (g): el link generado reabre la misma configuración y el mismo texto; fija/separadas/corta/unica/jefe=1 siguen funcionando",fsS.g===0&&fsS.gN>50,fs1.g.slice(0,3));
+ ok("Fila · barrido (h): con el reto (CV) las esperas siguen el factor de Allen–Cunneen que se muestra",fsS.h===0&&fsS.hN>0,fs1.h.slice(0,3));
+ ok("Fila · barrido (i): A · Puerta fija / B · Fila más corta / C · Fila única en todas partes, ES y EN con las mismas frases",fsS.i===0,fs1.i);
  const fl=await v.evaluate(()=>{Object.assign(ECAPP.STATE.fila,ECAPP.LAB.fila.def,{c:4,lam:1,S:15,pol:"jsq"});return{t:ECAPP.shareText("fila"),m:JSON.stringify(ECAPP.metrics("fila"))}});ok("Fila · carga muy baja con jefe de patio (4 puertas, 1/h): sin NaN y sin «colapsa»",!/NaN|colapsa/.test(fl.t+fl.m),fl.t);
  await v.goto(BASE+"?caso=fila&regla=unica&puertas=2");await v.waitForSelector("#play");await v.evaluate(()=>ECAPP.openSheet("fila","share"));await v.waitForTimeout(400);
  const su=await v.textContent("#share-text .url");ok("Compartir · el enlace mostrado conserva «&regla» (sin ® ni ¶)",/&regla=unica/.test(su)&&!/[®¶]/.test(su),su);
@@ -262,6 +280,10 @@ ok("Sin preserveDrawingBuffer (ahorra GPU en el WebView) y con recuperación del
  const PUBF=path.resolve(__dirname,"../_pub_test.html");fs.writeFileSync(PUBF,html.replace("fila:false}","fila:true}"));
  try{const w=await mk({width:390,height:844},true,IG);await w.goto("http://127.0.0.1:8790/_pub_test.html#biblioteca");await w.waitForSelector("#shelves .book");
   const pb=await w.evaluate(()=>({books:document.querySelectorAll("#shelves .book[data-book]").length,intro:document.getElementById("libintro").textContent}));
+  const ls1=await libS(w);
+  ok("Publicar el reel 6 · la biblioteca suma «Reel #6 · Fila única» arriba y Lindley pasa sola a «Andenes · compartidos (Reel #4 y Reel #6)», justo después",ls1.map(s=>s.k).join()==="fila,fila+bailey,nivel+ikea,bailey,ikea,amazon,ups"&&ls1[0].t==="Reel #6 · Fila única"&&ls1[0].b==="atri2024,erlang1917,lu2013,odoni,weber1978,winston1977"&&ls1[1].t==="Andenes · compartidos (Reel #4 y Reel #6)"&&ls1[1].b==="lindley1952"&&ls1[3].b==="bailey1952,kaandorp2007,welch1952"&&/seis reels/.test(pb.intro),ls1);
+  await w.evaluate(()=>document.getElementById("lang-en").click());await w.waitForTimeout(300);const ls1e=await libS(w);await w.evaluate(()=>document.getElementById("lang-es").click());
+  ok("Publicar el reel 6 · en inglés: «Docks · shared (Reel #4 and Reel #6)» y «Shared · Reel #3 and Reel #5»",ls1e[1].t==="Docks · shared (Reel #4 and Reel #6)"&&ls1e[2].t==="Shared · Reel #3 and Reel #5"&&ls1e[0].t==="Reel #6 · Single queue",ls1e.map(s=>s.t));
   await w.goto("http://127.0.0.1:8790/_pub_test.html?reel=6");await w.waitForSelector("#play");const pr=await w.evaluate(()=>({h:location.hash,t:document.getElementById("reels").textContent}));
   await w.goto("http://127.0.0.1:8790/_pub_test.html");await w.waitForSelector("#cards .card");const pc=(await w.$$("#cards .card")).length;
   ok("Publicar el reel 6 = cambiar una bandera: 20 libros, «Veinte fuentes», ?reel=6 abre la fila con «Reel #6» y 6 portadas",pb.books===20&&/Veinte fuentes/.test(pb.intro)&&pr.h==="#fila"&&/Reel #6/.test(pr.t)&&pc===6,{pb,pr,pc})}

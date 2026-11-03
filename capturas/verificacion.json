@@ -1,6 +1,6 @@
 {
- "fecha": "2026-11-03T02:07:30.768Z",
- "total": 140,
+ "fecha": "2026-11-03T03:38:38.752Z",
+ "total": 155,
  "fallas": 0,
  "checks": [
   {
@@ -66,15 +66,72 @@
    "pass": true
   },
   {
-   "name": "Biblioteca · 14 libros visibles (sin los 6 que solo usa el reel 6), con 4 separadores de sección",
+   "name": "Biblioteca · 14 libros visibles (sin los 6 que solo usa el reel 6), con 5 separadores de sección",
    "pass": true
+  },
+  {
+   "name": "Biblioteca por reel, del más nuevo al primero: Compartidos · Reel #3 y Reel #5 (Bernoulli, tras el reel 5) / Reel #4 · Bailey / Reel #3 · IKEA / Reel #2 · Amazon / Reel #1 · UPS",
+   "pass": true,
+   "got": [
+    {
+     "k": "nivel+ikea",
+     "t": "Compartidos · Reel #3 y Reel #5",
+     "b": "bernoulli1713",
+     "e": "COMPARTIDOS REEL #3 Y REEL #5"
+    },
+    {
+     "k": "bailey",
+     "t": "Reel #4 · Bailey",
+     "b": "bailey1952,kaandorp2007,lindley1952,welch1952",
+     "e": "REEL #4 BAILEY"
+    },
+    {
+     "k": "ikea",
+     "t": "Reel #3 · IKEA",
+     "b": "cr2020,fleming1975,ikeapax,rausand2004",
+     "e": "REEL #3 IKEA"
+    },
+    {
+     "k": "amazon",
+     "t": "Reel #2 · Amazon",
+     "b": "boysen2019,dekoster2007",
+     "e": "REEL #2 AMAZON"
+    },
+    {
+     "k": "ups",
+     "t": "Reel #1 · UPS",
+     "b": "dantzig1959,holland2017,nhtsa2010",
+     "e": "REEL #1 UPS"
+    }
+   ]
+  },
+  {
+   "name": "Biblioteca · con la fila oculta, Lindley (reel 4 y 6) va solo en «Reel #4 · Bailey» y no hay sección compartida de Andenes",
+   "pass": true,
+   "got": {
+    "k": "bailey",
+    "t": "Reel #4 · Bailey",
+    "b": "bailey1952,kaandorp2007,lindley1952,welch1952",
+    "e": "REEL #4 BAILEY"
+   }
+  },
+  {
+   "name": "Biblioteca · ningún libro repetido entre secciones",
+   "pass": true
+  },
+  {
+   "name": "Biblioteca · el filtro «Andenes» deja solo las secciones de reels de andenes",
+   "pass": true,
+   "got": [
+    "bailey"
+   ]
   },
   {
    "name": "Biblioteca · ningún libro exclusivo de la fila (reel 6 sin publicar), ni en la portada",
    "pass": true
   },
   {
-   "name": "Biblioteca · el texto cuenta lo visible: «Catorce fuentes en cuatro estantes» y no promete calcular todo",
+   "name": "Biblioteca · el texto cuenta lo visible: «Catorce fuentes de cinco reels» y no promete calcular todo",
    "pass": true
   },
   {
@@ -239,8 +296,8 @@
    "pass": true,
    "got": {
     "mode": "run",
-    "prog": 51.7,
-    "clock": "11:04",
+    "prog": 52,
+    "clock": "11:05",
     "skip": true
    }
   },
@@ -662,19 +719,19 @@
    "pass": true,
    "got": {
     "cls": "play copy",
-    "h": 50,
+    "h": 51,
     "vis": true
    }
   },
   {
    "name": "Compartir ES · frase + «Frente al reel: X % · veredicto» + «¿Le ganas?» + link",
    "pass": true,
-   "got": "Con 3 puertas y 10 camiones por hora, la espera baja de 75,0 min con puerta fija a 21,1 min con 1 fila única (−72 %), sin abrir una puerta más. Frente al reel: 28 % · Te falta. ¿Le ganas? http://127.0.0.1:8790/index.html?caso=fila&regla=separadas"
+   "got": "Con 3 puertas y 10 camiones por hora, la espera baja de 75,0 min con puerta fija a 21,1 min con 1 fila única (−72 %), sin abrir una puerta más. Frente al reel: 28 % · Te falta. ¿Le ganas? http://127.0.0.1:8790/index.html?caso=fila&regla=fija"
   },
   {
    "name": "Compartir EN · phrase + «Against the reel: X % · verdict» + «Can you beat it?» + link",
    "pass": true,
-   "got": "With 3 doors and 10 trucks per hour, waiting drops from 75.0 min with a fixed door to 21.1 min with 1 single queue (−72 %), without opening one more door. Against the reel: 28 % · Not there yet. Can you beat it? http://127.0.0.1:8790/index.html?caso=fila&regla=separadas"
+   "got": "With 3 doors and 10 trucks per hour, waiting drops from 75.0 min with a fixed door to 21.1 min with 1 single queue (−72 %), without opening one more door. Against the reel: 28 % · Not there yet. Can you beat it? http://127.0.0.1:8790/index.html?caso=fila&regla=fija"
   },
   {
    "name": "Bailey · pantalla rápida: Todos a las 7:00 / De 6 en 6 cada 20 min / Regla de Bailey (sin «Sin cita»)",
@@ -854,9 +911,87 @@
    "got": []
   },
   {
+   "name": "Fila · barrido (a): ningún número o texto con NaN, «undefined», negativos ni «1 camiones»",
+   "pass": true,
+   "got": []
+  },
+  {
+   "name": "Fila · barrido (b): el aviso de colapso salta justo cuando λ ≥ c·60/S y entonces no se muestra ninguna espera numérica",
+   "pass": true,
+   "got": []
+  },
+  {
+   "name": "Fila · barrido (c): C ≤ A siempre; con CV = 1, C = Erlang C y A = M/M/1",
+   "pass": true,
+   "got": []
+  },
+  {
+   "name": "Fila · barrido (d): B en pantalla queda entre C y A, y en simulación B cae entre C y A",
+   "pass": true,
+   "got": {
+    "jsqShownOutside": 0,
+    "jsqShownN": 102,
+    "jsqShownMaxGap": 0,
+    "seedRuns": 6,
+    "seedViol": 0,
+    "seedViolMaxGap": 0,
+    "avgN": 3,
+    "avgViol": 0,
+    "errAsig": {
+     "n": 3,
+     "med": 0.0332,
+     "p90": 0.0513,
+     "max": 0.0513
+    },
+    "errPoolCV1": {
+     "n": 1,
+     "med": 0.1032,
+     "p90": 0.1032,
+     "max": 0.1032
+    },
+    "errPoolAllenCunneen": {
+     "n": 2,
+     "med": 0.0854,
+     "p90": 0.0854,
+     "max": 0.0854
+    },
+    "errJsqShownVsSim": {
+     "n": 3,
+     "med": 0.0568,
+     "p90": 0.1153,
+     "max": 0.1153
+    }
+   }
+  },
+  {
+   "name": "Fila · barrido (e): 75,0 · ≈24,5 · 21,1 en resultado, texto, libros, pasos y portada (ES/EN)",
+   "pass": true,
+   "got": []
+  },
+  {
+   "name": "Fila · barrido (f): con 1 camión/h y 3 min nada de «−100 %», veredicto «No cuenta» con su porqué, y C con CV = 1 = 100 %",
+   "pass": true,
+   "got": []
+  },
+  {
+   "name": "Fila · barrido (g): el link generado reabre la misma configuración y el mismo texto; fija/separadas/corta/unica/jefe=1 siguen funcionando",
+   "pass": true,
+   "got": []
+  },
+  {
+   "name": "Fila · barrido (h): con el reto (CV) las esperas siguen el factor de Allen–Cunneen que se muestra",
+   "pass": true,
+   "got": []
+  },
+  {
+   "name": "Fila · barrido (i): A · Puerta fija / B · Fila más corta / C · Fila única en todas partes, ES y EN con las mismas frases",
+   "pass": true,
+   "got": []
+  },
+  {
    "name": "Fila · carga muy baja con jefe de patio (4 puertas, 1/h): sin NaN y sin «colapsa»",
    "pass": true,
-   "got": "Con 4 puertas y 1 camión por hora casi nadie espera: 0,0 min con la fila más corta (jefe de patio) y 0,0 min con 1 fila única. Frente al reel: 100 % · Igual que el reel. ¿Le ganas? http://127.0.0.1:8790/index.html?caso=fila&puertas=4&camiones=1&regla=corta"
+   "got": "Con 4 puertas y 1 camión por hora casi nadie espera: 0,0 min con la fila más corta (jefe de patio) y 0,0 min con 1 fila única. Frente al reel: — · No cuenta. ¿Le ganas? http://127.0.0.1:8790/index.html?caso=fila&puertas=4&camiones=1&regla=corta"
   },
   {
    "name": "Compartir · el enlace mostrado conserva «&regla» (sin ® ni ¶)",
@@ -886,12 +1021,73 @@
    "got": []
   },
   {
+   "name": "Publicar el reel 6 · la biblioteca suma «Reel #6 · Fila única» arriba y Lindley pasa sola a «Andenes · compartidos (Reel #4 y Reel #6)», justo después",
+   "pass": true,
+   "got": [
+    {
+     "k": "fila",
+     "t": "Reel #6 · Fila única",
+     "b": "atri2024,erlang1917,lu2013,odoni,weber1978,winston1977",
+     "e": "REEL #6 FILA ÚNICA"
+    },
+    {
+     "k": "fila+bailey",
+     "t": "Andenes · compartidos (Reel #4 y Reel #6)",
+     "b": "lindley1952",
+     "e": "ANDENES · COMPARTIDOS REEL #4 Y REEL #6"
+    },
+    {
+     "k": "nivel+ikea",
+     "t": "Compartidos · Reel #3 y Reel #5",
+     "b": "bernoulli1713",
+     "e": "COMPARTIDOS REEL #3 Y REEL #5"
+    },
+    {
+     "k": "bailey",
+     "t": "Reel #4 · Bailey",
+     "b": "bailey1952,kaandorp2007,welch1952",
+     "e": "REEL #4 BAILEY"
+    },
+    {
+     "k": "ikea",
+     "t": "Reel #3 · IKEA",
+     "b": "cr2020,fleming1975,ikeapax,rausand2004",
+     "e": "REEL #3 IKEA"
+    },
+    {
+     "k": "amazon",
+     "t": "Reel #2 · Amazon",
+     "b": "boysen2019,dekoster2007",
+     "e": "REEL #2 AMAZON"
+    },
+    {
+     "k": "ups",
+     "t": "Reel #1 · UPS",
+     "b": "dantzig1959,holland2017,nhtsa2010",
+     "e": "REEL #1 UPS"
+    }
+   ]
+  },
+  {
+   "name": "Publicar el reel 6 · en inglés: «Docks · shared (Reel #4 and Reel #6)» y «Shared · Reel #3 and Reel #5»",
+   "pass": true,
+   "got": [
+    "Reel #6 · Single queue",
+    "Docks · shared (Reel #4 and Reel #6)",
+    "Shared · Reel #3 and Reel #5",
+    "Reel #4 · Bailey",
+    "Reel #3 · IKEA",
+    "Reel #2 · Amazon",
+    "Reel #1 · UPS"
+   ]
+  },
+  {
    "name": "Publicar el reel 6 = cambiar una bandera: 20 libros, «Veinte fuentes», ?reel=6 abre la fila con «Reel #6» y 6 portadas",
    "pass": true,
    "got": {
     "pb": {
      "books": 20,
-     "intro": "Veinte fuentes en cuatro estantes. Cada libro cuenta su idea, trae su ecuación o su dato clave y, cuando se puede, lo calcula con tus números.Twenty sources on four shelves. Each book tells its idea, brings its equation or key figure and, where possible, computes it with your numbers."
+     "intro": "Veinte fuentes de seis reels, del más nuevo al primero. Cada libro cuenta su idea, trae su ecuación o su dato clave y, cuando se puede, lo calcula con tus números.Twenty sources from six reels, newest first. Each book tells its idea, brings its equation or key figure and, where possible, computes it with your numbers."
     },
     "pr": {
      "h": "#fila",
