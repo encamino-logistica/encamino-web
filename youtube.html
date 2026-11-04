@@ -1,0 +1,10 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>En Camino Metrics</title><style>body{font:17px/1.6 system-ui,sans-serif;max-width:700px;margin:0 auto;padding:32px 16px;color:#13202B}h1{line-height:1.2}a.b{display:inline-block;background:#13202B;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none}code{word-break:break-all;background:#eef1f3;padding:4px}</style><meta name="robots" content="noindex"><h1>En Camino Metrics</h1><p>Conecta el canal de YouTube de En Camino para leer sus métricas, publicar videos aprobados y gestionar sus comentarios.</p>
+<p id="z"></p><a class="b" id="go" href="#">Conectar con YouTube</a>
+<p><a href="privacidad.html">Privacidad</a> · <a href="terminos.html">Términos</a></p>
+<script>
+var K="988473514090-mqrdmgunh1v1fg5o3b07p6m2kddkpte4.apps.googleusercontent.com",R=location.origin+location.pathname,q=new URLSearchParams(location.search),z=document.getElementById("z"),g=document.getElementById("go");
+g.onclick=function(e){e.preventDefault();var s=crypto.randomUUID();try{sessionStorage.s=s}catch(x){}location.href="https://accounts.google.com/o/oauth2/v2/auth?"+new URLSearchParams({client_id:K,redirect_uri:R,response_type:"code",access_type:"offline",prompt:"consent",scope:"https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.force-ssl",state:s})};
+if(q.get("error")){z.textContent="Google rechazó la conexión: "+q.get("error")}
+else if(q.get("code")){var ok=true;try{ok=!sessionStorage.s||sessionStorage.s===q.get("state")}catch(x){}
+if(ok){g.style.display="none";z.textContent="Canal autorizado. Código de un solo uso:";var c=document.createElement("code");c.textContent=q.get("code");z.appendChild(document.createElement("br"));z.appendChild(c)}else{z.textContent="La verificación falló. Intenta de nuevo."}}
+</script>
