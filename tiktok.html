@@ -2,7 +2,7 @@
 <p id="z"></p><a class="b" id="go" href="#">Conectar con TikTok</a>
 <p><a href="privacidad.html">Privacidad</a> · <a href="terminos.html">Términos</a></p>
 <script>
-var K="PEGAR_CLIENT_KEY",R=location.origin+location.pathname,q=new URLSearchParams(location.search),z=document.getElementById("z"),g=document.getElementById("go");
+var K="awhnp4i2z5vufj72",R=location.origin+location.pathname,q=new URLSearchParams(location.search),z=document.getElementById("z"),g=document.getElementById("go");
 g.onclick=function(e){e.preventDefault();var s=crypto.randomUUID();try{sessionStorage.s=s}catch(x){}location.href="https://www.tiktok.com/v2/auth/authorize/?"+new URLSearchParams({client_key:q.get("k")||K,scope:"user.info.basic,user.info.stats,video.list",response_type:"code",redirect_uri:R,state:s})};
 if(q.get("error")){z.textContent="TikTok rechazó la conexión: "+q.get("error")}
 else if(q.get("code")){var ok=true;try{ok=!sessionStorage.s||sessionStorage.s===q.get("state")}catch(x){}
