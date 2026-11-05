@@ -230,6 +230,41 @@ function sceneIkea(st){const n=st.pack==="armado"?1:st.n,big=st.pack==="armado",
  S.tick=(dt,sp)=>{if(!batch)reset();ms+=dt*1000*sp;if(ms>=dur){ms=dur;S.done=true;const bad=batch.filter(o=>o.bad).length;S.obs=()=>({v:bad+" "+T("de 100","of 100"),l:T("llegaron incompletos","arrived incomplete")})}return at(dt)};
  return S}
 
+/* ---------------- QUÉDATELO · 100 returns: the van pays the trip, or the parcel stays home ---------------- */
+function sceneQuedatelo(st){const PX=3.4,PZ=3.7,X0=1.6,CAP=20;const W=10*PX+10,D=10*PZ+5;
+ const{scene,g}=diorama(W,D,P.grass);const hx=c=>(c-4.5)*PX+X0,hz=r=>(r-4.5)*PZ,sz=k=>(hz(2*k)+hz(2*k+1))/2,xd=hx(0)-2.6;
+ for(let k=0;k<5;k++)roadX(g,xd-1,hx(9)+1.6,sz(k),1.7);roadZ(g,hz(0)-1.4,hz(9)+1.4,xd,1.8);
+ rb(g,4.4,3.2,D-8,0x2F5DA8,xd-3.6,0,0,0.3);rb(g,4.7,0.3,D-7.7,0x24477F,xd-3.6,3.2,0,0.1);
+ const G=GEO(),HC=[0xF1E8D6,0xFFD9B8,0xCFE0F5,0xF7E3A1,0xD8F0D5,0xF4CFCF],GREY=0x8C9BB8;
+ const body=inst(g,rboxG(1.8,1.25,1.5,0.18),new THREE.MeshLambertMaterial({color:0xffffff}),100),roof=inst(g,G.pyr,new THREE.MeshLambertMaterial({color:0xffffff,flatShading:true}),100);body.material.userData.own=true;roof.material.userData.own=true;
+ const H=[];for(let r=0;r<10;r++)for(let c=0;c<10;c++){const i=r*10+c,x=hx(c),z=hz(r),face=r%2===0?1:-1;H.push({x,z,face,r,c});setI(body,i,x,0.625,z,1,1,1);body.setColorAt(i,_c.setHex(HC[(r*3+c)%HC.length]));setI(roof,i,x,1.7,z,1.45,0.9,1.25,Math.PI/4);roof.setColorAt(i,_c.setHex(GREY))}
+ [body,roof].forEach(m=>{m.instanceMatrix.needsUpdate=true;m.instanceColor.needsUpdate=true});
+ const box=inst(g,rboxG(0.5,0.4,0.5,0.05),new THREE.MeshLambertMaterial({color:0xffffff}),100);box.material.userData.own=true;
+ const BANG=new Icons(g,"bang",100,1.0),F=new Fleet(g,1,0.62,{van:true,col:P.yellow});
+ const order=[];for(let k=0;k<5;k++){const cols=[...Array(10).keys()];if(k%2)cols.reverse();cols.forEach(c=>order.push((2*k)*10+c,(2*k+1)*10+c))}
+ /* the route: along each street and back to the warehouse every CAP parcels */
+ const path=[[xd,sz(0)]],stops=new Array(100).fill(0);{let load=CAP,k0=0;const add=p=>{const l=path[path.length-1];if(l[0]!==p[0]||l[1]!==p[1])path.push(p)};order.forEach(i=>{const h=H[i],k=Math.floor(h.r/2);if(k!==k0||load===0){const l=path[path.length-1];add([l[0],sz(k0)]);add([xd,sz(k0)]);add([xd,sz(k)]);k0=k;load=CAP}add([h.x,sz(k)]);stops[i]=path.length-1;load--});add([path[path.length-1][0],sz(k0)]);add([xd,sz(k0)])
+  const L=[0];for(let a=1;a<path.length;a++)L.push(L[a-1]+Math.hypot(path[a][0]-path[a-1][0],path[a][1]-path[a-1][1]));path.L=L}
+ const posAt=d=>{const L=path.L;let a=1;while(a<path.length-1&&L[a]<d)a++;const t=Math.min(1,Math.max(0,(d-L[a-1])/((L[a]-L[a-1])||1)));const p0=path[a-1],p1=path[a];return[p0[0]+(p1[0]-p0[0])*t,p0[1]+(p1[1]-p0[1])*t,Math.atan2(-(p1[1]-p0[1]),p1[0]-p0[0])]};
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,2.4,D/2)),{root:g,az:0.7,azP:0.5,el:0.78});
+ let cur=Object.assign({},st),r=EC.quedatelo(cur),ms=0,clk=0,fake=[];const dur=5200;
+ const door=(i,yo)=>{const h=H[i];setI(box,i,h.x+0.55,0.2+yo,h.z+h.face*1.18,1,1,1);box.setColorAt(i,_c.setHex(P.carton))},hide=i=>box.setMatrixAt(i,_m4.makeScale(0,0,0));
+ const stack=j=>{const q=j%25,l=Math.floor(j/25);return[xd-1.0+(q%5)*0.56-1.1,0.2+l*0.42,sz(2)-1.2+Math.floor(q/5)*0.56]};
+ function reset(){r=EC.quedatelo(cur);ms=0;const rng=EC.rngFrom((Date.now()&0xffff)*7907+11);fake=order.map(()=>rng()<cur.a/100);order.forEach(i=>{door(i,0);roof.setColorAt(i,_c.setHex(GREY));BANG.set(i,0,0,0,false)});box.instanceMatrix.needsUpdate=true;box.instanceColor.needsUpdate=true;roof.instanceColor.needsUpdate=true;F.go(0,xd,sz(0),-Math.PI/2,true);F.snap(0);F.commit()}
+ const good=()=>r.conviene===cur.pol||r.lossT===r.lossD;
+ function at(dt){clk+=dt;const bring=cur.pol==="traer",RUN=dur*0.9,total=path.L[path.L.length-1];let done=0,bad=0;
+  if(bring){const d=Math.min(total,ms/RUN*total),p=posAt(d);F.go(0,p[0],p[1]+0.45,p[2],true);F.snap(0);F.commit()}
+  order.forEach((i,n)=>{const t0=bring?path.L[stops[i]]/total*RUN:n/100*RUN,age=ms-t0;if(age<0)return;done++;
+   if(bring){const q=stack(n);setI(box,i,q[0],q[1],q[2],1,1,1);box.setColorAt(i,_c.setHex(r.S<0?P.red:P.mint))}else door(i,Math.sin(Math.min(1,age/300)*Math.PI)*0.7);
+   roof.setColorAt(i,_c.setHex(good()?P.mint:P.red));const h=H[i],f=!bring&&fake[n];if(f)bad++;BANG.set(i,h.x,2.9,h.z,f)});
+  box.instanceMatrix.needsUpdate=true;box.instanceColor.needsUpdate=true;roof.instanceColor.needsUpdate=true;BANG.step(dt,S.cam.quaternion,clk);S.bad=bad;
+  S.clock=T(`Devolución ${done} de 100`,`Return ${done} of 100`);
+  S.cap=bring?T(`Recuperas ${B_("US$ "+nf(r.rec*done,2))} · gastas ${B_("US$ "+nf(r.cost*done,2))}`,`Recovered ${B_("$"+nf(r.rec*done,2))} · spent ${B_("$"+nf(r.cost*done,2))}`):cur.a?T(`Sin viaje · ${B_(bad+(bad===1?" reclamo falso":" reclamos falsos"))} hasta ahora`,`No trip · ${B_(bad+" false claims")} so far`):T(`Sin viaje: ${B_(done+(done===1?" producto se queda":" productos se quedan"))} en casa.`,`No trip: ${B_(done+" products stay")} home.`);return true}
+ S.fleet=F;S.info=()=>cur.pol==="traer"?T(`Furgón · cada vuelta cuesta <b>US$ ${nf(r.cost,2)}</b> por paquete`,`Van · each return costs <b>$${nf(r.cost,2)}</b> per parcel`):T("Furgón en la bodega: no hay viaje que pagar","Van at the warehouse: no trip to pay for");
+ S.apply=st2=>{cur=Object.assign({},st2);reset()};S.prewarm=()=>reset();S.startRun=()=>{reset();S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp)=>{ms+=dt*1000*sp;if(ms>=dur){ms=dur;S.done=true;if(cur.pol==="deja"&&cur.a>0){const b=fake.filter(Boolean).length;S.obs=()=>({v:b+" "+T("de 100","of 100"),l:T("reclamos falsos","false claims")})}}return at(dt)};
+ reset();return S}
+
 /* ---------------- UPS · the race repeats ---------------- */
 function sceneUps(st){const a=st.X/40,b=st.X/40;const W=Math.max(32,2*(a+6)),D=Math.max(32,2*(b+6));const{scene,g}=diorama(W,D,P.grass);
  roadZ(g,D/2-0.4,-D/2+0.4,0,3.0);roadX(g,-W/2+0.4,W/2-0.4,0,3.0);for(let i=-3;i<=3;i++){flat(g,0.32,1.6,P.line,i*0.42,0.022,2.4);flat(g,1.6,0.32,P.line,-2.4,0.022,i*0.42)}

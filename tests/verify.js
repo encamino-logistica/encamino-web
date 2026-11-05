@@ -15,7 +15,9 @@ const es1=x=>x.toLocaleString("es-CL",{minimumFractionDigits:1,maximumFractionDi
 
 (async()=>{
  const srv=await serve(8790);const b=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]});
- const mk=async(vp,mobile,ua)=>{const ctx=await b.newContext({viewport:vp,locale:"es-CL",isMobile:!!mobile,hasTouch:!!mobile,deviceScaleFactor:mobile?2:1,userAgent:ua,permissions:["clipboard-read","clipboard-write"]});const p=await ctx.newPage();p.errs=[];p.on("pageerror",e=>p.errs.push(e.message));await env(p);return p};
+ /* this suite pins the page without reel 7; tests/quedatelo.js covers reel 7 in its real state */
+ const noQ=ctx=>ctx.route("**/index.html*",async r=>{const x=await r.fetch();await r.fulfill({response:x,body:(await x.text()).replace("const QPUB=true;","const QPUB=false;")})});
+ const mk=async(vp,mobile,ua)=>{const ctx=await b.newContext({viewport:vp,locale:"es-CL",isMobile:!!mobile,hasTouch:!!mobile,deviceScaleFactor:mobile?2:1,userAgent:ua,permissions:["clipboard-read","clipboard-write"]});await noQ(ctx);const p=await ctx.newPage();p.errs=[];p.on("pageerror",e=>p.errs.push(e.message));await env(p);return p};
  const shot=(p,name,full)=>p.screenshot({path:`${OUT}/${name}.png`,fullPage:!!full,timeout:120000});
  const metrics=p=>p.$$eval(".m",a=>a.map(e=>({v:e.querySelector(".mv").textContent,l:e.querySelector(".ml").textContent,cur:e.classList.contains("cur")})));
  const setR=(p,id,w,k,v)=>p.$eval(`#c-${id}-${w}-${k}`,(el,v)=>{el.value=v;el.dispatchEvent(new Event("input",{bubbles:true}))},v);
@@ -280,7 +282,7 @@ ok("Sin preserveDrawingBuffer (ahorra GPU en el WebView) y con recuperación del
  ok("Inglés · el título de la pestaña cambia con el idioma",/Lab$/.test(await v.title()));await v.evaluate(()=>document.getElementById("lang-es").click());ok("Español · título de la pestaña en español",/Laboratorio$/.test(await v.title()));
  ok("Veredictos y barrido · sin errores de JavaScript",v.errs.length===0,v.errs);
  /* publishing reel 6 is one flag: a copy of the page with fila:true brings everything back */
- const PUBF=path.resolve(__dirname,"../_pub_test.html");fs.writeFileSync(PUBF,html.replace("fila:false}","fila:true}"));
+ const PUBF=path.resolve(__dirname,"../_pub_test.html");fs.writeFileSync(PUBF,html.replace("fila:false}","fila:true}").replace("const QPUB=true;","const QPUB=false;"));
  try{const w=await mk({width:390,height:844},true,IG);await w.goto("http://127.0.0.1:8790/_pub_test.html#biblioteca");await w.waitForSelector("#shelves .book");
   const pb=await w.evaluate(()=>({books:document.querySelectorAll("#shelves .book[data-book]").length,intro:document.getElementById("libintro").textContent}));
   const ls1=await libS(w);
