@@ -53,7 +53,13 @@ function iBatch(o,seed){const rng=rngFrom(seed),q=1/IP[o.pi];const orders=[];for
 function ups(o){const v=o.v/3.6,base=200/v,det=o.X/v;const tA=base+o.W,tB=base+det;const diff=tA-tB;
  const per={dobla:o.W,evita:det,conviene:o.W>0?o.W*(1-Math.exp(-det/o.W)):0};const you=(1-o.r)*per[o.pol],ref=det;
  return{base,tA,tB,diff,det,per,you,ref,dayYou:you*o.G/60,dayRef:ref*o.G/60,year:diff*o.G/60*288/60,valid:true,score:o.G>0?score(ref,you):100}}
-return{fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
+/* ---------- QUÉDATELO · S = V·r·(1 − d·t) − (F + P). The refund is paid in both cases, so it stays out of the balance. a = false claims per 100 that only the "keep it" rule invites ---------- */
+function quedatelo(o){const f=Math.max(0,1-o.d/100*o.t),k=o.r/100*f,rec=o.V*k,cost=o.F+o.P,S=rec-cost,abuse=o.a/100*o.V,den=k+o.a/100;
+ const lossT=0-S,lossD=abuse,loss=o.pol==="deja"?lossD:lossT,umbral=den>0?cost/den:Infinity;
+ /* score on the seller's whole bill (refund included), so it is always positive; the reel's numbers set the reference */
+ const k0=0.7*Math.max(0,1-0.04),S0=o.V*k0-11,ref=o.V+Math.min(-S0,abuse),you=o.V+loss;
+ return{f,k,rec,cost,S,abuse,lossT,lossD,loss,umbral,conviene:lossT<lossD?"traer":"deja",ref,you,score:score(ref,you),valid:o.r===70&&o.d===1&&o.F===8&&o.P===3}}
+return{quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
 })();
 /* </core> */
 if(typeof module!=="undefined")module.exports=EC;
