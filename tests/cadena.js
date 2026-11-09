@@ -22,7 +22,7 @@ const checks=[];const ok=(n,c,g)=>{checks.push(!!c);console.log((c?"PASS ":"FAIL
  ok("Enlace con parámetros: 4 etapas al 95 %",(await p.textContent(".sit")).includes("4 etapas al 95"),await p.textContent(".sit"));
  await p.screenshot({path:"capturas/cadena_antes.png"});
  await p.tap("#play");await p.waitForFunction(()=>ECAPP.mode==="done",null,{timeout:60000});await p.waitForTimeout(400);
- ok("Resultado: 81,5 % perfectos",(await p.textContent("#rv"))==="81,5",await p.textContent("#rv"));
+ ok("Resultado: 81,5 % perfectos y la corrida muestra 81 de 100",(await p.textContent("#rv"))==="81,5"&&/81 de 100/.test(await p.textContent("body")),await p.textContent("#rv"));
  await p.screenshot({path:"capturas/cadena_fin.png"});
  ok("Sin desborde horizontal a 360 px",await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await p.goto("http://127.0.0.1:8793/index.html?reel=8");await p.waitForTimeout(2000);ok("?reel=8 abre #cadena",await p.evaluate(()=>location.hash)==="#cadena");

@@ -282,7 +282,10 @@ function sceneCadena(st){const NMAX=10,W=30,D=14;const{scene,g}=diorama(W,D,P.fl
  const nG=()=>Math.max(1,Math.min(NMAX,cur.n)),xs=()=>X0-1.2,xe=()=>X1-0.5;
  const cell=i=>{const rr=Math.floor(i/10),cc=i%10;return[(cc-4.5)*0.38,(rr-4.5)*0.38]};
  function reset(){r=EC.cadena(cur);ms=0;seed++;const rng=EC.rngFrom(seed*7919+13),n=nG(),p=cur.p/100;
-  fail=[];for(let i=0;i<100;i++){let f=-1;if(cur.pol==="juntas"){if(rng()>p)f=0}else{for(let k=0;k<n;k++)if(rng()>p){f=k;break}}fail.push(f)}
+  /* exact counts (like the reel: 5, 5, 4, 5 with 4 stages at 95 %), random boxes: the run never contradicts the big number */
+  const cnt=new Array(n).fill(0);if(cur.pol==="juntas")cnt[0]=Math.round(100*(1-p));else for(let k=0;k<n;k++)cnt[k]=Math.round(100*Math.pow(p,k))-Math.round(100*Math.pow(p,k+1));
+  const ids=[...Array(100).keys()];for(let i=99;i>0;i--){const j=Math.floor(rng()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]]}
+  fail=new Array(100).fill(-1);let q=0;cnt.forEach((c,k)=>{for(let m=0;m<c;m++)fail[ids[q++]]=k})
   NG=n;gates.forEach((G,k)=>{G.gg.visible=k<n;G.gg.position.x=gx(k);G.light.material=mat(P.mint)});at(0)}
  function at(dt){const n=nG(),RUN=dur*0.82,u=Math.min(1,ms/RUN),tx=xs()+(xe()-xs())*u;
   tray.position.x=tx;let out=0,stage=0;const binCount=new Array(NMAX).fill(0);
