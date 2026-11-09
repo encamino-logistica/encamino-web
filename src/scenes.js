@@ -266,19 +266,39 @@ function sceneQuedatelo(st){const PX=3.4,PZ=3.7,X0=1.6,CAP=20;const W=10*PX+10,D
  reset();return S}
 
 /* ---------------- CADENA · 100 orders cross the stages; each stage pulls out the ones it gets wrong ---------------- */
-function sceneCadena(st){const NMAX=10,W=30,D=14;const{scene,g}=diorama(W,D,P.floor);
- const BZ=0,X0=-W/2+3,X1=W/2-3;rb(g,X1-X0+2,0.36,4.6,P.asphalt2,(X0+X1)/2,0,BZ,0.12);
- for(let x=X0;x<=X1;x+=0.9)flat(g,0.08,4.3,P.asphalt,x,0.37,BZ);
- let NG=Math.max(1,Math.min(NMAX,st.n));const gx=k=>X0+5+(k+0.5)*((X1-X0-8)/NG),gates=[];
- for(let k=0;k<NMAX;k++){const gg=new THREE.Group();gg.position.set(gx(k),0,BZ);g.add(gg);
-  rb(gg,0.3,2.6,0.3,P.blue,0,0,-2.5,0.06);rb(gg,0.3,2.6,0.3,P.blue,0,0,2.5,0.06);rb(gg,0.4,0.34,5.3,P.blue,0,2.6,0,0.08);
-  const light=rb(gg,0.5,0.24,0.5,P.mint,0,2.94,0,0.06);
-  const bin=new THREE.Group();bin.position.set(0,0,-4.4);gg.add(bin);rb(bin,1.9,0.12,1.5,0x7A2A2A,0,0,0,0.04);rb(bin,1.9,0.7,0.12,P.red,0,0,0.7,0.04);rb(bin,1.9,0.7,0.12,P.red,0,0,-0.7,0.04);rb(bin,0.12,0.7,1.5,P.red,0.9,0,0,0.04);rb(bin,0.12,0.7,1.5,P.red,-0.9,0,0,0.04);
-  gates.push({gg,light})}
- const tray=rb(g,4.2,0.1,4.2,0xE6E8EE,0,0.38,BZ,0.05);
+function sceneCadena(st){const NMAX=10,W=30,D=16;const{scene,g}=diorama(W,D,P.floor);
+ /* v2 (09-11): no conveyor belt. Each stage is a small world the eye recognizes without reading
+    (planning desk + calendar, warehouse rack + forklift, truck on a street, invoice printer), like reel 8 v13. */
+ const BZ=0,X0=-W/2+3,X1=W/2-3;flat(g,X1-X0+3,3.2,0xE4E6EC,(X0+X1)/2,0.015,BZ);
+ let NG=Math.max(1,Math.min(NMAX,st.n));const sp=()=>(X1-X0-8)/NG,gx=k=>X0+5+(k+0.5)*sp(),gates=[];
+ const ZC=[0xB6CCEB,0xC9CBD1,0x4A5068,0xBDE3C6];
+ for(let k=0;k<NMAX;k++){const gg=new THREE.Group();gg.position.set(gx(k),0,BZ);g.add(gg);const kind=k%4;
+  const zone=flat(gg,1,D-1.2,ZC[kind],0,0.01,0);
+  rb(gg,0.5,0.06,0.5,P.dark,0,0,2.9,0.03);rb(gg,0.16,2.0,0.16,P.dark,0,0,2.9,0.04);const light=rb(gg,0.5,0.5,0.5,P.mint,0,2.0,2.9,0.1);
+  const bin=new THREE.Group();bin.position.set(0,0,4.6);gg.add(bin);rb(bin,1.9,0.12,1.5,0x7A2A2A,0,0,0,0.04);rb(bin,1.9,0.7,0.12,P.red,0,0,0.7,0.04);rb(bin,1.9,0.7,0.12,P.red,0,0,-0.7,0.04);rb(bin,0.12,0.7,1.5,P.red,0.9,0,0,0.04);rb(bin,0.12,0.7,1.5,P.red,-0.9,0,0,0.04);
+  const w=new THREE.Group();w.position.set(0,0,-3.6);w.rotation.y=Math.PI;gg.add(w);const an={};
+  if(kind===0){/* planning: desk, laptop, wall calendar with a day marker that walks */
+   rb(w,2.4,0.1,1.1,P.wood,0,0.9,0.3,0.04);[-1.05,1.05].forEach(x=>[-0.15,0.75].forEach(z=>rb(w,0.1,0.9,0.1,P.dark,x,0,z,0.02)));
+   rb(w,0.8,0.05,0.55,0x8C93A3,-0.5,1.0,0.3,0.02);rb(w,0.8,0.5,0.05,P.dark,-0.5,1.05,0.58,0.02);an.bar=rb(w,0.6,0.08,0.06,P.mint,-0.5,1.2,0.55,0.01);
+   rb(w,2.6,1.9,0.12,P.white,0,1.3,1.1,0.05);rb(w,2.6,0.4,0.14,P.blue,0,2.85,1.1,0.05);
+   for(let r=0;r<3;r++)for(let c=0;c<5;c++)rb(w,0.38,0.32,0.06,(r===1&&c===3)?P.red:0xCCD5E6,(c-2)*0.48,2.35-r*0.45,1.02,0.03);
+   an.mark=rb(w,0.4,0.34,0.08,P.yellow,0,2.35,0.99,0.03)}
+  else if(kind===1){/* warehouse: rack with containers + forklift going back and forth */
+   [-1.3,1.3].forEach(x=>rb(w,0.16,2.8,0.9,P.blue,x,0,1.1,0.03));[0.25,1.2,2.15].forEach((y,l)=>{rb(w,2.7,0.1,0.92,P.coral,0,y,1.1,0.02);for(let c=0;c<3;c++)if(!(l===2&&c===2))rb(w,0.62,0.55,0.62,(l+c)%2?0xC79A63:P.carton,(c-1)*0.82,y+0.1,1.1,0.05)});
+   const f=new THREE.Group();w.add(f);rb(f,0.9,0.5,0.65,P.yellow,0,0.12,0,0.08);rb(f,0.45,0.45,0.6,P.dark,-0.15,0.62,0,0.06);rb(f,0.08,1.4,0.55,P.dark,0.5,0,0,0.02);
+   const fork=new THREE.Group();f.add(fork);rb(fork,0.6,0.05,0.12,P.dark,0.8,0,-0.17,0.01);rb(fork,0.6,0.05,0.12,P.dark,0.8,0,0.17,0.01);rb(fork,0.5,0.45,0.5,P.carton,0.8,0.05,0,0.05);an.lift=f;an.fork=fork}
+  else if(kind===2){/* transport: street + truck that drives in, stops and leaves */
+   const tr=new THREE.Group();w.add(tr);rb(tr,2.2,0.18,1.0,P.dark,-0.3,0.35,0,0.05);rb(tr,1.9,0.9,0.95,P.carton,-0.45,0.53,0,0.08);rb(tr,0.8,0.95,0.98,P.blue,1.15,0.35,0,0.12);rb(tr,0.06,0.45,0.75,P.glass,1.56,0.75,0,0.02);
+   an.wh=[];[[-1.0,-0.5],[-1.0,0.5],[0.9,-0.5],[0.9,0.5]].forEach(([x,z])=>{const c=put(tr,new THREE.CylinderGeometry(0.28,0.28,0.2,16),mat(0x1E2230),x,0.28,z);c.rotation.x=Math.PI/2;an.wh.push(c)});an.truck=tr}
+  else{/* invoicing: desk, monitor with a check, printer pushing out invoices */
+   rb(w,2.4,0.1,1.1,P.wood,0,0.9,0.3,0.04);[-1.05,1.05].forEach(x=>[-0.15,0.75].forEach(z=>rb(w,0.1,0.9,0.1,P.dark,x,0,z,0.02)));
+   rb(w,1.0,0.7,0.08,P.dark,-0.55,1.25,0.7,0.03);[0,1,2].forEach(r=>rb(w,0.6,0.07,0.05,P.white,-0.65,1.75-r*0.15,0.64,0.01));rb(w,0.18,0.18,0.05,P.mint,-0.25,1.35,0.64,0.02);
+   rb(w,0.9,0.4,0.7,0xDCDDE2,0.55,1.0,0.5,0.06);an.sheet=rb(w,0.55,0.02,0.7,P.white,0.55,1.25,0.5,0.005);an.pile=[0,1,2,3].map(q=>rb(w,0.55,0.03,0.7,P.white,0.55,1.0+0.04*q,-0.35,0.005))}
+  gates.push({gg,light,zone,an,kind})}
+ const tray=rb(g,4.2,0.1,4.2,0xE6E8EE,0,0.12,BZ,0.05);
  const box=inst(g,rboxG(0.32,0.28,0.32,0.05),new THREE.MeshLambertMaterial({color:0xffffff}),100);box.material.userData.own=true;
- const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,3,D/2)),{root:g,az:0.62,azP:0.34,el:0.72});
- let cur=Object.assign({},st),r=EC.cadena(cur),ms=0,fail=[],seed=1;const dur=5600;
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,4.5,D/2)),{root:g,az:0.62,azP:0.34,el:0.72});
+ let cur=Object.assign({},st),r=EC.cadena(cur),ms=0,fail=[],seed=1,tt=0;const dur=5600;
  const nG=()=>Math.max(1,Math.min(NMAX,cur.n)),xs=()=>X0-1.2,xe=()=>X1-0.5;
  const cell=i=>{const rr=Math.floor(i/10),cc=i%10;return[(cc-4.5)*0.38,(rr-4.5)*0.38]};
  function reset(){r=EC.cadena(cur);ms=0;seed++;const rng=EC.rngFrom(seed*7919+13),n=nG(),p=cur.p/100;
@@ -286,22 +306,27 @@ function sceneCadena(st){const NMAX=10,W=30,D=14;const{scene,g}=diorama(W,D,P.fl
   const cnt=new Array(n).fill(0);if(cur.pol==="juntas")cnt[0]=Math.round(100*(1-p));else for(let k=0;k<n;k++)cnt[k]=Math.round(100*Math.pow(p,k))-Math.round(100*Math.pow(p,k+1));
   const ids=[...Array(100).keys()];for(let i=99;i>0;i--){const j=Math.floor(rng()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]]}
   fail=new Array(100).fill(-1);let q=0;cnt.forEach((c,k)=>{for(let m=0;m<c;m++)fail[ids[q++]]=k})
-  NG=n;gates.forEach((G,k)=>{G.gg.visible=k<n;G.gg.position.x=gx(k);G.light.material=mat(P.mint)});at(0)}
- function at(dt){const n=nG(),RUN=dur*0.82,u=Math.min(1,ms/RUN),tx=xs()+(xe()-xs())*u;
+  NG=n;gates.forEach((G,k)=>{G.gg.visible=k<n;G.gg.position.x=gx(k);G.zone.scale.x=sp()*0.97;G.gg.children.forEach(c=>{if(c.isGroup&&c.position.z<-3)c.scale.setScalar(Math.min(1.4,sp()/2.9))});G.light.material=mat(P.mint)});at(0)}
+ function anim(){gates.forEach(G=>{const a=G.an;
+  if(a.mark){const n=Math.floor(tt/0.45)%15,rr=Math.floor(n/5),cc=n%5;a.mark.position.set((cc-2)*0.48,2.35-rr*0.45+0.17,0.99);const f=(tt%1.6)/1.6;a.bar.scale.x=Math.max(0.05,f);a.bar.position.x=-0.8+0.3*f}
+  if(a.lift){const ph=(tt%4)/4,e=x=>x<0.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2,cl=x=>Math.max(0,Math.min(1,x));const x=ph<0.5?-0.8+1.6*e(cl(ph/0.45)):0.8-1.6*e(cl((ph-0.5)/0.45));a.lift.position.set(x,0,-0.2);a.lift.rotation.y=ph<0.5?0:Math.PI;a.fork.position.y=0.1+0.7*Math.sin(Math.PI*cl((ph%0.5)/0.5))}
+  if(a.truck){const ph=(tt%5)/5,e=x=>x<0.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2,cl=x=>Math.max(0,Math.min(1,x));const x=ph<0.6?-4+3.4*e(cl(ph/0.38)):-0.6-3.4*e(cl((ph-0.6)/0.4));a.truck.position.set(x,0,0);a.truck.visible=x>-3.4;a.wh.forEach(c=>c.rotation.y=-x*3)}
+  if(a.sheet){const ph=(tt%2)/2;a.sheet.position.z=0.5-0.6*Math.min(1,ph*1.4);a.sheet.position.y=1.25-0.25*Math.max(0,(ph-0.7)/0.3);const np=1+Math.floor(tt/2)%4;a.pile.forEach((m,q)=>m.visible=q<np)}})}
+ function at(dt){tt+=dt||0;anim();const n=nG(),RUN=dur*0.82,u=Math.min(1,ms/RUN),tx=xs()+(xe()-xs())*u;
   tray.position.x=tx;let out=0,stage=0;const binCount=new Array(NMAX).fill(0);
   for(let k=0;k<n;k++)if(tx>=gx(k))stage=k+1;
   for(let i=0;i<100;i++){const[cx,cz]=cell(i),f=fail[i];
-   if(f>=0&&tx>=gx(f)){out++;const j=binCount[f]++,age=Math.min(1,(tx-gx(f))/1.6),bx=gx(f)+((j%4)-1.5)*0.4,bz=BZ-4.4+(Math.floor(j/4)%3-1)*0.4,by=0.2+Math.floor(j/12)*0.3;
-    const sx=tx+cx,sz=BZ+cz,x=sx+(bx-sx)*age,z=sz+(bz-sz)*age,y=0.62+(by-0.62)*age+2.2*age*(1-age);setI(box,i,x,y,z,1,1,1,age*3);box.setColorAt(i,_c.setHex(P.red))}
-   else{setI(box,i,tx+cx,0.62,BZ+cz,1,1,1);box.setColorAt(i,_c.setHex(u>=1?P.mint:P.carton))}}
+   if(f>=0&&tx>=gx(f)){out++;const j=binCount[f]++,age=Math.min(1,(tx-gx(f))/1.6),bx=gx(f)+((j%4)-1.5)*0.4,bz=BZ+4.6+(Math.floor(j/4)%3-1)*0.4,by=0.2+Math.floor(j/12)*0.3;
+    const sx=tx+cx,sz=BZ+cz,x=sx+(bx-sx)*age,z=sz+(bz-sz)*age,y=0.36+(by-0.36)*age+2.2*age*(1-age);setI(box,i,x,y,z,1,1,1,age*3);box.setColorAt(i,_c.setHex(P.red))}
+   else{setI(box,i,tx+cx,0.36,BZ+cz,1,1,1);box.setColorAt(i,_c.setHex(u>=1?P.mint:P.carton))}}
   box.instanceMatrix.needsUpdate=true;box.instanceColor.needsUpdate=true;
   gates.forEach((G,k)=>{const hot=k<n&&fail.some((f,i)=>f===k&&tx>=gx(k)&&tx-gx(k)<0.9);G.light.material=mat(hot?P.red:P.mint)});
-  const left=100-out,NM=[T("Planificación","Planning"),T("Bodega","Warehouse"),T("Transporte","Transport"),T("Facturación","Invoicing")];S.labels=u<1?(n===4?NM.map((nm,k)=>({x:gx(k),y:3.6,z:BZ,html:nm})):[]):[{x:tx,y:1.6,z:BZ,html:`<span class="g">${left} ${T("perfectos","perfect")}</span>`}];
+  const left=100-out,NM=[T("Planificación","Planning"),T("Bodega","Warehouse"),T("Transporte","Transport"),T("Facturación","Invoicing")];S.labels=u<1?(n===4?NM.map((nm,k)=>({x:gx(k),y:3.2,z:BZ-1.4,html:nm})):[]):[{x:tx,y:1.4,z:BZ,html:`<span class="g">${left} ${T("perfectos","perfect")}</span>`}];
   S.clock=stage===0?T("Entrando a la cadena","Entering the chain"):T(`Etapa ${stage} de ${n}`,`Stage ${stage} of ${n}`);
   S.cap=T(`Quedan ${B_(left+" de 100")} · ${out} ${out===1?"con problema":"con problemas"}`,`${B_(left+" of 100")} left · ${out} with ${out===1?"a problem":"problems"}`);return true}
  S.info=()=>null;
  S.apply=st2=>{cur=Object.assign({},st2);reset()};S.prewarm=()=>{reset();ms=dur*0.45;at(0)};S.startRun=()=>{reset();S.done=false;S.obs=null};S.progress=()=>ms/dur;
- S.tick=(dt,sp)=>{ms+=dt*1000*sp;if(ms>=dur){ms=dur;S.done=true;const ok=fail.filter(f=>f<0).length;S.obs=()=>({v:ok+" "+T("de 100","of 100"),l:T("perfectos en esta corrida","perfect in this run")})}return at(dt)};
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;const ok=fail.filter(f=>f<0).length;S.obs=()=>({v:ok+" "+T("de 100","of 100"),l:T("perfectos en esta corrida","perfect in this run")})}return at(dt)};
  S.ff=st2=>S.apply(st2);
  reset();return S}
 
