@@ -59,7 +59,10 @@ function quedatelo(o){const f=Math.max(0,1-o.d/100*o.t),k=o.r/100*f,rec=o.V*k,co
  /* score on the seller's whole bill (refund included), so it is always positive; the reel's numbers set the reference */
  const k0=0.7*Math.max(0,1-0.04),S0=o.V*k0-11,ref=o.V+Math.min(-S0,abuse),you=o.V+loss;
  return{f,k,rec,cost,S,abuse,lossT,lossD,loss,umbral,conviene:lossT<lossD?"traer":"deja",ref,you,score:score(ref,you),valid:o.r===70&&o.d===1&&o.F===8&&o.P===3}}
-return{quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
+/* ---------- CADENA · pedido perfecto (Richards, cap. 13): P = p^n si las fallas son independientes; si van juntas (el mismo pedido falla en todo) P = p, la cota alta. ---------- */
+function cadena(o){const p=o.p/100,n=o.n,perf=o.pol==="juntas"?p:Math.pow(p,n),bad=1-perf,need=Math.pow(0.95,1/n),ref=100*(1-Math.pow(0.95,4)),you=bad*100;
+ return{p,n,perf,bad,need,mes:bad*o.m,ref,you,score:score(ref,you),valid:o.pol==="indep"}}
+return{cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
 })();
 /* </core> */
 if(typeof module!=="undefined")module.exports=EC;

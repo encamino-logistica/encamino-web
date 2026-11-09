@@ -5,9 +5,11 @@
 /* Reel numbers we know. Add the rest here when they are defined. */
 /* reel 7: flip to true on the day it goes out */
 const QPUB=true;
-const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7};
+/* reel 8 · cadena: flip to true on the day it goes out */
+const CPUB=false;
+const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8};
 /* reels published so far: labs with a higher number stay reachable by direct link but are not listed */
-const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB};
+const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB};
 const listedLabs=()=>LABS.filter(l=>PUBLICADO[l.id]!==false).sort((a,b)=>(REELNUM[b.id]||0)-(REELNUM[a.id]||0));
 const REEL2LAB={};for(const k in REELNUM)if(PUBLICADO[k]!==false)REEL2LAB[REELNUM[k]]=k;
 const pub=id=>PUBLICADO[id]!==false;/* a source shows in the library only if one of its labs is published */
@@ -112,6 +114,20 @@ const GAME={
   share(st){const r=EC.ups({W:st.W,X:st.X,v:st.v,G:st.G,pol:"dobla",r:0});return Math.abs(r.diff)<0.05?T(`Con ${st.W} s de espera y ${st.X} m de desvío da lo mismo: doblar y evitar el giro tardan igual.`,`With a ${st.W} s wait and a ${st.X} m detour it's a wash: turning and avoiding take the same time.`):r.diff>0?T(`Doblar a la izquierda le cuesta a cada camión ${nf(r.dayYou,1)} min al día. Evitándolo con ${st.X} m de desvío se ahorran ${nf(r.year)} h al año por camión.`,`Turning left costs each truck ${nf(r.dayYou,1)} min a day. Avoiding it with a ${st.X} m detour saves ${nf(r.year)} h a year per truck.`):T(`Con ${st.W} s de espera y ${st.X} m de desvío, conviene doblar: evitar el giro pierde ${nf(-r.diff,1)} s por maniobra.`,`With a ${st.W} s wait and a ${st.X} m detour, turning pays: avoiding loses ${nf(-r.diff,1)} s per maneuver.`)},
   score(st){const r=EC.ups({W:st.W,X:st.X,v:st.v,G:st.G,pol:st.pol,r:st.r/100});return{score:r.score,valid:true,ref:T(`Reel, siempre evitar: ${nf(r.dayRef,1)} min al día`,`Reel, always avoid: ${nf(r.dayRef,1)} min a day`),you:T(`Tú: ${nf(r.dayYou,1)} min al día`,`You: ${nf(r.dayYou,1)} min a day`),why:st.r>0?T("Reordenar paradas no es gratis: en la realidad alarga otros tramos de la ruta. Por eso aquí llega como máximo al 50 %.","Reordering stops isn't free: in reality it lengthens other parts of the route. That's why it tops out at 50% here."):""}},
   url:[["espera","W",Number,v=>v],["metros","X",Number,v=>v],["regla","pol",v=>v,v=>v],["vel","v",Number,v=>v],["giros","G",Number,v=>v],["reorden","r",Number,v=>v]]},
+ cadena:{
+  def:{p:95,n:4,m:1000,pol:"indep"},
+  rule:SEGF("pol","Cómo fallan las etapas","How the stages fail",[["indep","Cada una por su cuenta","Each on its own",{es:"Una etapa puede fallar en un pedido que las otras hicieron bien: las fallas se suman.",en:"A stage can fail on an order the others got right: failures add up."}],["juntas","Fallan juntas","They fail together",{es:"El pedido malo es malo en todo: las fallas caen sobre los mismos pedidos.",en:"The bad order is bad everywhere: failures land on the same orders."}]]),
+  sliders:[RANGE("p","p","Cumplimiento de cada etapa","Each stage's performance",80,100,0.5,v=>nf(v,1)+" %"),RANGE("n","n","Etapas de la cadena","Stages in the chain",1,10,1,v=>v===1?T("1 etapa","1 stage"):v+T(" etapas"," stages"))],
+  ajustes:[],
+  chips:[["g","4 etapas al 99 %","4 stages at 99 %",{p:99,n:4}],["y","4 etapas al 95 %","4 stages at 95 %",{p:95,n:4}],["r","8 etapas al 95 %","8 stages at 95 %",{p:95,n:8}]],
+  cta:{es:"Subir cada etapa a 99 %",en:"Raise each stage to 99 %",set:{p:99}},next:{indep:"juntas",juntas:"indep"},
+  aha:st=>{const r=EC.cadena(st);return T(`¡Ajá! Con cada etapa al ${nf(st.p,1)} %, salen ${nf(r.perf*100,1)} perfectos de 100: las metas se multiplican.`,`Aha! With each stage at ${nf(st.p,1)} %, ${nf(r.perf*100,1)} out of 100 come out perfect: targets multiply.`)},
+  ouch:(st,from,to)=>{const r=EC.cadena(st);return to==="juntas"?T(`Si las fallas van juntas el total sube a ${nf(r.perf*100,1)} %, pero eso es un supuesto: no compara con el reel.`,`If failures go together the total rises to ${nf(r.perf*100,1)} %, but that's an assumption: it doesn't compare with the reel.`):T(`Con fallas independientes, ${nf(r.bad*100,1)} de cada 100 salen con algún problema.`,`With independent failures, ${nf(r.bad*100,1)} out of 100 come out with a problem.`)},
+  structural:["n"],ff:3,
+  metrics(st){const r=EC.cadena(st);return[{cur:true,v:nf(r.perf*100,1),u:"%",l:T("de los pedidos salen perfectos","of orders come out perfect"),t:tone(r.bad*100,5,15)},{aux:true,v:nf(r.mes),u:"",l:T(`pedidos con problema de ${nf(st.m)} al mes`,`orders with a problem out of ${nf(st.m)} a month`)}]},
+  share(st){const r=EC.cadena(st);return T(`${st.n} etapas al ${nf(st.p,1)} %: solo ${nf(r.perf*100,1)} de cada 100 pedidos salen perfectos. Para 95 % al final, cada etapa necesita ${nf(r.need*100,1)} %.`,`${st.n} stages at ${nf(st.p,1)} %: only ${nf(r.perf*100,1)} out of 100 orders come out perfect. For 95 % at the end, each stage needs ${nf(r.need*100,1)} %.`)},
+  score(st){const r=EC.cadena(st);return{score:r.score,valid:r.valid,ref:T(`Reel: ${nf(r.ref,1)} de cada 100 salen con problema`,`Reel: ${nf(r.ref,1)} out of 100 come out with a problem`),you:T(`Tú: ${nf(r.you,1)} de cada 100`,`You: ${nf(r.you,1)} out of 100`),why:r.valid?T("Menos etapas o etapas más precisas son mejoras reales.","Fewer stages or more precise stages are real improvements."):T("Que las fallas vayan juntas es un supuesto distinto: no compara con el reel.","Failures going together is a different assumption: it doesn't compare with the reel.")}},
+  url:[["etapa","p",Number,v=>v],["etapas","n",Number,v=>v],["pedidos","m",Number,v=>v],["fallas","pol",v=>v,v=>v]]},
  quedatelo:{
   def:{V:5,r:70,d:1,t:4,F:8,P:3,a:0,pol:"traer"},
   rule:SEGF("pol","Qué haces con el producto","What you do with the product",[["traer","Traerlo de vuelta","Bring it back",{es:"Devuelves el dinero, pagas el viaje y revendes lo que se pueda.",en:"You refund, pay for the trip and resell what you can."}],["deja","Quédatelo","Keep it",{es:"Devuelves el dinero y el producto se queda con el cliente: no hay viaje.",en:"You refund and the customer keeps the product: no trip."}]]),
@@ -128,5 +144,5 @@ const GAME={
   url:[["precio","V",Number,v=>v],["semanas","t",Number,v=>v],["abierto","r",Number,v=>v],["perdida","d",Number,v=>v],["flete","F",Number,v=>v],["proceso","P",Number,v=>v],["abuso","a",Number,v=>v],["regla","pol",v=>v,v=>v]]}
 };
 /* the reto controls of each lab (from the content file), minus duplicates of the console */
-GAME.bailey.reto=LAB.bailey.reto.ctl;GAME.fila.reto=LAB.fila.reto.ctl;GAME.nivel.reto=[LAB.nivel.reto.ctl[1]];GAME.amazon.reto=LAB.amazon.reto.ctl;GAME.ikea.reto=[];GAME.ups.reto=[LAB.ups.reto.ctl[1]];GAME.quedatelo.reto=LAB.quedatelo.reto.ctl;
+GAME.bailey.reto=LAB.bailey.reto.ctl;GAME.fila.reto=LAB.fila.reto.ctl;GAME.nivel.reto=[LAB.nivel.reto.ctl[1]];GAME.amazon.reto=LAB.amazon.reto.ctl;GAME.ikea.reto=[];GAME.ups.reto=[LAB.ups.reto.ctl[1]];GAME.quedatelo.reto=LAB.quedatelo.reto.ctl;GAME.cadena.reto=LAB.cadena.reto.ctl;
 LABS.forEach(l=>{const G=GAME[l.id];l.def=G.def;l.game=G});

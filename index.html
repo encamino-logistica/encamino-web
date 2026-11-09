@@ -502,7 +502,10 @@ function quedatelo(o){const f=Math.max(0,1-o.d/100*o.t),k=o.r/100*f,rec=o.V*k,co
  /* score on the seller's whole bill (refund included), so it is always positive; the reel's numbers set the reference */
  const k0=0.7*Math.max(0,1-0.04),S0=o.V*k0-11,ref=o.V+Math.min(-S0,abuse),you=o.V+loss;
  return{f,k,rec,cost,S,abuse,lossT,lossD,loss,umbral,conviene:lossT<lossD?"traer":"deja",ref,you,score:score(ref,you),valid:o.r===70&&o.d===1&&o.F===8&&o.P===3}}
-return{quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
+/* ---------- CADENA · pedido perfecto (Richards, cap. 13): P = p^n si las fallas son independientes; si van juntas (el mismo pedido falla en todo) P = p, la cota alta. ---------- */
+function cadena(o){const p=o.p/100,n=o.n,perf=o.pol==="juntas"?p:Math.pow(p,n),bad=1-perf,need=Math.pow(0.95,1/n),ref=100*(1-Math.pow(0.95,4)),you=bad*100;
+ return{p,n,perf,bad,need,mes:bad*o.m,ref,you,score:score(ref,you),valid:o.pol==="indep"}}
+return{cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
 })();
 /* </core> */
 
@@ -883,6 +886,43 @@ function sceneQuedatelo(st){const PX=3.4,PZ=3.7,X0=1.6,CAP=20;const W=10*PX+10,D
  S.tick=(dt,sp)=>{ms+=dt*1000*sp;if(ms>=dur){ms=dur;S.done=true;if(cur.pol==="deja"&&cur.a>0){const b=fake.filter(Boolean).length;S.obs=()=>({v:b+" "+T("de 100","of 100"),l:T("reclamos falsos","false claims")})}}return at(dt)};
  reset();return S}
 
+/* ---------------- CADENA · 100 orders cross the stages; each stage pulls out the ones it gets wrong ---------------- */
+function sceneCadena(st){const NMAX=10,W=30,D=14;const{scene,g}=diorama(W,D,P.floor);
+ const BZ=0,X0=-W/2+3,X1=W/2-3;rb(g,X1-X0+2,0.36,4.6,P.asphalt2,(X0+X1)/2,0,BZ,0.12);
+ for(let x=X0;x<=X1;x+=0.9)flat(g,0.08,4.3,P.asphalt,x,0.37,BZ);
+ let NG=Math.max(1,Math.min(NMAX,st.n));const gx=k=>X0+5+(k+0.5)*((X1-X0-8)/NG),gates=[];
+ for(let k=0;k<NMAX;k++){const gg=new THREE.Group();gg.position.set(gx(k),0,BZ);g.add(gg);
+  rb(gg,0.3,2.6,0.3,P.blue,0,0,-2.5,0.06);rb(gg,0.3,2.6,0.3,P.blue,0,0,2.5,0.06);rb(gg,0.4,0.34,5.3,P.blue,0,2.6,0,0.08);
+  const light=rb(gg,0.5,0.24,0.5,P.mint,0,2.94,0,0.06);
+  const bin=new THREE.Group();bin.position.set(0,0,-4.4);gg.add(bin);rb(bin,1.9,0.12,1.5,0x7A2A2A,0,0,0,0.04);rb(bin,1.9,0.7,0.12,P.red,0,0,0.7,0.04);rb(bin,1.9,0.7,0.12,P.red,0,0,-0.7,0.04);rb(bin,0.12,0.7,1.5,P.red,0.9,0,0,0.04);rb(bin,0.12,0.7,1.5,P.red,-0.9,0,0,0.04);
+  gates.push({gg,light})}
+ const tray=rb(g,4.2,0.1,4.2,0xE6E8EE,0,0.38,BZ,0.05);
+ const box=inst(g,rboxG(0.32,0.28,0.32,0.05),new THREE.MeshLambertMaterial({color:0xffffff}),100);box.material.userData.own=true;
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,3,D/2)),{root:g,az:0.62,azP:0.34,el:0.72});
+ let cur=Object.assign({},st),r=EC.cadena(cur),ms=0,fail=[],seed=1;const dur=5600;
+ const nG=()=>Math.max(1,Math.min(NMAX,cur.n)),xs=()=>X0-1.2,xe=()=>X1-0.5;
+ const cell=i=>{const rr=Math.floor(i/10),cc=i%10;return[(cc-4.5)*0.38,(rr-4.5)*0.38]};
+ function reset(){r=EC.cadena(cur);ms=0;seed++;const rng=EC.rngFrom(seed*7919+13),n=nG(),p=cur.p/100;
+  fail=[];for(let i=0;i<100;i++){let f=-1;if(cur.pol==="juntas"){if(rng()>p)f=0}else{for(let k=0;k<n;k++)if(rng()>p){f=k;break}}fail.push(f)}
+  NG=n;gates.forEach((G,k)=>{G.gg.visible=k<n;G.gg.position.x=gx(k);G.light.material=mat(P.mint)});at(0)}
+ function at(dt){const n=nG(),RUN=dur*0.82,u=Math.min(1,ms/RUN),tx=xs()+(xe()-xs())*u;
+  tray.position.x=tx;let out=0,stage=0;const binCount=new Array(NMAX).fill(0);
+  for(let k=0;k<n;k++)if(tx>=gx(k))stage=k+1;
+  for(let i=0;i<100;i++){const[cx,cz]=cell(i),f=fail[i];
+   if(f>=0&&tx>=gx(f)){out++;const j=binCount[f]++,age=Math.min(1,(tx-gx(f))/1.6),bx=gx(f)+((j%4)-1.5)*0.4,bz=BZ-4.4+(Math.floor(j/4)%3-1)*0.4,by=0.2+Math.floor(j/12)*0.3;
+    const sx=tx+cx,sz=BZ+cz,x=sx+(bx-sx)*age,z=sz+(bz-sz)*age,y=0.62+(by-0.62)*age+2.2*age*(1-age);setI(box,i,x,y,z,1,1,1,age*3);box.setColorAt(i,_c.setHex(P.red))}
+   else{setI(box,i,tx+cx,0.62,BZ+cz,1,1,1);box.setColorAt(i,_c.setHex(u>=1?P.mint:P.carton))}}
+  box.instanceMatrix.needsUpdate=true;box.instanceColor.needsUpdate=true;
+  gates.forEach((G,k)=>{const hot=k<n&&fail.some((f,i)=>f===k&&tx>=gx(k)&&tx-gx(k)<0.9);G.light.material=mat(hot?P.red:P.mint)});
+  const left=100-out,NM=[T("Planificación","Planning"),T("Bodega","Warehouse"),T("Transporte","Transport"),T("Facturación","Invoicing")];S.labels=u<1?(n===4?NM.map((nm,k)=>({x:gx(k),y:3.6,z:BZ,html:nm})):[]):[{x:tx,y:1.6,z:BZ,html:`<span class="g">${left} ${T("perfectos","perfect")}</span>`}];
+  S.clock=stage===0?T("Entrando a la cadena","Entering the chain"):T(`Etapa ${stage} de ${n}`,`Stage ${stage} of ${n}`);
+  S.cap=T(`Quedan ${B_(left+" de 100")} · ${out} ${out===1?"con problema":"con problemas"}`,`${B_(left+" of 100")} left · ${out} with ${out===1?"a problem":"problems"}`);return true}
+ S.info=()=>null;
+ S.apply=st2=>{cur=Object.assign({},st2);reset()};S.prewarm=()=>{reset();ms=dur*0.45;at(0)};S.startRun=()=>{reset();S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp)=>{ms+=dt*1000*sp;if(ms>=dur){ms=dur;S.done=true;const ok=fail.filter(f=>f<0).length;S.obs=()=>({v:ok+" "+T("de 100","of 100"),l:T("perfectos en esta corrida","perfect in this run")})}return at(dt)};
+ S.ff=st2=>S.apply(st2);
+ reset();return S}
+
 /* ---------------- UPS · the race repeats ---------------- */
 function sceneUps(st){const a=st.X/40,b=st.X/40;const W=Math.max(32,2*(a+6)),D=Math.max(32,2*(b+6));const{scene,g}=diorama(W,D,P.grass);
  roadZ(g,D/2-0.4,-D/2+0.4,0,3.0);roadX(g,-W/2+0.4,W/2-0.4,0,3.0);for(let i=-3;i<=3;i++){flat(g,0.32,1.6,P.line,i*0.42,0.022,2.4);flat(g,1.6,0.32,P.line,-2.4,0.022,i*0.42)}
@@ -977,7 +1017,11 @@ const SOURCES=[
  {id:"blackburn2004",shelf:"ultima",sp:"Blackburn et al. · Cadenas inversas",spEn:"Blackburn et al. · Reverse chains",au:"J. D. Blackburn, V. D. R. Guide Jr., G. C. Souza & L. N. Van Wassenhove",yr:"2004",ti:{es:"Cadenas de suministro inversas para devoluciones comerciales",en:"Reverse Supply Chains for Commercial Returns",orig:"Reverse Supply Chains for Commercial Returns"},ve:"California Management Review 46(2), 6–22",ty:"paper",labs:["quedatelo"],url:"https://cmr.berkeley.edu/2004/02/46-2-reverse-supply-chains-for-commercial-returns/",
   idea:{es:"Advierte que lo devuelto puede perder hasta 10–20 % de su valor solo por demoras. Si el producto se deprecia rápido, conviene decidir pronto y cerca del cliente, no mandarlo todo a un centro lejano.",en:"Warns that returns can lose up to 10–20 % of their value through delays alone. If a product depreciates fast, decide early and close to the customer instead of shipping everything to a distant center."}},
  {id:"amazon2025",shelf:"ultima",sp:"Amazon · Reembolso sin devolución",spEn:"Amazon · Returnless resolutions",au:"Amazon · Seller Forums",yr:"2026",ti:{es:"Reduce los costos de devolución con reembolsos sin devolución",en:"Reduce return costs with returnless resolutions",orig:"Reduce return costs with returnless resolutions"},ve:{es:"Ejemplo: «paying $8–$12 to ship back a $5 item»",en:"Example: “paying $8–$12 to ship back a $5 item”"},ty:"ficha",labs:["quedatelo"],url:"https://sellercentral.amazon.com/seller-forums/discussions/t/8f6ea88b-8672-426e-accb-7c9d7f6d911a",
-  idea:{es:"De aquí sale el ejemplo: pagar 8 a 12 dólares por traer de vuelta un producto de 5. El reel usa el piso, 8, solo como flete. En otro aviso del foro, Amazon indica que el vendedor fija un precio máximo entre US$ 1 y US$ 75, y que la opción es solo para clientes sin historial de abuso.",en:"The example comes from here: paying $8–$12 to ship back a $5 item. The reel uses the low end, 8, as freight only. In another forum notice, Amazon says the seller sets a maximum price between $1 and $75, and the option is only for customers with no history of returns abuse."}}
+  idea:{es:"De aquí sale el ejemplo: pagar 8 a 12 dólares por traer de vuelta un producto de 5. El reel usa el piso, 8, solo como flete. En otro aviso del foro, Amazon indica que el vendedor fija un precio máximo entre US$ 1 y US$ 75, y que la opción es solo para clientes sin historial de abuso.",en:"The example comes from here: paying $8–$12 to ship back a $5 item. The reel uses the low end, 8, as freight only. In another forum notice, Amazon says the seller sets a maximum price between $1 and $75, and the option is only for customers with no history of returns abuse."}},
+ {id:"richards2014",shelf:"bodega",sp:"Richards · Gestión de bodegas",spEn:"Richards · Warehouse Management",au:"G. Richards",yr:"2014",ti:{es:"Gestión de bodegas: guía completa para mejorar la eficiencia y bajar costos en la bodega moderna",en:"Warehouse Management: A Complete Guide to Improving Efficiency and Minimizing Costs in the Modern Warehouse",orig:"Warehouse Management: A Complete Guide to Improving Efficiency and Minimizing Costs in the Modern Warehouse"},ve:{es:"Kogan Page, 2.ª edición · cap. 13",en:"Kogan Page, 2nd edition · ch. 13"},ty:"libro",labs:["cadena"],url:SCH("Gwynne Richards Warehouse Management Kogan Page"),search:true,
+  idea:{es:"Un pedido es perfecto solo si cumple todo a la vez: a tiempo, completo, sin daño y con la documentación correcta. Richards lo calcula multiplicando el porcentaje de cada requisito, y por eso cuatro áreas que cumplen bien pueden entregar un pedido perfecto bastante peor.",en:"An order is perfect only if it meets everything at once: on time, complete, damage free and with correct paperwork. Richards computes it by multiplying each requirement's percentage, which is why four areas that perform well can deliver a much worse perfect order."}},
+ {id:"apqc2024",shelf:"bodega",sp:"APQC · Pedido perfecto",spEn:"APQC · Perfect order",au:"APQC",yr:{es:"Ficha",en:"Sheet"},ti:{es:"Desempeño del pedido perfecto (medida 101741)",en:"Perfect order performance (measure 101741)",orig:"Perfect order performance"},ve:{es:"«(% on time delivery) multiplied by (% complete orders) multiplied by (% damage free) multiplied by (% accurate documentation)»",en:"“(% on time delivery) multiplied by (% complete orders) multiplied by (% damage free) multiplied by (% accurate documentation)”"},ty:"ficha",labs:["cadena"],url:"https://www.apqc.org/resources/benchmarking/open-standards-benchmarking/measures/perfect-order-performance",
+  idea:{es:"APQC, el centro estadounidense que compara procesos entre miles de empresas, define el indicador con la misma multiplicación de los cuatro requisitos. Su propio ejemplo: 0,98 × 0,97 × 0,99 × 0,82 ≈ 77 %.",en:"APQC, the US center that benchmarks processes across thousands of companies, defines the measure with the same multiplication of the four requirements. Its own example: 0.98 × 0.97 × 0.99 × 0.82 ≈ 77%."}}
 ];
 const SRC={};SOURCES.forEach(s=>SRC[s.id]=s);
 
@@ -1205,6 +1249,29 @@ const LABS=[
    s:st=>{const det=st.X/(st.v/3.6);const e=st.W>0?st.W*(1-Math.exp(-det/st.W)):0;return `= ${HL(nf(e,1)+" s")} ${T("por giro, contra","per turn, versus")} ${nf(det,1)} s ${T("de siempre evitar","for always avoiding")}`}}],
  notApply:{es:"Con flechas de giro protegidas y poco tráfico de frente, la espera es corta y el desvío no compensa. En la muestra de choques de la NHTSA (NMVCCS 2005–2007), el 22,2 % ocurrió doblando a la izquierda y el 1,2 % a la derecha: es una proporción de choques, no la probabilidad de chocar en tu próximo giro. La regla «solo si conviene» es un supuesto del laboratorio: asume una espera al azar con ese promedio y que el conductor la ve antes de decidir.",en:"With protected turn arrows and little oncoming traffic, the wait is short and the detour doesn't pay. In NHTSA's crash sample (NMVCCS 2005–2007), 22.2% happened while turning left and 1.2% while turning right: a share of crashes, not the chance of crashing on your next turn. The “only if it pays” rule is a lab assumption: it assumes a random wait with that average, seen by the driver before deciding."},
  sources:["nhtsa2010","holland2017","dantzig1959"],scene:sceneUps},
+/* ======================= CADENA · PEDIDO PERFECTO ======================= */
+{id:"cadena",cat:"bodega",kicker:{es:"Cadena · Pedido perfecto",en:"Chain · Perfect order"},chip:"95 % → 81 %",
+ q:{es:"Si cada etapa cumple el 95 %, ¿cuántos pedidos salen perfectos?",en:"If every stage hits 95 %, how many orders come out perfect?"},
+ short:{es:"La cadena del 95 %",en:"The 95 % chain"},
+ lede:{es:"Planificación, bodega, transporte y facturación: cada una cumple su meta del 95 %. Pero un pedido perfecto necesita que las cuatro le acierten al mismo pedido. Cambia el cumplimiento y el número de etapas, y mira cuántos de cada 100 llegan bien.",en:"Planning, warehouse, transport and invoicing: each hits its 95 % target. But a perfect order needs all four to get the same order right. Change the performance and the number of stages, and see how many out of 100 arrive right."},
+ sym:{p:"#4BE38A",n:"#6EC1FF",m:"#FFC726"},
+ reto:{intro:{es:"Lleva la cuenta a tu operación: con tus pedidos del mes, ¿cuántos salen con algún problema?",en:"Bring it to your operation: with your monthly orders, how many come out with a problem?"},
+  ctl:[{k:"m",type:"range",sym:"m",es:"Pedidos al mes",en:"Orders per month",min:100,max:20000,step:100,fmt:v=>nf(v)}],
+  cost:{es:"Cada pedido con problema es un reclamo, un reenvío o una nota de crédito. El porcentaje no cambia; lo que crece es la cantidad.",en:"Each order with a problem is a complaint, a resend or a credit note. The percentage doesn't change; the count does."}},
+ compute(st){return EC.cadena(st)},
+ story(r,st){return{h:T(`De 100 pedidos, ${HL(nf(r.perf*100,1)+" salen perfectos")}.`,`Out of 100 orders, ${HL(nf(r.perf*100,1)+" come out perfect")}.`),
+  stats:[{v:nf(r.bad*100,1)+" %",l:T("salen con algún problema","come out with a problem")},{v:nf(r.need*100,1)+" %",l:T(`necesita cada etapa para 95 % al final`,`each stage needs for 95 % at the end`)}]}},
+ refLine(r){return T("Reel: 4 etapas al 95 % → 81 perfectos de 100","Reel: 4 stages at 95 % → 81 perfect out of 100")},
+ aha:{h:{es:"Las metas se multiplican.",en:"Targets multiply."},t:{es:"Cada etapa cumple el 95 %, pero el pedido perfecto exige acertar en todas a la vez. Por eso cuatro metas en verde dan 81 de 100. Para llegar a 95 % al final, cada etapa necesita casi 99 %.",en:"Each stage hits 95 %, but a perfect order needs all of them at once. That's why four green targets give 81 out of 100. To reach 95 % at the end, each stage needs almost 99 %."}},
+ math:[
+  {t:{es:"El pedido perfecto",en:"The perfect order"},p:()=>T("Multiplica el cumplimiento de cada etapa (si sus fallas son independientes).","Multiply each stage's performance (if its failures are independent)."),
+   f:()=>`P = ${Vs("p","p")}<sup>${Vs("n","n")}</sup>`,s:st=>{const r=EC.cadena(st);return `= ${nf(r.p,3)}<sup>${st.n}</sup> = ${HL(nf(r.perf*100,1)+" %")}`}},
+  {t:{es:"Lo que necesita cada etapa",en:"What each stage needs"},p:()=>T("Para un 95 % al final, despeja p.","For 95 % at the end, solve for p."),
+   f:()=>`${Vs("p","p")} = 0,95<sup>1/${Vs("n","n")}</sup>`,s:st=>{const r=EC.cadena(st);return `= ${HL(nf(r.need*100,2)+" %")}`}},
+  {t:{es:"Si las fallas van juntas",en:"If failures go together"},p:()=>T("Si el mismo pedido malo falla en todo, el total no baja de p: es el mejor caso posible.","If the same bad order fails everywhere, the total doesn't fall below p: it's the best possible case."),
+   f:()=>`P<sub>${T("máx","max")}</sub> = ${Vs("p","p")}`,s:st=>`= ${HL(nf(st.p,1)+" %")}`}],
+ notApply:{es:"La multiplicación supone fallas independientes. Si las fallas van juntas (el pedido atrasado es también el incompleto) el total sube, hasta p en el extremo; si un pedido nunca falla en dos cosas a la vez, baja un poco más (80 % con 4 etapas al 95 %). Asignar un requisito a cada etapa es una simplificación: en la realidad una etapa puede romper más de uno. El 95 % es un ejemplo, no un dato del sector. Para medirlo de verdad se cuentan los pedidos que cumplen todo.",en:"The multiplication assumes independent failures. If failures go together (the late order is also the incomplete one), the total goes up, to p at the extreme; if an order never fails in two things at once, it drops a bit more (80 % with 4 stages at 95 %). Assigning one requirement per stage is a simplification: in reality one stage can break more than one. The 95 % is an example, not an industry figure. To measure it for real, count the orders that meet everything."},
+ cuenta:[0,1],sources:["richards2014","apqc2024"],scene:sceneCadena},
 /* ======================= QUÉDATELO ======================= */
 {id:"quedatelo",cat:"ultima",kicker:{es:"Devoluciones · Quédatelo",en:"Returns · Keep it"},chip:"−US$ 7,64",
  q:{es:"¿Lo traes de vuelta o te lo quedas?",en:"Bring it back or keep it?"},
@@ -1246,9 +1313,11 @@ const BIB={"bailey1952": {"gancho": {"es": "Una sala de espera llena a las nueve
 /* Reel numbers we know. Add the rest here when they are defined. */
 /* reel 7: flip to true on the day it goes out */
 const QPUB=true;
-const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7};
+/* reel 8 · cadena: flip to true on the day it goes out */
+const CPUB=false;
+const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8};
 /* reels published so far: labs with a higher number stay reachable by direct link but are not listed */
-const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB};
+const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB};
 const listedLabs=()=>LABS.filter(l=>PUBLICADO[l.id]!==false).sort((a,b)=>(REELNUM[b.id]||0)-(REELNUM[a.id]||0));
 const REEL2LAB={};for(const k in REELNUM)if(PUBLICADO[k]!==false)REEL2LAB[REELNUM[k]]=k;
 const pub=id=>PUBLICADO[id]!==false;/* a source shows in the library only if one of its labs is published */
@@ -1353,6 +1422,20 @@ const GAME={
   share(st){const r=EC.ups({W:st.W,X:st.X,v:st.v,G:st.G,pol:"dobla",r:0});return Math.abs(r.diff)<0.05?T(`Con ${st.W} s de espera y ${st.X} m de desvío da lo mismo: doblar y evitar el giro tardan igual.`,`With a ${st.W} s wait and a ${st.X} m detour it's a wash: turning and avoiding take the same time.`):r.diff>0?T(`Doblar a la izquierda le cuesta a cada camión ${nf(r.dayYou,1)} min al día. Evitándolo con ${st.X} m de desvío se ahorran ${nf(r.year)} h al año por camión.`,`Turning left costs each truck ${nf(r.dayYou,1)} min a day. Avoiding it with a ${st.X} m detour saves ${nf(r.year)} h a year per truck.`):T(`Con ${st.W} s de espera y ${st.X} m de desvío, conviene doblar: evitar el giro pierde ${nf(-r.diff,1)} s por maniobra.`,`With a ${st.W} s wait and a ${st.X} m detour, turning pays: avoiding loses ${nf(-r.diff,1)} s per maneuver.`)},
   score(st){const r=EC.ups({W:st.W,X:st.X,v:st.v,G:st.G,pol:st.pol,r:st.r/100});return{score:r.score,valid:true,ref:T(`Reel, siempre evitar: ${nf(r.dayRef,1)} min al día`,`Reel, always avoid: ${nf(r.dayRef,1)} min a day`),you:T(`Tú: ${nf(r.dayYou,1)} min al día`,`You: ${nf(r.dayYou,1)} min a day`),why:st.r>0?T("Reordenar paradas no es gratis: en la realidad alarga otros tramos de la ruta. Por eso aquí llega como máximo al 50 %.","Reordering stops isn't free: in reality it lengthens other parts of the route. That's why it tops out at 50% here."):""}},
   url:[["espera","W",Number,v=>v],["metros","X",Number,v=>v],["regla","pol",v=>v,v=>v],["vel","v",Number,v=>v],["giros","G",Number,v=>v],["reorden","r",Number,v=>v]]},
+ cadena:{
+  def:{p:95,n:4,m:1000,pol:"indep"},
+  rule:SEGF("pol","Cómo fallan las etapas","How the stages fail",[["indep","Cada una por su cuenta","Each on its own",{es:"Una etapa puede fallar en un pedido que las otras hicieron bien: las fallas se suman.",en:"A stage can fail on an order the others got right: failures add up."}],["juntas","Fallan juntas","They fail together",{es:"El pedido malo es malo en todo: las fallas caen sobre los mismos pedidos.",en:"The bad order is bad everywhere: failures land on the same orders."}]]),
+  sliders:[RANGE("p","p","Cumplimiento de cada etapa","Each stage's performance",80,100,0.5,v=>nf(v,1)+" %"),RANGE("n","n","Etapas de la cadena","Stages in the chain",1,10,1,v=>v===1?T("1 etapa","1 stage"):v+T(" etapas"," stages"))],
+  ajustes:[],
+  chips:[["g","4 etapas al 99 %","4 stages at 99 %",{p:99,n:4}],["y","4 etapas al 95 %","4 stages at 95 %",{p:95,n:4}],["r","8 etapas al 95 %","8 stages at 95 %",{p:95,n:8}]],
+  cta:{es:"Subir cada etapa a 99 %",en:"Raise each stage to 99 %",set:{p:99}},next:{indep:"juntas",juntas:"indep"},
+  aha:st=>{const r=EC.cadena(st);return T(`¡Ajá! Con cada etapa al ${nf(st.p,1)} %, salen ${nf(r.perf*100,1)} perfectos de 100: las metas se multiplican.`,`Aha! With each stage at ${nf(st.p,1)} %, ${nf(r.perf*100,1)} out of 100 come out perfect: targets multiply.`)},
+  ouch:(st,from,to)=>{const r=EC.cadena(st);return to==="juntas"?T(`Si las fallas van juntas el total sube a ${nf(r.perf*100,1)} %, pero eso es un supuesto: no compara con el reel.`,`If failures go together the total rises to ${nf(r.perf*100,1)} %, but that's an assumption: it doesn't compare with the reel.`):T(`Con fallas independientes, ${nf(r.bad*100,1)} de cada 100 salen con algún problema.`,`With independent failures, ${nf(r.bad*100,1)} out of 100 come out with a problem.`)},
+  structural:["n"],ff:3,
+  metrics(st){const r=EC.cadena(st);return[{cur:true,v:nf(r.perf*100,1),u:"%",l:T("de los pedidos salen perfectos","of orders come out perfect"),t:tone(r.bad*100,5,15)},{aux:true,v:nf(r.mes),u:"",l:T(`pedidos con problema de ${nf(st.m)} al mes`,`orders with a problem out of ${nf(st.m)} a month`)}]},
+  share(st){const r=EC.cadena(st);return T(`${st.n} etapas al ${nf(st.p,1)} %: solo ${nf(r.perf*100,1)} de cada 100 pedidos salen perfectos. Para 95 % al final, cada etapa necesita ${nf(r.need*100,1)} %.`,`${st.n} stages at ${nf(st.p,1)} %: only ${nf(r.perf*100,1)} out of 100 orders come out perfect. For 95 % at the end, each stage needs ${nf(r.need*100,1)} %.`)},
+  score(st){const r=EC.cadena(st);return{score:r.score,valid:r.valid,ref:T(`Reel: ${nf(r.ref,1)} de cada 100 salen con problema`,`Reel: ${nf(r.ref,1)} out of 100 come out with a problem`),you:T(`Tú: ${nf(r.you,1)} de cada 100`,`You: ${nf(r.you,1)} out of 100`),why:r.valid?T("Menos etapas o etapas más precisas son mejoras reales.","Fewer stages or more precise stages are real improvements."):T("Que las fallas vayan juntas es un supuesto distinto: no compara con el reel.","Failures going together is a different assumption: it doesn't compare with the reel.")}},
+  url:[["etapa","p",Number,v=>v],["etapas","n",Number,v=>v],["pedidos","m",Number,v=>v],["fallas","pol",v=>v,v=>v]]},
  quedatelo:{
   def:{V:5,r:70,d:1,t:4,F:8,P:3,a:0,pol:"traer"},
   rule:SEGF("pol","Qué haces con el producto","What you do with the product",[["traer","Traerlo de vuelta","Bring it back",{es:"Devuelves el dinero, pagas el viaje y revendes lo que se pueda.",en:"You refund, pay for the trip and resell what you can."}],["deja","Quédatelo","Keep it",{es:"Devuelves el dinero y el producto se queda con el cliente: no hay viaje.",en:"You refund and the customer keeps the product: no trip."}]]),
@@ -1369,7 +1452,7 @@ const GAME={
   url:[["precio","V",Number,v=>v],["semanas","t",Number,v=>v],["abierto","r",Number,v=>v],["perdida","d",Number,v=>v],["flete","F",Number,v=>v],["proceso","P",Number,v=>v],["abuso","a",Number,v=>v],["regla","pol",v=>v,v=>v]]}
 };
 /* the reto controls of each lab (from the content file), minus duplicates of the console */
-GAME.bailey.reto=LAB.bailey.reto.ctl;GAME.fila.reto=LAB.fila.reto.ctl;GAME.nivel.reto=[LAB.nivel.reto.ctl[1]];GAME.amazon.reto=LAB.amazon.reto.ctl;GAME.ikea.reto=[];GAME.ups.reto=[LAB.ups.reto.ctl[1]];GAME.quedatelo.reto=LAB.quedatelo.reto.ctl;
+GAME.bailey.reto=LAB.bailey.reto.ctl;GAME.fila.reto=LAB.fila.reto.ctl;GAME.nivel.reto=[LAB.nivel.reto.ctl[1]];GAME.amazon.reto=LAB.amazon.reto.ctl;GAME.ikea.reto=[];GAME.ups.reto=[LAB.ups.reto.ctl[1]];GAME.quedatelo.reto=LAB.quedatelo.reto.ctl;GAME.cadena.reto=LAB.cadena.reto.ctl;
 LABS.forEach(l=>{const G=GAME[l.id];l.def=G.def;l.game=G});
 
 /* =====================================================================
@@ -1378,6 +1461,8 @@ LABS.forEach(l=>{const G=GAME[l.id];l.def=G.def;l.game=G});
 
 /* ---------- equations that live inside the library books ---------- */
 const EQ={
+ richards2014:{f:()=>`P = ${T("a tiempo","on time")} × ${T("completo","complete")} × ${T("sin daño","damage free")} × ${T("factura","invoice")}`,live:()=>{const s=STATE.cadena,r=EC.cadena(s);return T(`Con ${s.n} etapas al ${nf(s.p,1)} %: ${HL(nf(r.perf*100,1)+" %")} de pedidos perfectos.`,`With ${s.n} stages at ${nf(s.p,1)} %: ${HL(nf(r.perf*100,1)+" %")} perfect orders.`)}},
+ apqc2024:{stat:()=>T("≈ 77 %","≈ 77 %"),f:()=>T("en su ejemplo: 0,98 × 0,97 × 0,99 × 0,82","in its example: 0.98 × 0.97 × 0.99 × 0.82"),live:()=>{const s=STATE.cadena,r=EC.cadena(s);return T(`Con tus números: ${HL(nf(r.perf*100,1)+" %")}.`,`With your numbers: ${HL(nf(r.perf*100,1)+" %")}.`)}},
  bailey1952:{f:()=>`t<sub>i</sub> = s · ${T("máx","max")}${PA("0, "+CE(FR("i − 2c","c")))}`,live:()=>{const s=STATE.bailey;const b=EC.bStats("bailey",s.N,s.c,s.s,0);return T(`Con ${s.c} andenes, ${s.N} camiones y ${s.s} min de carga: espera promedio ${HL(nf(b.avg,1)+" min")}, termina ${clock(b.fin)}.`,`With ${s.c} docks, ${s.N} trucks and ${s.s} min loads: average wait ${HL(nf(b.avg,1)+" min")}, done at ${clock(b.fin)}.`)}},
  welch1952:{f:()=>`t<sub>1</sub> = t<sub>2</sub> = 0 ${OP("·")} t<sub>i</sub> = (i − 2) · s`,live:()=>T("Dos al abrir y después uno por turno: el segundo cubre al que llega tarde.","Two at opening, then one per slot: the second covers the late one.")},
  kaandorp2007:{f:()=>`${T("mín","min")} α·E[${T("espera","wait")}] + β·E[${T("ocio","idle")}] + γ·E[${T("atraso","overtime")}]`,live:()=>T("Cambia los pesos α, β y γ y cambia la mejor agenda.","Change the weights α, β and γ and the best schedule changes.")},
@@ -1499,12 +1584,13 @@ function mountLabScene(id){const host=$("stage");if(!host)return;if(!HAS3||!rend
 
 /* ---------- the run: prepare → ▶ Simular → result ---------- */
 const RUNSP={fila:8,bailey:2.6,ups:1.1};
-const rw=id=>{const w=RUNWORD[id];return typeof w==="function"?w(STATE[id]):tx(w)};const RUNWORD={bailey:{es:"el día",en:"the day"},fila:{es:"la hora punta",en:"rush hour"},nivel:{es:"el mes",en:"the month"},amazon:st=>st.o===1?T("1 pedido","1 order"):T(`${st.o} pedidos`,`${st.o} orders`),ikea:{es:"100 entregas",en:"100 deliveries"},ups:{es:"la carrera",en:"the race"},quedatelo:{es:"100 devoluciones",en:"100 returns"}};
+const rw=id=>{const w=RUNWORD[id];return typeof w==="function"?w(STATE[id]):tx(w)};const RUNWORD={bailey:{es:"el día",en:"the day"},fila:{es:"la hora punta",en:"rush hour"},nivel:{es:"el mes",en:"the month"},amazon:st=>st.o===1?T("1 pedido","1 order"):T(`${st.o} pedidos`,`${st.o} orders`),ikea:{es:"100 entregas",en:"100 deliveries"},ups:{es:"la carrera",en:"the race"},quedatelo:{es:"100 devoluciones",en:"100 returns"},cadena:{es:"100 pedidos",en:"100 orders"}};
 const SIT={bailey:st=>T(`${st.N} camiones · ${st.c} andenes · ${st.s} min de carga${st.d?` · llegan ±${st.d} min`:" · llegan puntuales"}`,`${st.N} trucks · ${st.c} docks · ${st.s} min loads${st.d?` · arrive ±${st.d} min`:" · arrive on time"}`),
  fila:st=>T(`${pl(st.c,"puerta","puertas")} · ${pl(st.lam,"camión","camiones")} por hora · ${st.S} min de descarga en promedio`,`${pl(st.c,"","","door","doors")} · ${pl(st.lam,"","","truck","trucks")} per hour · ${st.S} min unloads on average`),
  nivel:st=>T(`${nf(st.p/10,1)} % de éxito por parada · ${st.n} paradas al día${st.n!==85?` (el reel usa 85)`:""} · meta ${st.meta} %${st.round?" (redondea)":""}`,`${nf(st.p/10,1)} % success per stop · ${st.n} stops a day${st.n!==85?` (the reel uses 85)`:""} · ${st.meta} % target${st.round?" (rounded)":""}`),
  amazon:st=>T(`Pasillo de ${st.L} m · ${st.ord==="orden"?"1 lugar":st.k+" copias"} del producto`,`${st.L} m aisle · ${st.ord==="orden"?"1 spot":st.k+" copies"} of the product`),
  ikea:st=>st.pack==="armado"?T(`Armado: 1 bulto de 1,81 m³ · 3 por viaje en un furgón de 5,6 m³ (ejemplo) · cada pieza falla 1 de cada ${nf(EC.IP[st.pi])} (ejemplo)`,`Assembled: 1 piece of 1.81 m³ · 3 per trip in a 5.6 m³ van (example) · each piece fails 1 in ${nf(EC.IP[st.pi])} (example)`):T(`${st.n} cajas (${nf(st.n*0.023,2)} m³) · ${ikeaCap(st.n,false)} por viaje en un furgón de 5,6 m³ (ejemplo) · cada caja falla 1 de cada ${nf(EC.IP[st.pi])} (ejemplo)`,`${st.n} boxes (${nf(st.n*0.023,2)} m³) · ${ikeaCap(st.n,false)} per trip in a 5.6 m³ van (example) · each box fails 1 in ${nf(EC.IP[st.pi])} (example)`),
+ cadena:st=>T(`${st.n} ${st.n===1?"etapa":"etapas"} al ${nf(st.p,1)} % · ${st.pol==="juntas"?"las fallas caen sobre los mismos pedidos":"cada etapa falla por su cuenta"}`,`${st.n} ${st.n===1?"stage":"stages"} at ${nf(st.p,1)} % · ${st.pol==="juntas"?"failures land on the same orders":"each stage fails on its own"}`),
  quedatelo:st=>T(`Producto de US$ ${st.V} · flete US$ ${st.F} · revisar US$ ${st.P} · vale ${st.r} % abierto · ${st.t===1?"1 semana":st.t+" semanas"} hasta revenderlo${st.a?` · ${st.a} reclamos falsos de 100`:""}`,`$${st.V} product · $${st.F} freight · $${st.P} checking · worth ${st.r} % opened · ${st.t===1?"1 week":st.t+" weeks"} to resale${st.a?` · ${st.a} false claims per 100`:""}`),
  ups:st=>T(`${st.W} s de espera para doblar · ${st.X} m de desvío para evitarlo${st.pol==="conviene"?" · la carrera muestra una espera fija; la regla mira el tráfico cruce a cruce":""}`,`${st.W} s wait to turn left · ${st.X} m detour to avoid it${st.pol==="conviene"?" · the race shows a fixed wait; the rule checks traffic at each crossing":""}`)};
 const RUNS={};
@@ -1627,7 +1713,7 @@ function libSections(){const labs=listedLabs(),pos={};labs.forEach((l,i)=>pos[l.
   joint[key].ids.push(s.id)});
  const out=[];labs.forEach(l=>{out.push(own[l.id]);Object.values(joint).filter(j=>j.labs[0]===l.id).sort((a,b)=>pos[a.labs[1]]-pos[b.labs[1]]).forEach(j=>out.push(j))});return out.filter(s=>s.ids.length)}
 /* "Catorce fuentes de cinco reels": counted from what is visible, so publishing a reel updates it */
-const NUMW={es:["cero","una","dos","tres","cuatro","cinco","seis","siete","ocho","nueve","diez","once","doce","trece","catorce","quince","dieciséis","diecisiete","dieciocho","diecinueve","veinte","veintiuna","veintidós","veintitrés"],en:["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen","twenty","twenty-one","twenty-two","twenty-three"]};
+const NUMW={es:["cero","una","dos","tres","cuatro","cinco","seis","siete","ocho","nueve","diez","once","doce","trece","catorce","quince","dieciséis","diecisiete","dieciocho","diecinueve","veinte","veintiuna","veintidós","veintitrés","veinticuatro","veinticinco","veintiséis","veintisiete"],en:["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen","twenty","twenty-one","twenty-two","twenty-three","twenty-four","twenty-five","twenty-six","twenty-seven"]};
 const numW=(n,l,m)=>{const w=NUMW[l][n];if(!w)return String(n);const x=l==="es"&&m&&n===1?"un":w;return x[0].toUpperCase()+x.slice(1)};
 const visShelves=()=>SHELVES.filter(sh=>visSources().some(x=>x.shelf===sh[0]));
 function libIntro(){const n=visSources().length,k=listedLabs().length,lo=w=>w.toLowerCase();const el=$("libintro");if(!el)return;el.innerHTML=`<span class="es">${numW(n,"es")} ${n===1?"fuente":"fuentes"} de ${lo(numW(k,"es",true))} ${k===1?"reel":"reels"}, del más nuevo al primero. Cada libro cuenta su idea, trae su ecuación o su dato clave y, cuando se puede, lo calcula con tus números.</span><span class="en">${numW(n,"en")} ${n===1?"source":"sources"} from ${lo(numW(k,"en"))} ${k===1?"reel":"reels"}, newest first. Each book tells its idea, brings its equation or key figure and, where possible, computes it with your numbers.</span>`}

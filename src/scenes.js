@@ -265,6 +265,43 @@ function sceneQuedatelo(st){const PX=3.4,PZ=3.7,X0=1.6,CAP=20;const W=10*PX+10,D
  S.tick=(dt,sp)=>{ms+=dt*1000*sp;if(ms>=dur){ms=dur;S.done=true;if(cur.pol==="deja"&&cur.a>0){const b=fake.filter(Boolean).length;S.obs=()=>({v:b+" "+T("de 100","of 100"),l:T("reclamos falsos","false claims")})}}return at(dt)};
  reset();return S}
 
+/* ---------------- CADENA · 100 orders cross the stages; each stage pulls out the ones it gets wrong ---------------- */
+function sceneCadena(st){const NMAX=10,W=30,D=14;const{scene,g}=diorama(W,D,P.floor);
+ const BZ=0,X0=-W/2+3,X1=W/2-3;rb(g,X1-X0+2,0.36,4.6,P.asphalt2,(X0+X1)/2,0,BZ,0.12);
+ for(let x=X0;x<=X1;x+=0.9)flat(g,0.08,4.3,P.asphalt,x,0.37,BZ);
+ let NG=Math.max(1,Math.min(NMAX,st.n));const gx=k=>X0+5+(k+0.5)*((X1-X0-8)/NG),gates=[];
+ for(let k=0;k<NMAX;k++){const gg=new THREE.Group();gg.position.set(gx(k),0,BZ);g.add(gg);
+  rb(gg,0.3,2.6,0.3,P.blue,0,0,-2.5,0.06);rb(gg,0.3,2.6,0.3,P.blue,0,0,2.5,0.06);rb(gg,0.4,0.34,5.3,P.blue,0,2.6,0,0.08);
+  const light=rb(gg,0.5,0.24,0.5,P.mint,0,2.94,0,0.06);
+  const bin=new THREE.Group();bin.position.set(0,0,-4.4);gg.add(bin);rb(bin,1.9,0.12,1.5,0x7A2A2A,0,0,0,0.04);rb(bin,1.9,0.7,0.12,P.red,0,0,0.7,0.04);rb(bin,1.9,0.7,0.12,P.red,0,0,-0.7,0.04);rb(bin,0.12,0.7,1.5,P.red,0.9,0,0,0.04);rb(bin,0.12,0.7,1.5,P.red,-0.9,0,0,0.04);
+  gates.push({gg,light})}
+ const tray=rb(g,4.2,0.1,4.2,0xE6E8EE,0,0.38,BZ,0.05);
+ const box=inst(g,rboxG(0.32,0.28,0.32,0.05),new THREE.MeshLambertMaterial({color:0xffffff}),100);box.material.userData.own=true;
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,3,D/2)),{root:g,az:0.62,azP:0.34,el:0.72});
+ let cur=Object.assign({},st),r=EC.cadena(cur),ms=0,fail=[],seed=1;const dur=5600;
+ const nG=()=>Math.max(1,Math.min(NMAX,cur.n)),xs=()=>X0-1.2,xe=()=>X1-0.5;
+ const cell=i=>{const rr=Math.floor(i/10),cc=i%10;return[(cc-4.5)*0.38,(rr-4.5)*0.38]};
+ function reset(){r=EC.cadena(cur);ms=0;seed++;const rng=EC.rngFrom(seed*7919+13),n=nG(),p=cur.p/100;
+  fail=[];for(let i=0;i<100;i++){let f=-1;if(cur.pol==="juntas"){if(rng()>p)f=0}else{for(let k=0;k<n;k++)if(rng()>p){f=k;break}}fail.push(f)}
+  NG=n;gates.forEach((G,k)=>{G.gg.visible=k<n;G.gg.position.x=gx(k);G.light.material=mat(P.mint)});at(0)}
+ function at(dt){const n=nG(),RUN=dur*0.82,u=Math.min(1,ms/RUN),tx=xs()+(xe()-xs())*u;
+  tray.position.x=tx;let out=0,stage=0;const binCount=new Array(NMAX).fill(0);
+  for(let k=0;k<n;k++)if(tx>=gx(k))stage=k+1;
+  for(let i=0;i<100;i++){const[cx,cz]=cell(i),f=fail[i];
+   if(f>=0&&tx>=gx(f)){out++;const j=binCount[f]++,age=Math.min(1,(tx-gx(f))/1.6),bx=gx(f)+((j%4)-1.5)*0.4,bz=BZ-4.4+(Math.floor(j/4)%3-1)*0.4,by=0.2+Math.floor(j/12)*0.3;
+    const sx=tx+cx,sz=BZ+cz,x=sx+(bx-sx)*age,z=sz+(bz-sz)*age,y=0.62+(by-0.62)*age+2.2*age*(1-age);setI(box,i,x,y,z,1,1,1,age*3);box.setColorAt(i,_c.setHex(P.red))}
+   else{setI(box,i,tx+cx,0.62,BZ+cz,1,1,1);box.setColorAt(i,_c.setHex(u>=1?P.mint:P.carton))}}
+  box.instanceMatrix.needsUpdate=true;box.instanceColor.needsUpdate=true;
+  gates.forEach((G,k)=>{const hot=k<n&&fail.some((f,i)=>f===k&&tx>=gx(k)&&tx-gx(k)<0.9);G.light.material=mat(hot?P.red:P.mint)});
+  const left=100-out,NM=[T("Planificación","Planning"),T("Bodega","Warehouse"),T("Transporte","Transport"),T("Facturación","Invoicing")];S.labels=u<1?(n===4?NM.map((nm,k)=>({x:gx(k),y:3.6,z:BZ,html:nm})):[]):[{x:tx,y:1.6,z:BZ,html:`<span class="g">${left} ${T("perfectos","perfect")}</span>`}];
+  S.clock=stage===0?T("Entrando a la cadena","Entering the chain"):T(`Etapa ${stage} de ${n}`,`Stage ${stage} of ${n}`);
+  S.cap=T(`Quedan ${B_(left+" de 100")} · ${out} ${out===1?"con problema":"con problemas"}`,`${B_(left+" of 100")} left · ${out} with ${out===1?"a problem":"problems"}`);return true}
+ S.info=()=>null;
+ S.apply=st2=>{cur=Object.assign({},st2);reset()};S.prewarm=()=>{reset();ms=dur*0.45;at(0)};S.startRun=()=>{reset();S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp)=>{ms+=dt*1000*sp;if(ms>=dur){ms=dur;S.done=true;const ok=fail.filter(f=>f<0).length;S.obs=()=>({v:ok+" "+T("de 100","of 100"),l:T("perfectos en esta corrida","perfect in this run")})}return at(dt)};
+ S.ff=st2=>S.apply(st2);
+ reset();return S}
+
 /* ---------------- UPS · the race repeats ---------------- */
 function sceneUps(st){const a=st.X/40,b=st.X/40;const W=Math.max(32,2*(a+6)),D=Math.max(32,2*(b+6));const{scene,g}=diorama(W,D,P.grass);
  roadZ(g,D/2-0.4,-D/2+0.4,0,3.0);roadX(g,-W/2+0.4,W/2-0.4,0,3.0);for(let i=-3;i<=3;i++){flat(g,0.32,1.6,P.line,i*0.42,0.022,2.4);flat(g,1.6,0.32,P.line,-2.4,0.022,i*0.42)}

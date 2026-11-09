@@ -4,6 +4,8 @@
 
 /* ---------- equations that live inside the library books ---------- */
 const EQ={
+ richards2014:{f:()=>`P = ${T("a tiempo","on time")} × ${T("completo","complete")} × ${T("sin daño","damage free")} × ${T("factura","invoice")}`,live:()=>{const s=STATE.cadena,r=EC.cadena(s);return T(`Con ${s.n} etapas al ${nf(s.p,1)} %: ${HL(nf(r.perf*100,1)+" %")} de pedidos perfectos.`,`With ${s.n} stages at ${nf(s.p,1)} %: ${HL(nf(r.perf*100,1)+" %")} perfect orders.`)}},
+ apqc2024:{stat:()=>T("≈ 77 %","≈ 77 %"),f:()=>T("en su ejemplo: 0,98 × 0,97 × 0,99 × 0,82","in its example: 0.98 × 0.97 × 0.99 × 0.82"),live:()=>{const s=STATE.cadena,r=EC.cadena(s);return T(`Con tus números: ${HL(nf(r.perf*100,1)+" %")}.`,`With your numbers: ${HL(nf(r.perf*100,1)+" %")}.`)}},
  bailey1952:{f:()=>`t<sub>i</sub> = s · ${T("máx","max")}${PA("0, "+CE(FR("i − 2c","c")))}`,live:()=>{const s=STATE.bailey;const b=EC.bStats("bailey",s.N,s.c,s.s,0);return T(`Con ${s.c} andenes, ${s.N} camiones y ${s.s} min de carga: espera promedio ${HL(nf(b.avg,1)+" min")}, termina ${clock(b.fin)}.`,`With ${s.c} docks, ${s.N} trucks and ${s.s} min loads: average wait ${HL(nf(b.avg,1)+" min")}, done at ${clock(b.fin)}.`)}},
  welch1952:{f:()=>`t<sub>1</sub> = t<sub>2</sub> = 0 ${OP("·")} t<sub>i</sub> = (i − 2) · s`,live:()=>T("Dos al abrir y después uno por turno: el segundo cubre al que llega tarde.","Two at opening, then one per slot: the second covers the late one.")},
  kaandorp2007:{f:()=>`${T("mín","min")} α·E[${T("espera","wait")}] + β·E[${T("ocio","idle")}] + γ·E[${T("atraso","overtime")}]`,live:()=>T("Cambia los pesos α, β y γ y cambia la mejor agenda.","Change the weights α, β and γ and the best schedule changes.")},
