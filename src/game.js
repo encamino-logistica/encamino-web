@@ -8,7 +8,7 @@ const QPUB=true;
 /* reel 8 · cadena: flip to true on the day it goes out */
 const CPUB=true;
 /* reel 9 · bodegas: flip to true on the day it goes out */
-const BPUB=false;
+const BPUB=true;
 const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8,bodegas:9};
 /* reels published so far: labs with a higher number stay reachable by direct link but are not listed */
 const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB,bodegas:BPUB};
