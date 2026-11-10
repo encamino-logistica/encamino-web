@@ -505,7 +505,30 @@ function quedatelo(o){const f=Math.max(0,1-o.d/100*o.t),k=o.r/100*f,rec=o.V*k,co
 /* ---------- CADENA · pedido perfecto (Richards, cap. 13): P = p^n si las fallas son independientes; si van juntas (el mismo pedido falla en todo) P = p, la cota alta. ---------- */
 function cadena(o){const p=o.p/100,n=o.n,perf=o.pol==="juntas"?p:Math.pow(p,n),bad=1-perf,need=Math.pow(0.95,1/n),ref=100*(1-Math.pow(0.95,4)),you=bad*100;
  return{p,n,perf,bad,need,mes:bad*o.m,ref,you,score:score(ref,you),valid:o.pol==="indep"}}
-return{cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
+/* ---------- VECINO · ruta: vecino más cercano contra descruzar (2-opt, Johnson y McGeoch) y la mejor encontrada. Ciudad del reel: 100 paradas + bodega, OR-Tools 10 s → 100,0 km; vecino 122,1; 2-opt 103,6. Lado del mapa: KMU km. ---------- */
+const VP=[[0.5,0.06],[0.09525,0.49754],[0.65949,0.41626],[0.07215,0.09652],[0.00902,0.3212],[0.16055,0.94945],[0.63074,0.09795],[0.66546,0.50449],[0.83044,0.18841],[0.34682,0.48882],[0.51164,0.14321],[0.83045,0.15783],[0.46282,0.56896],[0.43838,0.34055],[0.72218,0.52421],[0.68348,0.76238],[0.92395,0.49276],[0.41741,0.91958],[0.96548,0.87291],[0.20353,0.90846],[0.64668,0.52235],[0.13134,0.16232],[0.8661,0.28877],[0.47399,0.4278],[0.38534,0.42552],[0.28018,0.89963],[0.51445,0.29371],[0.21243,0.80147],[0.78917,0.8213],[0.59549,0.33034],[0.21188,0.37303],[0.08971,0.27558],[0.34754,0.11569],[0.15195,0.11974],[0.38897,0.92658],[0.95899,0.10337],[0.59528,0.00541],[0.66651,0.62601],[0.51304,0.27814],[0.46502,0.03882],[0.6552,0.77805],[0.08558,0.99904],[0.17734,0.91561],[0.97884,0.42404],[0.84085,0.56175],[0.27255,0.68699],[0.35893,0.15323],[0.77161,0.19042],[0.93427,0.19863],[0.32295,0.80142],[0.83613,0.40161],[0.60944,0.94388],[0.29091,0.26827],[0.10476,0.68879],[0.69097,0.12272],[0.71975,0.288],[0.51127,0.56173],[0.58333,0.55233],[0.39932,0.70054],[0.21036,0.86962],[0.38793,0.77293],[0.60837,0.45155],[0.47571,0.52505],[0.41854,0.56147],[0.47649,0.84351],[0.26139,0.75261],[0.41158,0.85155],[0.82797,0.07509],[0.92729,0.81234],[0.65567,0.1919],[0.83247,0.59147],[0.23179,0.63977],[0.11994,0.6992],[0.19281,0.30578],[0.02295,0.37336],[0.60648,0.65618],[0.41607,0.28004],[0.09522,0.35617],[0.78178,0.93324],[0.92071,0.08433],[0.12778,0.368],[0.55892,0.05023],[0.08953,0.82499],[0.99654,0.43816],[0.79272,0.70254],[0.76874,0.42093],[0.92913,0.12333],[0.26624,0.63572],[0.24959,0.83878],[0.82157,0.78903],[0.87821,0.63559],[0.18224,0.32892],[0.0043,0.39549],[0.63586,0.69675],[0.71446,0.25961],[0.92359,0.54455],[0.20742,0.93688],[0.67239,0.68276],[0.60754,0.00137],[0.5517,0.72178],[0.66578,0.2153]],VBEST=[0,39,10,38,26,29,23,24,13,76,46,32,52,73,91,30,80,77,31,21,33,3,4,74,92,1,53,72,82,41,5,42,96,19,59,88,27,65,45,71,87,9,63,12,62,56,57,20,7,61,2,85,14,37,97,93,75,99,58,60,49,25,34,17,66,64,51,40,15,28,78,18,68,89,84,90,70,44,95,16,83,43,50,22,48,86,35,79,67,11,8,47,55,94,100,69,54,6,98,36,81],KMU=12.191232;
+function vPts(n,seed){if(seed===0&&n===100)return VP;const r=rngFrom(seed*104729+n*31+7),p=[[0.5,0.06]];for(let i=0;i<n;i++)p.push([0.02+0.96*r(),0.02+0.96*r()]);return p}
+function vLen(p,o){let s=0;for(let i=0;i<o.length;i++){const a=p[o[i]],b=p[o[(i+1)%o.length]];s+=Math.hypot(a[0]-b[0],a[1]-b[1])}return s*KMU}
+function vNN(p){const n=p.length,used=new Array(n).fill(false),o=[0];used[0]=true;let c=0;for(let k=1;k<n;k++){let b=-1,bd=1e9;for(let j=0;j<n;j++)if(!used[j]){const d=Math.hypot(p[c][0]-p[j][0],p[c][1]-p[j][1]);if(d<bd){bd=d;b=j}}o.push(b);used[b]=true;c=b}return o}
+function v2opt(p,o0){const o=o0.slice(),n=o.length,D=(a,b)=>Math.hypot(p[a][0]-p[b][0],p[a][1]-p[b][1]);let mej=true,pasos=0;
+ while(mej&&pasos<2000){mej=false;for(let i=0;i<n-1;i++)for(let k=i+2;k<n;k++){const a=o[i],b=o[i+1],c=o[k],d=o[(k+1)%n];if(a===d)continue;if(D(a,b)+D(c,d)>D(a,c)+D(b,d)+1e-12){let x=i+1,y=k;while(x<y){const t=o[x];o[x]=o[y];o[y]=t;x++;y--}mej=true;pasos++}}}return o}
+function vOr(p,o0){let o=v2opt(p,o0),mej=true,v=0;const n=o.length,D=(a,b)=>Math.hypot(p[a][0]-p[b][0],p[a][1]-p[b][1]);
+ while(mej&&v<80){mej=false;v++;
+  for(let s=1;s<=3&&!mej;s++)for(let i=1;i+s<=n&&!mej;i++){const pr=o[i-1],f=o[i],l=o[i+s-1],nx=o[(i+s)%n];if(nx===undefined)continue;
+   const quita=D(pr,f)+D(l,nx)-D(pr,nx);
+   for(let j=0;j<n&&!mej;j++){const a=o[j],b=o[(j+1)%n];if(j>=i-1&&j<=i+s-1)continue;
+    const g1=quita-(D(a,f)+D(l,b)-D(a,b)),g2=quita-(D(a,l)+D(f,b)-D(a,b));
+    if(g1>1e-12||g2>1e-12){const seg=o.slice(i,i+s);if(g2>g1)seg.reverse();const rest=o.slice(0,i).concat(o.slice(i+s));const jj=rest.indexOf(a);o=v2opt(p,rest.slice(0,jj+1).concat(seg,rest.slice(jj+1)));mej=true}}}}
+ return o}
+function vBest(p,seed){if(p===VP)return VBEST;let best=vOr(p,vNN(p)),bl=vLen(p,best);const r=rngFrom(seed*7+3);for(let t=0;t<2;t++){const o=[0].concat(p.slice(1).map((_,i)=>i+1).sort(()=>r()-0.5));const c=vOr(p,o),l=vLen(p,c);if(l<bl){bl=l;best=c}}return best}
+function vCruces(p,o){const n=o.length,E=[];for(let i=0;i<n;i++)E.push([o[i],o[(i+1)%n]]);const ccw=(A,B,C)=>(C[1]-A[1])*(B[0]-A[0])>(B[1]-A[1])*(C[0]-A[0]);let c=0;
+ for(let i=0;i<n;i++)for(let j=i+2;j<n;j++){const[a,b]=E[i],[d,e]=E[j];if(a===e||b===d||a===d||b===e)continue;const A=p[a],B=p[b],C=p[d],F=p[e];if(ccw(A,C,F)!==ccw(B,C,F)&&ccw(A,B,C)!==ccw(A,B,F))c++}return c}
+const VCACHE={};
+function vecino(o){const key=o.n+"|"+o.seed;let base=VCACHE[key];if(!base){const p=vPts(o.n,o.seed),nn=vNN(p),dos=v2opt(p,nn),best=vBest(p,o.seed);const lb=vLen(p,best),l2=vLen(p,dos);const bb=l2<lb?dos:best;base=VCACHE[key]={p,nn,dos,best:bb,kNN:vLen(p,nn),k2:l2,kB:Math.min(lb,l2),cNN:vCruces(p,nn),c2:vCruces(p,dos)}}
+ const o2=o.pol==="vecino"?base.nn:o.pol==="descruzar"?base.dos:base.best,k=o.pol==="vecino"?base.kNN:o.pol==="descruzar"?base.k2:base.kB;
+ const exc=k/base.kB-1,arregla=base.kNN>base.kB?(base.kNN-base.k2)/(base.kNN-base.kB):1,dias=o.d||24;
+ return Object.assign({},base,{orden:o2,km:k,exc,arregla,extraDia:k-base.kB,extraMes:(k-base.kB)*dias,ref:base.kB,you:k,score:score(base.kB,k),valid:true})}
+return{vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
 })();
 /* </core> */
 
@@ -951,6 +974,40 @@ function sceneCadena(st){const NMAX=10,W=30,D=16;const{scene,g}=diorama(W,D,P.fl
  S.ff=st2=>S.apply(st2);
  reset();return S}
 
+/* ---------------- VECINO · la ruta: el furgón recorre la ruta de la regla elegida ---------------- */
+function sceneVecino(st){const M=24,W=M+5,D=M+5;const{scene,g}=diorama(W,D,P.asphalt);
+ const XZ=q=>[(q[0]-0.5)*M,(0.5-q[1])*M];
+ const nb=6,pb=M/nb;for(let i=0;i<nb;i++)for(let j=0;j<nb;j++)rb(g,pb*0.82,0.06,pb*0.82,0xDCD6C8,-M/2+pb*(i+0.5),0,-M/2+pb*(j+0.5),0.05,{noCast:true});
+ const rng=EC.rngFrom(21),BC=[0xF1E8D6,0xCFE0F5,0xFFD9B8,0xD8F0D5,0xE3DAF5];
+ const casa=inst(g,rboxG(0.55,0.42,0.55,0.08),new THREE.MeshLambertMaterial({color:0xffffff}),160);casa.material.userData.own=true;
+ const techo=inst(g,GEO().pyr,new THREE.MeshLambertMaterial({color:0xffffff,flatShading:true}),160);techo.material.userData.own=true;
+ const tr=inst(g,rboxG(1,0.07,0.16,0.02),new THREE.MeshBasicMaterial({color:0xffffff}),160,false);tr.material.userData.own=true;
+ const dep=new THREE.Group();rb(dep,2.0,1.0,1.4,P.wall,0,0,0,0.1);rb(dep,2.1,0.16,1.5,P.blue,0,1.0,0,0.05);rb(dep,0.06,0.6,0.8,P.door,1.02,0,0,0.02);g.add(dep);
+ const F=new Fleet(g,1,0.5,{van:true});F.col[0]=P.white;
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-M/2,0,-M/2),new THREE.Vector3(M/2,2.5,M/2)),{root:g,az:0.62,azP:0.4,el:0.95});
+ let cur=Object.assign({},st),r=EC.vecino(cur),ms=0,tt=0;const dur=7000;let segs=[],acc=[],tot=0;
+ const COL={vecino:P.red,descruzar:P.yellow,mejor:P.mint};
+ function build(){r=EC.vecino(cur);const p=r.p,o=r.orden;segs=[];acc=[];tot=0;
+  for(let i=0;i<o.length;i++){const a=XZ(p[o[i]]),b=XZ(p[o[(i+1)%o.length]]),l=Math.hypot(b[0]-a[0],b[1]-a[1]);segs.push([a,b,l]);acc.push(tot);tot+=l}
+  const[dx,dz]=XZ(p[0]);dep.position.set(dx,0,dz-0.9);
+  for(let k=0;k<160;k++){if(k<p.length-1){const[x,z]=XZ(p[k+1]),h=0.42;setI(casa,k,x,0.06,z,1,1,1,Math.PI/4);setI(techo,k,x,0.06+h+0.17,z,0.62,0.4,0.62,Math.PI/4)}else{setI(casa,k,0,-9,0,0.01,0.01,0.01);setI(techo,k,0,-9,0,0.01,0.01,0.01)}}
+  casa.instanceMatrix.needsUpdate=true;techo.instanceMatrix.needsUpdate=true}
+ function at(dt){tt+=dt||0;const u=Math.min(1,ms/(dur*0.92)),d=u*tot,o=r.orden,n=o.length;let vx=0,vz=0,va=0,vis=0;
+  for(let i=0;i<160;i++){if(i<n){const[a,b,l]=segs[i],f=Math.max(0,Math.min(1,(d-acc[i])/(l||1)));if(f>0){const mx=a[0]+(b[0]-a[0])*f/2,mz=a[1]+(b[1]-a[1])*f/2,ang=Math.atan2(-(b[1]-a[1]),b[0]-a[0]);setI(tr,i,mx,0.14,mz,Math.max(0.01,l*f),1,1,ang);
+     tr.setColorAt(i,_c.setHex(COL[cur.pol]||P.red));if(f<1||i===n-1){vx=a[0]+(b[0]-a[0])*f;vz=a[1]+(b[1]-a[1])*f;va=ang}vis=i+1}else setI(tr,i,0,-9,0,0.01,1,1)}else setI(tr,i,0,-9,0,0.01,1,1)}
+  tr.instanceMatrix.needsUpdate=true;if(tr.instanceColor)tr.instanceColor.needsUpdate=true;
+  const hecho=new Set(o.slice(0,Math.min(n,vis+1)));for(let k=1;k<r.p.length&&k<=160;k++){const on=u>0&&hecho.has(k);techo.setColorAt(k-1,_c.setHex(on?P.mint:P.terracotta));casa.setColorAt(k-1,_c.setHex(BC[k%5]))}
+  if(techo.instanceColor)techo.instanceColor.needsUpdate=true;if(casa.instanceColor)casa.instanceColor.needsUpdate=true;
+  if(u<=0){const[dx,dz]=XZ(r.p[0]);vx=dx;vz=dz}F.go(0,vx,vz,va,true);F.snap(0);F.commit();
+  const km=u*r.km;S.clock=`${nf(km,1)} km`;
+  S.labels=u>=1?[{x:0,y:2.4,z:-M/2-0.6,html:`<span class="${cur.pol==="vecino"?"y":"g"}">${nf(r.km,1)} km</span>`}]:[];
+  S.cap=u>=1?T(`Vuelta completa: ${B_(nf(r.km,1)+" km")} · la mejor encontrada hace ${nf(r.kB,1)} km`,`Full loop: ${B_(nf(r.km,1)+" km")} · the best found does ${nf(r.kB,1)} km`):cur.pol==="vecino"?T(`El furgón va siempre a la parada más cercana · ${r.cNN} ${r.cNN===1?"cruce":"cruces"} en la ruta`,`The van always goes to the nearest stop · ${r.cNN} ${r.cNN===1?"crossing":"crossings"} in the route`):cur.pol==="descruzar"?T(`La ruta del vecino, con cada cruce deshecho · ${r.c2} cruces`,`The neighbor route, with every crossing undone · ${r.c2} crossings`):T("La mejor ruta que encontramos para esta ciudad","The best route we found for this city");return true}
+ S.info=()=>null;
+ S.apply=st2=>{cur=Object.assign({},st2);build();ms=0;at(0)};S.prewarm=()=>{build();ms=dur*0.4;at(0)};S.startRun=()=>{build();ms=0;S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>({v:nf(r.km,1)+" km",l:T("en esta vuelta","on this loop")})}return at(dt)};
+ S.ff=st2=>S.apply(st2);
+ build();at(0);return S}
+
 /* ---------------- UPS · the race repeats ---------------- */
 function sceneUps(st){const a=st.X/40,b=st.X/40;const W=Math.max(32,2*(a+6)),D=Math.max(32,2*(b+6));const{scene,g}=diorama(W,D,P.grass);
  roadZ(g,D/2-0.4,-D/2+0.4,0,3.0);roadX(g,-W/2+0.4,W/2-0.4,0,3.0);for(let i=-3;i<=3;i++){flat(g,0.32,1.6,P.line,i*0.42,0.022,2.4);flat(g,1.6,0.32,P.line,-2.4,0.022,i*0.42)}
@@ -1046,6 +1103,8 @@ const SOURCES=[
   idea:{es:"Advierte que lo devuelto puede perder hasta 10–20 % de su valor solo por demoras. Si el producto se deprecia rápido, conviene decidir pronto y cerca del cliente, no mandarlo todo a un centro lejano.",en:"Warns that returns can lose up to 10–20 % of their value through delays alone. If a product depreciates fast, decide early and close to the customer instead of shipping everything to a distant center."}},
  {id:"amazon2025",shelf:"ultima",sp:"Amazon · Reembolso sin devolución",spEn:"Amazon · Returnless resolutions",au:"Amazon · Seller Forums",yr:"2026",ti:{es:"Reduce los costos de devolución con reembolsos sin devolución",en:"Reduce return costs with returnless resolutions",orig:"Reduce return costs with returnless resolutions"},ve:{es:"Ejemplo: «paying $8–$12 to ship back a $5 item»",en:"Example: “paying $8–$12 to ship back a $5 item”"},ty:"ficha",labs:["quedatelo"],url:"https://sellercentral.amazon.com/seller-forums/discussions/t/8f6ea88b-8672-426e-accb-7c9d7f6d911a",
   idea:{es:"De aquí sale el ejemplo: pagar 8 a 12 dólares por traer de vuelta un producto de 5. El reel usa el piso, 8, solo como flete. En otro aviso del foro, Amazon indica que el vendedor fija un precio máximo entre US$ 1 y US$ 75, y que la opción es solo para clientes sin historial de abuso.",en:"The example comes from here: paying $8–$12 to ship back a $5 item. The reel uses the low end, 8, as freight only. In another forum notice, Amazon says the seller sets a maximum price between $1 and $75, and the option is only for customers with no history of returns abuse."}},
+ {id:"johnson1997",shelf:"ultima",sp:"Johnson y McGeoch · El vendedor viajero",spEn:"Johnson & McGeoch · The traveling salesman",au:"D. S. Johnson & L. A. McGeoch",yr:"1997",ti:{es:"El problema del vendedor viajero: un caso de estudio de optimización local",en:"The Traveling Salesman Problem: A Case Study in Local Optimization",orig:"The Traveling Salesman Problem: A Case Study in Local Optimization"},ve:{es:"En Aarts y Lenstra (eds.), Local Search in Combinatorial Optimization, Wiley, pp. 215–310 · tabla 1",en:"In Aarts & Lenstra (eds.), Local Search in Combinatorial Optimization, Wiley, pp. 215–310 · table 1"},ty:"libro",labs:["vecino"],url:SCH("Johnson McGeoch The Traveling Salesman Problem: A Case Study in Local Optimization"),
+  idea:{es:"Midieron las reglas rápidas para armar rutas en miles de ciudades al azar. La del vecino más cercano queda cerca de un cuarto sobre la cota de Held-Karp (25,6 % con 100 puntos, 26,0 % con 1.000 y 24,3 % con 10.000). Descruzar tramos (2-opt) baja el exceso a unos 5 %.",en:"They measured the quick route-building rules on thousands of random cities. Nearest neighbor ends up about a quarter above the Held-Karp bound (25.6 % with 100 points, 26.0 % with 1,000 and 24.3 % with 10,000). Uncrossing segments (2-opt) cuts the excess to about 5 %."}},
  {id:"richards2014",shelf:"bodega",sp:"Richards · Gestión de bodegas",spEn:"Richards · Warehouse Management",au:"G. Richards",yr:"2014",ti:{es:"Gestión de bodegas: guía completa para mejorar la eficiencia y bajar costos en la bodega moderna",en:"Warehouse Management: A Complete Guide to Improving Efficiency and Minimizing Costs in the Modern Warehouse",orig:"Warehouse Management: A Complete Guide to Improving Efficiency and Minimizing Costs in the Modern Warehouse"},ve:{es:"Kogan Page, 2.ª edición · cap. 13",en:"Kogan Page, 2nd edition · ch. 13"},ty:"libro",labs:["cadena"],url:SCH("Gwynne Richards Warehouse Management Kogan Page"),search:true,
   idea:{es:"Un pedido es perfecto solo si cumple todo a la vez: a tiempo, completo, sin daño y con la documentación correcta. Richards lo calcula multiplicando el porcentaje de cada requisito, y por eso cuatro áreas que cumplen bien pueden entregar un pedido perfecto bastante peor.",en:"An order is perfect only if it meets everything at once: on time, complete, damage free and with correct paperwork. Richards computes it by multiplying each requirement's percentage, which is why four areas that perform well can deliver a much worse perfect order."}},
  {id:"apqc2024",shelf:"bodega",sp:"APQC · Pedido perfecto",spEn:"APQC · Perfect order",au:"APQC",yr:{es:"Ficha",en:"Sheet"},ti:{es:"Desempeño del pedido perfecto (medida 101741)",en:"Perfect order performance (measure 101741)",orig:"Perfect order performance"},ve:{es:"«(% on time delivery) multiplied by (% complete orders) multiplied by (% damage free) multiplied by (% accurate documentation)»",en:"“(% on time delivery) multiplied by (% complete orders) multiplied by (% damage free) multiplied by (% accurate documentation)”"},ty:"ficha",labs:["cadena"],url:"https://www.apqc.org/resources/benchmarking/open-standards-benchmarking/measures/perfect-order-performance",
@@ -1300,6 +1359,31 @@ const LABS=[
    f:()=>`P<sub>${T("máx","max")}</sub> = ${Vs("p","p")}`,s:st=>`= ${HL(nf(st.p,1)+" %")}`}],
  notApply:{es:"La multiplicación supone fallas independientes. Si las fallas van juntas (el pedido atrasado es también el incompleto) el total sube, hasta p en el extremo; si un pedido nunca falla en dos cosas a la vez, baja un poco más (80 % con 4 etapas al 95 %). Asignar un requisito a cada etapa es una simplificación: en la realidad una etapa puede romper más de uno. El 95 % es un ejemplo, no un dato del sector. Para medirlo de verdad se cuentan los pedidos que cumplen todo.",en:"The multiplication assumes independent failures. If failures go together (the late order is also the incomplete one), the total goes up, to p at the extreme; if an order never fails in two things at once, it drops a bit more (80 % with 4 stages at 95 %). Assigning one requirement per stage is a simplification: in reality one stage can break more than one. The 95 % is an example, not an industry figure. To measure it for real, count the orders that meet everything."},
  cuenta:[0,1],sources:["richards2014","apqc2024"],scene:sceneCadena},
+/* ======================= VECINO · LA RUTA ======================= */
+{id:"vecino",cat:"ultima",kicker:{es:"Ruta · Vecino más cercano",en:"Route · Nearest neighbor"},chip:"122 → 104 km",
+ q:{es:"¿Ir siempre a la parada más cercana arma una buena ruta?",en:"Does always going to the nearest stop make a good route?"},
+ short:{es:"La regla del vecino",en:"The neighbor rule"},
+ lede:{es:"Mismas 100 paradas, tres formas de armar la ruta: ir siempre a la parada más cercana, la misma ruta con los cruces deshechos, y la mejor que encontramos. Cambia la ciudad y el número de paradas, y mira cuántos kilómetros sobran.",en:"Same 100 stops, three ways to build the route: always go to the nearest stop, the same route with its crossings undone, and the best one we found. Change the city and the number of stops, and see how many kilometers are left over."},
+ sym:{n:"#6EC1FF",d:"#FFC726",L:"#4BE38A"},
+ reto:{intro:{es:"Lleva la cuenta a tu mes: los kilómetros que sobran en una vuelta se repiten cada día de reparto.",en:"Bring it to your month: the kilometers left over on one loop repeat every delivery day."},
+  ctl:[{k:"d",type:"range",sym:"d",es:"Días de reparto al mes",en:"Delivery days per month",min:1,max:31,step:1,fmt:v=>v}],
+  cost:{es:"Cada kilómetro de más es combustible, desgaste y tiempo del conductor. El exceso por vuelta no cambia; lo que crece es el total del mes.",en:"Each extra kilometer is fuel, wear and driver time. The excess per loop doesn't change; the monthly total does."}},
+ compute(st){return EC.vecino(st)},
+ story(r,st){return{h:T(`Con esta regla, ${HL(nf(r.km,1)+" km")} por vuelta.`,`With this rule, ${HL(nf(r.km,1)+" km")} per loop.`),
+  stats:[{v:"+"+nf(r.exc*100,1)+" %",l:T("sobre la mejor encontrada","over the best found")},{v:nf(r.arregla*100,0)+" %",l:T("del exceso que arregla descruzar","of the excess that uncrossing fixes")}]}},
+ refLine(r){return T("Reel: vecino 122 km · descruzada 104 km · mejor encontrada 100 km","Reel: neighbor 122 km · uncrossed 104 km · best found 100 km")},
+ aha:{h:{es:"Lo lógico en cada paso no es lo mejor en la vuelta.",en:"Logical at each step isn't best for the loop."},t:{es:"El vecino más cercano elige bien al principio, pero deja paradas sueltas y al final vuelve por ellas en tramos largos que se cruzan. Descruzar esos tramos arregla la mayor parte del exceso.",en:"Nearest neighbor chooses well at first, but leaves stray stops and comes back for them at the end on long segments that cross. Uncrossing those segments fixes most of the excess."}},
+ math:[
+  {t:{es:"La regla del vecino",en:"The neighbor rule"},p:()=>T("Desde donde está, el furgón va a la parada más cercana que falta.","From where it is, the van goes to the nearest stop not yet visited."),
+   f:()=>`${T("siguiente","next")} = ${T("arg mín","arg min")}<sub>j ${T("sin visitar","unvisited")}</sub> d(${T("actual","current")}, j)`,s:st=>{const r=EC.vecino(st);return `= ${HL(nf(r.kNN,1)+" km")} · ${r.cNN} ${T(r.cNN===1?"cruce":"cruces",r.cNN===1?"crossing":"crossings")}`}},
+  {t:{es:"Descruzar (2-opt)",en:"Uncross (2-opt)"},p:()=>T("Si dos tramos a→b y c→d se cruzan, cambiarlos por a→c y b→d siempre acorta.","If two segments a→b and c→d cross, swapping them for a→c and b→d always shortens."),
+   f:()=>`d(a,b) + d(c,d) &gt; d(a,c) + d(b,d)`,s:st=>{const r=EC.vecino(st);return `→ ${HL(nf(r.k2,1)+" km")} · ${r.c2} ${T("cruces","crossings")}`}},
+  {t:{es:"Cuánto arregla",en:"How much it fixes"},p:()=>T("La parte del exceso del vecino que se recupera al descruzar.","The share of the neighbor's excess recovered by uncrossing."),
+   f:()=>`${FR("L<sub>"+T("vecino","neighbor")+"</sub> − L<sub>2-opt</sub>","L<sub>"+T("vecino","neighbor")+"</sub> − L<sub>"+T("mejor","best")+"</sub>")}`,s:st=>{const r=EC.vecino(st);return `= ${FR(nf(r.kNN-r.k2,1),nf(r.kNN-r.kB,1))} = ${HL(nf(r.arregla*100,0)+" %")}`}},
+  {t:{es:"Lo que sobra al mes",en:"What's left over per month"},p:()=>T("Los kilómetros de más en cada vuelta, por los días de reparto.","The extra kilometers on each loop, times the delivery days."),
+   f:()=>`${PA("L − L<sub>"+T("mejor","best")+"</sub>")} ${OP("·")} ${Vs("d","d")}`,s:st=>{const r=EC.vecino(st);return `= ${nf(r.extraDia,1)} ${OP("·")} ${st.d} = ${HL(nf(r.extraMes)+" km")}`}}],
+ notApply:{es:"Las distancias son en línea recta sobre un mapa cuadrado; en calles reales cambian los kilómetros, no la lógica. No hay ventanas horarias, capacidad del furgón ni tráfico. La «mejor encontrada» es la mejor ruta que encontró una búsqueda local (en la ciudad del reel, OR-Tools durante 10 s): no es un óptimo certificado. El cuarto de Johnson y McGeoch es un promedio sobre muchas ciudades al azar, medido contra la cota de Held-Karp; en tu ciudad puede salir más o menos. La ciudad del reel tiene 100 paradas y un mapa de 12,2 km por lado.",en:"Distances are straight lines on a square map; on real streets the kilometers change, not the logic. There are no time windows, van capacity or traffic. The “best found” is the best route a local search found (in the reel's city, OR-Tools for 10 s): it's not a certified optimum. Johnson and McGeoch's quarter is an average over many random cities, measured against the Held-Karp bound; your city may come out higher or lower. The reel's city has 100 stops and a map 12.2 km on a side."},
+ cuenta:[0,3],sources:["johnson1997"],scene:sceneVecino},
 /* ======================= QUÉDATELO ======================= */
 {id:"quedatelo",cat:"ultima",kicker:{es:"Devoluciones · Quédatelo",en:"Returns · Keep it"},chip:"−US$ 7,64",
  q:{es:"¿Lo traes de vuelta o te lo quedas?",en:"Bring it back or keep it?"},
@@ -1343,9 +1427,11 @@ const BIB={"bailey1952": {"gancho": {"es": "Una sala de espera llena a las nueve
 const QPUB=true;
 /* reel 8 · cadena: flip to true on the day it goes out */
 const CPUB=true;
-const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8};
+/* reel 10 · vecino (la ruta): flip to true on the day it goes out */
+const VPUB=false;
+const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8,vecino:10};
 /* reels published so far: labs with a higher number stay reachable by direct link but are not listed */
-const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB};
+const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB,vecino:VPUB};
 const listedLabs=()=>LABS.filter(l=>PUBLICADO[l.id]!==false).sort((a,b)=>(REELNUM[b.id]||0)-(REELNUM[a.id]||0));
 const REEL2LAB={};for(const k in REELNUM)if(PUBLICADO[k]!==false)REEL2LAB[REELNUM[k]]=k;
 const pub=id=>PUBLICADO[id]!==false;/* a source shows in the library only if one of its labs is published */
@@ -1464,6 +1550,20 @@ const GAME={
   share(st){const r=EC.cadena(st);return T(`${st.n} etapas al ${nf(st.p,1)} %: solo ${nf(r.perf*100,1)} de cada 100 pedidos salen perfectos. Para 95 % al final, cada etapa necesita ${nf(r.need*100,1)} %.`,`${st.n} stages at ${nf(st.p,1)} %: only ${nf(r.perf*100,1)} out of 100 orders come out perfect. For 95 % at the end, each stage needs ${nf(r.need*100,1)} %.`)},
   score(st){const r=EC.cadena(st);return{score:r.score,valid:r.valid,ref:T(`Reel: ${nf(r.ref,1)} de cada 100 salen con problema`,`Reel: ${nf(r.ref,1)} out of 100 come out with a problem`),you:T(`Tú: ${nf(r.you,1)} de cada 100`,`You: ${nf(r.you,1)} out of 100`),why:r.valid?T("Menos etapas o etapas más precisas son mejoras reales.","Fewer stages or more precise stages are real improvements."):T("Que las fallas vayan juntas es un supuesto distinto: no compara con el reel.","Failures going together is a different assumption: it doesn't compare with the reel.")}},
   url:[["etapa","p",Number,v=>v],["etapas","n",Number,v=>v],["pedidos","m",Number,v=>v],["fallas","pol",v=>v,v=>v]]},
+ vecino:{
+  def:{n:100,seed:0,pol:"vecino",d:24},
+  rule:SEGF("pol","Cómo armas la ruta","How you build the route",[["vecino","Vecino más cercano","Nearest neighbor",{es:"Desde cada parada, ir a la más cercana que falta: la regla más lógica.",en:"From each stop, go to the nearest one left: the most logical rule."}],["descruzar","Vecino y descruzar","Neighbor, then uncross",{es:"La misma ruta, pero cada vez que dos tramos se cruzan se cambian por dos que no se cruzan (2-opt).",en:"The same route, but whenever two segments cross they're swapped for two that don't (2-opt)."}],["mejor","Mejor encontrada","Best found",{es:"La mejor ruta que encontró la búsqueda para esta ciudad (no es un óptimo certificado).",en:"The best route the search found for this city (not a certified optimum)."}]]),
+  sliders:[RANGE("n","n","Paradas","Stops",10,150,10,v=>v),RANGE("seed","s","Ciudad","City",0,20,1,v=>v===0?T("la del reel","the reel's"):T("ciudad ","city ")+v)],
+  ajustes:[],
+  chips:[["r","Ciudad del reel","The reel's city",{n:100,seed:0}],["y","Otra ciudad","Another city",{n:100,seed:7}],["g","150 paradas","150 stops",{n:150,seed:3}]],
+  cta:{es:"Descruzar los tramos",en:"Uncross the segments",set:{pol:"descruzar"}},next:{vecino:"descruzar",descruzar:"mejor",mejor:"vecino"},
+  aha:st=>{const r=EC.vecino(st);return T(`¡Ajá! Descruzar baja de ${nf(r.kNN,1)} a ${nf(r.k2,1)} km: arregla el ${nf(r.arregla*100,0)} % del exceso del vecino.`,`Aha! Uncrossing goes from ${nf(r.kNN,1)} to ${nf(r.k2,1)} km: it fixes ${nf(r.arregla*100,0)} % of the neighbor's excess.`)},
+  ouch:(st,from,to)=>{const r=EC.vecino(st);return to==="vecino"?T(`Volviste al vecino: ${nf(r.kNN,1)} km, ${nf((r.kNN/r.kB-1)*100,1)} % sobre la mejor encontrada.`,`Back to the neighbor: ${nf(r.kNN,1)} km, ${nf((r.kNN/r.kB-1)*100,1)} % over the best found.`):to==="mejor"?T(`La mejor encontrada hace ${nf(r.kB,1)} km: ${nf(r.k2-r.kB,1)} km menos que solo descruzar.`,`The best found does ${nf(r.kB,1)} km: ${nf(r.k2-r.kB,1)} km less than just uncrossing.`):T(`Descruzada: ${nf(r.k2,1)} km, ${r.c2} cruces.`,`Uncrossed: ${nf(r.k2,1)} km, ${r.c2} crossings.`)},
+  structural:["n","seed"],ff:3,
+  metrics(st){const r=EC.vecino(st);return[{cur:true,v:nf(r.km,1),u:"km",l:T("por vuelta con esta regla","per loop with this rule"),t:tone(r.exc*100,3,15)},{aux:true,v:"+"+nf(r.extraMes),u:"km",l:T(`al mes sobre la mejor encontrada (${st.d} días)`,`a month over the best found (${st.d} days)`)}]},
+  share(st){const r=EC.vecino(st);return T(`Con ${st.n} paradas, el vecino más cercano hace ${nf(r.kNN,1)} km y la mejor ruta encontrada ${nf(r.kB,1)} km. Descruzar los tramos la baja a ${nf(r.k2,1)} km.`,`With ${st.n} stops, nearest neighbor does ${nf(r.kNN,1)} km and the best route found ${nf(r.kB,1)} km. Uncrossing the segments brings it down to ${nf(r.k2,1)} km.`)},
+  score(st){const r=EC.vecino(st);return{score:r.score,valid:true,ref:T(`Mejor encontrada: ${nf(r.kB,1)} km`,`Best found: ${nf(r.kB,1)} km`),you:T(`Tú: ${nf(r.km,1)} km`,`You: ${nf(r.km,1)} km`),why:T("Cada ciudad tiene su propia mejor ruta: el puntaje compara contra la de esta ciudad.","Each city has its own best route: the score compares against this city's.")}},
+  url:[["paradas","n",Number,v=>v],["ciudad","seed",Number,v=>v],["regla","pol",v=>v,v=>v],["dias","d",Number,v=>v]]},
  quedatelo:{
   def:{V:5,r:70,d:1,t:4,F:8,P:3,a:0,pol:"traer"},
   rule:SEGF("pol","Qué haces con el producto","What you do with the product",[["traer","Traerlo de vuelta","Bring it back",{es:"Devuelves el dinero, pagas el viaje y revendes lo que se pueda.",en:"You refund, pay for the trip and resell what you can."}],["deja","Quédatelo","Keep it",{es:"Devuelves el dinero y el producto se queda con el cliente: no hay viaje.",en:"You refund and the customer keeps the product: no trip."}]]),
@@ -1480,7 +1580,7 @@ const GAME={
   url:[["precio","V",Number,v=>v],["semanas","t",Number,v=>v],["abierto","r",Number,v=>v],["perdida","d",Number,v=>v],["flete","F",Number,v=>v],["proceso","P",Number,v=>v],["abuso","a",Number,v=>v],["regla","pol",v=>v,v=>v]]}
 };
 /* the reto controls of each lab (from the content file), minus duplicates of the console */
-GAME.bailey.reto=LAB.bailey.reto.ctl;GAME.fila.reto=LAB.fila.reto.ctl;GAME.nivel.reto=[LAB.nivel.reto.ctl[1]];GAME.amazon.reto=LAB.amazon.reto.ctl;GAME.ikea.reto=[];GAME.ups.reto=[LAB.ups.reto.ctl[1]];GAME.quedatelo.reto=LAB.quedatelo.reto.ctl;GAME.cadena.reto=LAB.cadena.reto.ctl;
+GAME.bailey.reto=LAB.bailey.reto.ctl;GAME.fila.reto=LAB.fila.reto.ctl;GAME.nivel.reto=[LAB.nivel.reto.ctl[1]];GAME.amazon.reto=LAB.amazon.reto.ctl;GAME.ikea.reto=[];GAME.ups.reto=[LAB.ups.reto.ctl[1]];GAME.quedatelo.reto=LAB.quedatelo.reto.ctl;GAME.cadena.reto=LAB.cadena.reto.ctl;GAME.vecino.reto=LAB.vecino.reto.ctl;
 LABS.forEach(l=>{const G=GAME[l.id];l.def=G.def;l.game=G});
 
 /* =====================================================================
@@ -1489,6 +1589,7 @@ LABS.forEach(l=>{const G=GAME[l.id];l.def=G.def;l.game=G});
 
 /* ---------- equations that live inside the library books ---------- */
 const EQ={
+ johnson1997:{stat:()=>T("≈ +25 %","≈ +25 %"),f:()=>`L<sub>${T("vecino","neighbor")}</sub> ≈ 1,25 · HK`,live:()=>{const s=STATE.vecino,r=EC.vecino(s);return T(`En tu ciudad: el vecino hace ${HL(nf(r.kNN,1)+" km")}, ${nf((r.kNN/r.kB-1)*100,1)} % sobre la mejor encontrada.`,`In your city: the neighbor does ${HL(nf(r.kNN,1)+" km")}, ${nf((r.kNN/r.kB-1)*100,1)} % over the best found.`)}},
  richards2014:{f:()=>`P = ${T("a tiempo","on time")} × ${T("completo","complete")} × ${T("sin daño","damage free")} × ${T("factura","invoice")}`,live:()=>{const s=STATE.cadena,r=EC.cadena(s);return T(`Con ${s.n} etapas al ${nf(s.p,1)} %: ${HL(nf(r.perf*100,1)+" %")} de pedidos perfectos.`,`With ${s.n} stages at ${nf(s.p,1)} %: ${HL(nf(r.perf*100,1)+" %")} perfect orders.`)}},
  apqc2024:{stat:()=>T("≈ 77 %","≈ 77 %"),f:()=>T("en su ejemplo: 0,98 × 0,97 × 0,99 × 0,82","in its example: 0.98 × 0.97 × 0.99 × 0.82"),live:()=>{const s=STATE.cadena,r=EC.cadena(s);return T(`Con tus números: ${HL(nf(r.perf*100,1)+" %")}.`,`With your numbers: ${HL(nf(r.perf*100,1)+" %")}.`)}},
  bailey1952:{f:()=>`t<sub>i</sub> = s · ${T("máx","max")}${PA("0, "+CE(FR("i − 2c","c")))}`,live:()=>{const s=STATE.bailey;const b=EC.bStats("bailey",s.N,s.c,s.s,0);return T(`Con ${s.c} andenes, ${s.N} camiones y ${s.s} min de carga: espera promedio ${HL(nf(b.avg,1)+" min")}, termina ${clock(b.fin)}.`,`With ${s.c} docks, ${s.N} trucks and ${s.s} min loads: average wait ${HL(nf(b.avg,1)+" min")}, done at ${clock(b.fin)}.`)}},
@@ -1612,13 +1713,14 @@ function mountLabScene(id){const host=$("stage");if(!host)return;if(!HAS3||!rend
 
 /* ---------- the run: prepare → ▶ Simular → result ---------- */
 const RUNSP={fila:8,bailey:2.6,ups:1.1};
-const rw=id=>{const w=RUNWORD[id];return typeof w==="function"?w(STATE[id]):tx(w)};const RUNWORD={bailey:{es:"el día",en:"the day"},fila:{es:"la hora punta",en:"rush hour"},nivel:{es:"el mes",en:"the month"},amazon:st=>st.o===1?T("1 pedido","1 order"):T(`${st.o} pedidos`,`${st.o} orders`),ikea:{es:"100 entregas",en:"100 deliveries"},ups:{es:"la carrera",en:"the race"},quedatelo:{es:"100 devoluciones",en:"100 returns"},cadena:{es:"100 pedidos",en:"100 orders"}};
+const rw=id=>{const w=RUNWORD[id];return typeof w==="function"?w(STATE[id]):tx(w)};const RUNWORD={bailey:{es:"el día",en:"the day"},fila:{es:"la hora punta",en:"rush hour"},nivel:{es:"el mes",en:"the month"},amazon:st=>st.o===1?T("1 pedido","1 order"):T(`${st.o} pedidos`,`${st.o} orders`),ikea:{es:"100 entregas",en:"100 deliveries"},ups:{es:"la carrera",en:"the race"},quedatelo:{es:"100 devoluciones",en:"100 returns"},cadena:{es:"100 pedidos",en:"100 orders"},vecino:{es:"la vuelta",en:"the loop"}};
 const SIT={bailey:st=>T(`${st.N} camiones · ${st.c} andenes · ${st.s} min de carga${st.d?` · llegan ±${st.d} min`:" · llegan puntuales"}`,`${st.N} trucks · ${st.c} docks · ${st.s} min loads${st.d?` · arrive ±${st.d} min`:" · arrive on time"}`),
  fila:st=>T(`${pl(st.c,"puerta","puertas")} · ${pl(st.lam,"camión","camiones")} por hora · ${st.S} min de descarga en promedio`,`${pl(st.c,"","","door","doors")} · ${pl(st.lam,"","","truck","trucks")} per hour · ${st.S} min unloads on average`),
  nivel:st=>T(`${nf(st.p/10,1)} % de éxito por parada · ${st.n} paradas al día${st.n!==85?` (el reel usa 85)`:""} · meta ${st.meta} %${st.round?" (redondea)":""}`,`${nf(st.p/10,1)} % success per stop · ${st.n} stops a day${st.n!==85?` (the reel uses 85)`:""} · ${st.meta} % target${st.round?" (rounded)":""}`),
  amazon:st=>T(`Pasillo de ${st.L} m · ${st.ord==="orden"?"1 lugar":st.k+" copias"} del producto`,`${st.L} m aisle · ${st.ord==="orden"?"1 spot":st.k+" copies"} of the product`),
  ikea:st=>st.pack==="armado"?T(`Armado: 1 bulto de 1,81 m³ · 3 por viaje en un furgón de 5,6 m³ (ejemplo) · cada pieza falla 1 de cada ${nf(EC.IP[st.pi])} (ejemplo)`,`Assembled: 1 piece of 1.81 m³ · 3 per trip in a 5.6 m³ van (example) · each piece fails 1 in ${nf(EC.IP[st.pi])} (example)`):T(`${st.n} cajas (${nf(st.n*0.023,2)} m³) · ${ikeaCap(st.n,false)} por viaje en un furgón de 5,6 m³ (ejemplo) · cada caja falla 1 de cada ${nf(EC.IP[st.pi])} (ejemplo)`,`${st.n} boxes (${nf(st.n*0.023,2)} m³) · ${ikeaCap(st.n,false)} per trip in a 5.6 m³ van (example) · each box fails 1 in ${nf(EC.IP[st.pi])} (example)`),
  cadena:st=>T(`${st.n} ${st.n===1?"etapa":"etapas"} al ${nf(st.p,1)} % · ${st.pol==="juntas"?"las fallas caen sobre los mismos pedidos":"cada etapa falla por su cuenta"}`,`${st.n} ${st.n===1?"stage":"stages"} at ${nf(st.p,1)} % · ${st.pol==="juntas"?"failures land on the same orders":"each stage fails on its own"}`),
+ vecino:st=>T(`${st.n} paradas · ${st.seed===0&&st.n===100?"la ciudad del reel":"ciudad "+st.seed} · ${ruleLabel("vecino")}`,`${st.n} stops · ${st.seed===0&&st.n===100?"the reel's city":"city "+st.seed} · ${ruleLabel("vecino")}`),
  quedatelo:st=>T(`Producto de US$ ${st.V} · flete US$ ${st.F} · revisar US$ ${st.P} · vale ${st.r} % abierto · ${st.t===1?"1 semana":st.t+" semanas"} hasta revenderlo${st.a?` · ${st.a} reclamos falsos de 100`:""}`,`$${st.V} product · $${st.F} freight · $${st.P} checking · worth ${st.r} % opened · ${st.t===1?"1 week":st.t+" weeks"} to resale${st.a?` · ${st.a} false claims per 100`:""}`),
  ups:st=>T(`${st.W} s de espera para doblar · ${st.X} m de desvío para evitarlo${st.pol==="conviene"?" · la carrera muestra una espera fija; la regla mira el tráfico cruce a cruce":""}`,`${st.W} s wait to turn left · ${st.X} m detour to avoid it${st.pol==="conviene"?" · the race shows a fixed wait; the rule checks traffic at each crossing":""}`)};
 const RUNS={};

@@ -7,9 +7,11 @@
 const QPUB=true;
 /* reel 8 · cadena: flip to true on the day it goes out */
 const CPUB=true;
-const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8};
+/* reel 10 · vecino (la ruta): flip to true on the day it goes out */
+const VPUB=false;
+const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8,vecino:10};
 /* reels published so far: labs with a higher number stay reachable by direct link but are not listed */
-const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB};
+const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB,vecino:VPUB};
 const listedLabs=()=>LABS.filter(l=>PUBLICADO[l.id]!==false).sort((a,b)=>(REELNUM[b.id]||0)-(REELNUM[a.id]||0));
 const REEL2LAB={};for(const k in REELNUM)if(PUBLICADO[k]!==false)REEL2LAB[REELNUM[k]]=k;
 const pub=id=>PUBLICADO[id]!==false;/* a source shows in the library only if one of its labs is published */
@@ -128,6 +130,20 @@ const GAME={
   share(st){const r=EC.cadena(st);return T(`${st.n} etapas al ${nf(st.p,1)} %: solo ${nf(r.perf*100,1)} de cada 100 pedidos salen perfectos. Para 95 % al final, cada etapa necesita ${nf(r.need*100,1)} %.`,`${st.n} stages at ${nf(st.p,1)} %: only ${nf(r.perf*100,1)} out of 100 orders come out perfect. For 95 % at the end, each stage needs ${nf(r.need*100,1)} %.`)},
   score(st){const r=EC.cadena(st);return{score:r.score,valid:r.valid,ref:T(`Reel: ${nf(r.ref,1)} de cada 100 salen con problema`,`Reel: ${nf(r.ref,1)} out of 100 come out with a problem`),you:T(`Tú: ${nf(r.you,1)} de cada 100`,`You: ${nf(r.you,1)} out of 100`),why:r.valid?T("Menos etapas o etapas más precisas son mejoras reales.","Fewer stages or more precise stages are real improvements."):T("Que las fallas vayan juntas es un supuesto distinto: no compara con el reel.","Failures going together is a different assumption: it doesn't compare with the reel.")}},
   url:[["etapa","p",Number,v=>v],["etapas","n",Number,v=>v],["pedidos","m",Number,v=>v],["fallas","pol",v=>v,v=>v]]},
+ vecino:{
+  def:{n:100,seed:0,pol:"vecino",d:24},
+  rule:SEGF("pol","Cómo armas la ruta","How you build the route",[["vecino","Vecino más cercano","Nearest neighbor",{es:"Desde cada parada, ir a la más cercana que falta: la regla más lógica.",en:"From each stop, go to the nearest one left: the most logical rule."}],["descruzar","Vecino y descruzar","Neighbor, then uncross",{es:"La misma ruta, pero cada vez que dos tramos se cruzan se cambian por dos que no se cruzan (2-opt).",en:"The same route, but whenever two segments cross they're swapped for two that don't (2-opt)."}],["mejor","Mejor encontrada","Best found",{es:"La mejor ruta que encontró la búsqueda para esta ciudad (no es un óptimo certificado).",en:"The best route the search found for this city (not a certified optimum)."}]]),
+  sliders:[RANGE("n","n","Paradas","Stops",10,150,10,v=>v),RANGE("seed","s","Ciudad","City",0,20,1,v=>v===0?T("la del reel","the reel's"):T("ciudad ","city ")+v)],
+  ajustes:[],
+  chips:[["r","Ciudad del reel","The reel's city",{n:100,seed:0}],["y","Otra ciudad","Another city",{n:100,seed:7}],["g","150 paradas","150 stops",{n:150,seed:3}]],
+  cta:{es:"Descruzar los tramos",en:"Uncross the segments",set:{pol:"descruzar"}},next:{vecino:"descruzar",descruzar:"mejor",mejor:"vecino"},
+  aha:st=>{const r=EC.vecino(st);return T(`¡Ajá! Descruzar baja de ${nf(r.kNN,1)} a ${nf(r.k2,1)} km: arregla el ${nf(r.arregla*100,0)} % del exceso del vecino.`,`Aha! Uncrossing goes from ${nf(r.kNN,1)} to ${nf(r.k2,1)} km: it fixes ${nf(r.arregla*100,0)} % of the neighbor's excess.`)},
+  ouch:(st,from,to)=>{const r=EC.vecino(st);return to==="vecino"?T(`Volviste al vecino: ${nf(r.kNN,1)} km, ${nf((r.kNN/r.kB-1)*100,1)} % sobre la mejor encontrada.`,`Back to the neighbor: ${nf(r.kNN,1)} km, ${nf((r.kNN/r.kB-1)*100,1)} % over the best found.`):to==="mejor"?T(`La mejor encontrada hace ${nf(r.kB,1)} km: ${nf(r.k2-r.kB,1)} km menos que solo descruzar.`,`The best found does ${nf(r.kB,1)} km: ${nf(r.k2-r.kB,1)} km less than just uncrossing.`):T(`Descruzada: ${nf(r.k2,1)} km, ${r.c2} cruces.`,`Uncrossed: ${nf(r.k2,1)} km, ${r.c2} crossings.`)},
+  structural:["n","seed"],ff:3,
+  metrics(st){const r=EC.vecino(st);return[{cur:true,v:nf(r.km,1),u:"km",l:T("por vuelta con esta regla","per loop with this rule"),t:tone(r.exc*100,3,15)},{aux:true,v:"+"+nf(r.extraMes),u:"km",l:T(`al mes sobre la mejor encontrada (${st.d} días)`,`a month over the best found (${st.d} days)`)}]},
+  share(st){const r=EC.vecino(st);return T(`Con ${st.n} paradas, el vecino más cercano hace ${nf(r.kNN,1)} km y la mejor ruta encontrada ${nf(r.kB,1)} km. Descruzar los tramos la baja a ${nf(r.k2,1)} km.`,`With ${st.n} stops, nearest neighbor does ${nf(r.kNN,1)} km and the best route found ${nf(r.kB,1)} km. Uncrossing the segments brings it down to ${nf(r.k2,1)} km.`)},
+  score(st){const r=EC.vecino(st);return{score:r.score,valid:true,ref:T(`Mejor encontrada: ${nf(r.kB,1)} km`,`Best found: ${nf(r.kB,1)} km`),you:T(`Tú: ${nf(r.km,1)} km`,`You: ${nf(r.km,1)} km`),why:T("Cada ciudad tiene su propia mejor ruta: el puntaje compara contra la de esta ciudad.","Each city has its own best route: the score compares against this city's.")}},
+  url:[["paradas","n",Number,v=>v],["ciudad","seed",Number,v=>v],["regla","pol",v=>v,v=>v],["dias","d",Number,v=>v]]},
  quedatelo:{
   def:{V:5,r:70,d:1,t:4,F:8,P:3,a:0,pol:"traer"},
   rule:SEGF("pol","Qué haces con el producto","What you do with the product",[["traer","Traerlo de vuelta","Bring it back",{es:"Devuelves el dinero, pagas el viaje y revendes lo que se pueda.",en:"You refund, pay for the trip and resell what you can."}],["deja","Quédatelo","Keep it",{es:"Devuelves el dinero y el producto se queda con el cliente: no hay viaje.",en:"You refund and the customer keeps the product: no trip."}]]),
@@ -144,5 +160,5 @@ const GAME={
   url:[["precio","V",Number,v=>v],["semanas","t",Number,v=>v],["abierto","r",Number,v=>v],["perdida","d",Number,v=>v],["flete","F",Number,v=>v],["proceso","P",Number,v=>v],["abuso","a",Number,v=>v],["regla","pol",v=>v,v=>v]]}
 };
 /* the reto controls of each lab (from the content file), minus duplicates of the console */
-GAME.bailey.reto=LAB.bailey.reto.ctl;GAME.fila.reto=LAB.fila.reto.ctl;GAME.nivel.reto=[LAB.nivel.reto.ctl[1]];GAME.amazon.reto=LAB.amazon.reto.ctl;GAME.ikea.reto=[];GAME.ups.reto=[LAB.ups.reto.ctl[1]];GAME.quedatelo.reto=LAB.quedatelo.reto.ctl;GAME.cadena.reto=LAB.cadena.reto.ctl;
+GAME.bailey.reto=LAB.bailey.reto.ctl;GAME.fila.reto=LAB.fila.reto.ctl;GAME.nivel.reto=[LAB.nivel.reto.ctl[1]];GAME.amazon.reto=LAB.amazon.reto.ctl;GAME.ikea.reto=[];GAME.ups.reto=[LAB.ups.reto.ctl[1]];GAME.quedatelo.reto=LAB.quedatelo.reto.ctl;GAME.cadena.reto=LAB.cadena.reto.ctl;GAME.vecino.reto=LAB.vecino.reto.ctl;
 LABS.forEach(l=>{const G=GAME[l.id];l.def=G.def;l.game=G});

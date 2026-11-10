@@ -330,6 +330,40 @@ function sceneCadena(st){const NMAX=10,W=30,D=16;const{scene,g}=diorama(W,D,P.fl
  S.ff=st2=>S.apply(st2);
  reset();return S}
 
+/* ---------------- VECINO · la ruta: el furgón recorre la ruta de la regla elegida ---------------- */
+function sceneVecino(st){const M=24,W=M+5,D=M+5;const{scene,g}=diorama(W,D,P.asphalt);
+ const XZ=q=>[(q[0]-0.5)*M,(0.5-q[1])*M];
+ const nb=6,pb=M/nb;for(let i=0;i<nb;i++)for(let j=0;j<nb;j++)rb(g,pb*0.82,0.06,pb*0.82,0xDCD6C8,-M/2+pb*(i+0.5),0,-M/2+pb*(j+0.5),0.05,{noCast:true});
+ const rng=EC.rngFrom(21),BC=[0xF1E8D6,0xCFE0F5,0xFFD9B8,0xD8F0D5,0xE3DAF5];
+ const casa=inst(g,rboxG(0.55,0.42,0.55,0.08),new THREE.MeshLambertMaterial({color:0xffffff}),160);casa.material.userData.own=true;
+ const techo=inst(g,GEO().pyr,new THREE.MeshLambertMaterial({color:0xffffff,flatShading:true}),160);techo.material.userData.own=true;
+ const tr=inst(g,rboxG(1,0.07,0.16,0.02),new THREE.MeshBasicMaterial({color:0xffffff}),160,false);tr.material.userData.own=true;
+ const dep=new THREE.Group();rb(dep,2.0,1.0,1.4,P.wall,0,0,0,0.1);rb(dep,2.1,0.16,1.5,P.blue,0,1.0,0,0.05);rb(dep,0.06,0.6,0.8,P.door,1.02,0,0,0.02);g.add(dep);
+ const F=new Fleet(g,1,0.5,{van:true});F.col[0]=P.white;
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-M/2,0,-M/2),new THREE.Vector3(M/2,2.5,M/2)),{root:g,az:0.62,azP:0.4,el:0.95});
+ let cur=Object.assign({},st),r=EC.vecino(cur),ms=0,tt=0;const dur=7000;let segs=[],acc=[],tot=0;
+ const COL={vecino:P.red,descruzar:P.yellow,mejor:P.mint};
+ function build(){r=EC.vecino(cur);const p=r.p,o=r.orden;segs=[];acc=[];tot=0;
+  for(let i=0;i<o.length;i++){const a=XZ(p[o[i]]),b=XZ(p[o[(i+1)%o.length]]),l=Math.hypot(b[0]-a[0],b[1]-a[1]);segs.push([a,b,l]);acc.push(tot);tot+=l}
+  const[dx,dz]=XZ(p[0]);dep.position.set(dx,0,dz-0.9);
+  for(let k=0;k<160;k++){if(k<p.length-1){const[x,z]=XZ(p[k+1]),h=0.42;setI(casa,k,x,0.06,z,1,1,1,Math.PI/4);setI(techo,k,x,0.06+h+0.17,z,0.62,0.4,0.62,Math.PI/4)}else{setI(casa,k,0,-9,0,0.01,0.01,0.01);setI(techo,k,0,-9,0,0.01,0.01,0.01)}}
+  casa.instanceMatrix.needsUpdate=true;techo.instanceMatrix.needsUpdate=true}
+ function at(dt){tt+=dt||0;const u=Math.min(1,ms/(dur*0.92)),d=u*tot,o=r.orden,n=o.length;let vx=0,vz=0,va=0,vis=0;
+  for(let i=0;i<160;i++){if(i<n){const[a,b,l]=segs[i],f=Math.max(0,Math.min(1,(d-acc[i])/(l||1)));if(f>0){const mx=a[0]+(b[0]-a[0])*f/2,mz=a[1]+(b[1]-a[1])*f/2,ang=Math.atan2(-(b[1]-a[1]),b[0]-a[0]);setI(tr,i,mx,0.14,mz,Math.max(0.01,l*f),1,1,ang);
+     tr.setColorAt(i,_c.setHex(COL[cur.pol]||P.red));if(f<1||i===n-1){vx=a[0]+(b[0]-a[0])*f;vz=a[1]+(b[1]-a[1])*f;va=ang}vis=i+1}else setI(tr,i,0,-9,0,0.01,1,1)}else setI(tr,i,0,-9,0,0.01,1,1)}
+  tr.instanceMatrix.needsUpdate=true;if(tr.instanceColor)tr.instanceColor.needsUpdate=true;
+  const hecho=new Set(o.slice(0,Math.min(n,vis+1)));for(let k=1;k<r.p.length&&k<=160;k++){const on=u>0&&hecho.has(k);techo.setColorAt(k-1,_c.setHex(on?P.mint:P.terracotta));casa.setColorAt(k-1,_c.setHex(BC[k%5]))}
+  if(techo.instanceColor)techo.instanceColor.needsUpdate=true;if(casa.instanceColor)casa.instanceColor.needsUpdate=true;
+  if(u<=0){const[dx,dz]=XZ(r.p[0]);vx=dx;vz=dz}F.go(0,vx,vz,va,true);F.snap(0);F.commit();
+  const km=u*r.km;S.clock=`${nf(km,1)} km`;
+  S.labels=u>=1?[{x:0,y:2.4,z:-M/2-0.6,html:`<span class="${cur.pol==="vecino"?"y":"g"}">${nf(r.km,1)} km</span>`}]:[];
+  S.cap=u>=1?T(`Vuelta completa: ${B_(nf(r.km,1)+" km")} · la mejor encontrada hace ${nf(r.kB,1)} km`,`Full loop: ${B_(nf(r.km,1)+" km")} · the best found does ${nf(r.kB,1)} km`):cur.pol==="vecino"?T(`El furgón va siempre a la parada más cercana · ${r.cNN} ${r.cNN===1?"cruce":"cruces"} en la ruta`,`The van always goes to the nearest stop · ${r.cNN} ${r.cNN===1?"crossing":"crossings"} in the route`):cur.pol==="descruzar"?T(`La ruta del vecino, con cada cruce deshecho · ${r.c2} cruces`,`The neighbor route, with every crossing undone · ${r.c2} crossings`):T("La mejor ruta que encontramos para esta ciudad","The best route we found for this city");return true}
+ S.info=()=>null;
+ S.apply=st2=>{cur=Object.assign({},st2);build();ms=0;at(0)};S.prewarm=()=>{build();ms=dur*0.4;at(0)};S.startRun=()=>{build();ms=0;S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>({v:nf(r.km,1)+" km",l:T("en esta vuelta","on this loop")})}return at(dt)};
+ S.ff=st2=>S.apply(st2);
+ build();at(0);return S}
+
 /* ---------------- UPS · the race repeats ---------------- */
 function sceneUps(st){const a=st.X/40,b=st.X/40;const W=Math.max(32,2*(a+6)),D=Math.max(32,2*(b+6));const{scene,g}=diorama(W,D,P.grass);
  roadZ(g,D/2-0.4,-D/2+0.4,0,3.0);roadX(g,-W/2+0.4,W/2-0.4,0,3.0);for(let i=-3;i<=3;i++){flat(g,0.32,1.6,P.line,i*0.42,0.022,2.4);flat(g,1.6,0.32,P.line,-2.4,0.022,i*0.42)}
