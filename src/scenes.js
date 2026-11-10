@@ -321,7 +321,7 @@ function sceneCadena(st){const NMAX=10,W=30,D=16;const{scene,g}=diorama(W,D,P.fl
    else{setI(box,i,tx+cx,0.36,BZ+cz,1,1,1);box.setColorAt(i,_c.setHex(u>=1?P.mint:P.carton))}}
   box.instanceMatrix.needsUpdate=true;box.instanceColor.needsUpdate=true;
   gates.forEach((G,k)=>{const hot=k<n&&fail.some((f,i)=>f===k&&tx>=gx(k)&&tx-gx(k)<0.9);G.light.material=mat(hot?P.red:P.mint)});
-  const left=100-out,NM=[T("Planificación","Planning"),T("Bodega","Warehouse"),T("Transporte","Transport"),T("Facturación","Invoicing")];S.labels=u<1?(n===4?NM.map((nm,k)=>({x:gx(k),y:3.2,z:BZ-1.4,html:nm})):[]):[{x:tx,y:1.4,z:BZ,html:`<span class="g">${left} ${T("perfectos","perfect")}</span>`}];
+  const left=100-out,NM=[T("Planificación","Planning"),T("Bodega","Warehouse"),T("Transporte","Transport"),T("Facturación","Invoicing")];S.labels=u<1?(n===4?NM.map((nm,k)=>({x:gx(k),y:0.3,z:BZ+6.4,html:nm})):[]):[{x:tx,y:1.4,z:BZ,html:`<span class="g">${left} ${T("perfectos","perfect")}</span>`}];
   S.clock=stage===0?T("Entrando a la cadena","Entering the chain"):T(`Etapa ${stage} de ${n}`,`Stage ${stage} of ${n}`);
   S.cap=T(`Quedan ${B_(left+" de 100")} · ${out} ${out===1?"con problema":"con problemas"}`,`${B_(left+" of 100")} left · ${out} with ${out===1?"a problem":"problems"}`);return true}
  S.info=()=>null;
