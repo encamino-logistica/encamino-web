@@ -330,6 +330,60 @@ function sceneCadena(st){const NMAX=10,W=30,D=16;const{scene,g}=diorama(W,D,P.fl
  S.ff=st2=>S.apply(st2);
  reset();return S}
 
+/* ---------------- BODEGAS · four cities pool into one central warehouse (reel 9) ----------------
+   Each city: three houses, its warehouse and its stack of safety stock (1 box = 10 cajas).
+   Run with "juntas": boxes travel to the central pad; the ones the root says are not needed turn mint and are freed.
+   Run with "separadas": a week of sales; each city's cushion is used at a different moment (peaks don't coincide). */
+function sceneBodegas(st){const NMAX=9,W=24,D=20;const{scene,g}=diorama(W,D,P.grass);
+ const RX=7.8,RZ=6.0,CX=0,CZ=0,PAD=[CX+0.2,CZ+2.7],BX=0.44,GAP=0.5,LAY=0.4,PER=10,MAXB=50;
+ /* central warehouse */
+ rb(g,6.2,0.12,6.2,0xE4E6EC,CX,0.01,CZ+0.3,0.08);rb(g,5.0,2.3,3.0,P.white,CX,0,CZ-0.9,0.1);rb(g,5.3,0.28,3.3,P.blue,CX,2.3,CZ-0.9,0.08);
+ rb(g,1.8,1.5,0.08,P.dark,CX,0,CZ+0.62,0.04);rb(g,5.02,0.22,3.02,P.yellow,CX,1.55,CZ-0.9,0.03);
+ const cities=[];
+ for(let k=0;k<NMAX;k++){const cg=new THREE.Group();g.add(cg);const HC=[0xF1E8D6,0xCFE0F5,0xFFD9B8,0xD8F0D5,0xF7E3A1];
+  [[-1.7,-1.3],[-1.7,1.3],[-2.9,0]].forEach(([x,z],q)=>{rb(cg,1.1,0.9,1.1,HC[(k+q)%5],x,0,z,0.12);const r=put(cg,GEO().pyr,mat([P.terracotta,P.roof,0xB4544A][(k+q)%3],{flat:true}),x,1.2,z);r.scale.set(0.9,0.6,0.9);r.rotation.y=Math.PI/4});
+  rb(cg,1.8,1.2,1.4,0xDDE2EA,0,0,0,0.08);rb(cg,1.95,0.18,1.55,P.roof,0,1.2,0,0.05);rb(cg,0.06,0.7,0.7,P.dark,0.92,0,0,0.02);
+  const pad=flat(cg,1.7,1.7,0xC9CCD6,1.95,0.02,0);
+  const road=flat(g,1,0.7,P.road,0,0.018,0);const van=new THREE.Group();g.add(van);rb(van,0.95,0.55,0.55,P.white,-0.1,0.18,0,0.08);rb(van,0.4,0.48,0.55,P.coral,0.5,0.18,0,0.08);
+  cities.push({cg,road,van,x:0,z:0,ang:0})}
+ const box=inst(g,rboxG(BX,BX*0.85,BX,0.04),new THREE.MeshLambertMaterial({color:0xffffff}),NMAX*MAXB);box.material.userData.own=true;
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,4,D/2)),{root:g,az:0.62,azP:0.34,el:0.74});
+ let cur=Object.assign({},st),r=EC.bodegas(cur),ms=0,tt=0,n=1,m=1,J=1,dest=[],phase=[];const dur=5600;
+ const L=k=>String.fromCharCode(65+k);
+ const stackPos=(k,j)=>{const c=cities[k],lay=Math.floor(j/9),q=j%9,lx=(1.95+((q%3)-1)*GAP/c.sc)*c.sc,lz=(Math.floor(q/3)-1)*GAP,ca=Math.cos(c.ang),sa=Math.sin(c.ang);return[c.x+lx*ca-lz*sa,0.2+lay*LAY,c.z+lx*sa+lz*ca]};
+ const centralPos=j=>{const lay=Math.floor(j/16),q=j%16;return[PAD[0]+((q%4)-1.5)*GAP,0.2+lay*LAY,PAD[1]+(Math.floor(q/4)-1.5)*GAP]};
+ function layout(){n=Math.max(1,Math.min(NMAX,cur.n));const sc=n<=4?1.25:n<=6?1.0:0.8;
+  cities.forEach((c,k)=>{const on=k<n;c.cg.visible=on;c.road.visible=on;c.van.visible=on;if(!on)return;
+   const a=n===1?Math.PI*0.25:Math.PI*0.25+2*Math.PI*k/n;c.x=CX+RX*Math.cos(a);c.z=CZ+RZ*Math.sin(a);
+   c.ang=Math.atan2(CZ-c.z,CX-c.x);c.sc=sc;c.cg.position.set(c.x,0,c.z);c.cg.rotation.y=-c.ang;c.cg.scale.setScalar(sc);
+   const sx=c.x+2.9*sc*Math.cos(c.ang),sz=c.z+2.9*sc*Math.sin(c.ang),ex=CX+3.4*Math.cos(c.ang+Math.PI),ez=CZ+3.0*Math.sin(c.ang+Math.PI),len=Math.hypot(ex-sx,ez-sz);
+   c.road.position.set((sx+ex)/2,0.018,(sz+ez)/2);c.road.rotation.y=-Math.atan2(ez-sz,ex-sx);c.road.scale.x=len;c.r0=[sx,sz];c.r1=[ex,ez]})}
+ function reset(){r=EC.bodegas(cur);ms=0;layout();m=Math.max(1,Math.min(MAXB,Math.round(cur.b/PER)));J=Math.max(1,Math.round(r.jun/PER));
+  /* round-robin so every city sends its share to the central pad; the rest are freed */
+  dest=[];const order=[];for(let j=0;j<m;j++)for(let k=0;k<n;k++)order.push([k,j]);order.forEach(([k,j],q)=>{dest[k*MAXB+j]=q<J?q:-1});
+  phase=cities.map((_,k)=>(k*0.618)%1);at(0)}
+ function anim(dt){tt+=dt||0;cities.forEach((c,k)=>{if(k>=n)return;const ph=((tt/5)+k*0.37)%1,u=ph<0.5?ph*2:2-ph*2,e=u*u*(3-2*u);
+  const x=c.r0[0]+(c.r1[0]-c.r0[0])*e,z=c.r0[1]+(c.r1[1]-c.r0[1])*e;c.van.position.set(x,0.05,z);c.van.rotation.y=-Math.atan2(c.r1[1]-c.r0[1],c.r1[0]-c.r0[0])+(ph<0.5?0:Math.PI)})}
+ function at(dt){anim(dt);const RUN=dur*0.85,u=Math.min(1,ms/RUN),jun=cur.pol==="juntas";let freed=0,moved=0;
+  for(let k=0;k<NMAX;k++)for(let j=0;j<MAXB;j++){const i=k*MAXB+j;if(k>=n||j>=m){setI(box,i,0,-5,0,0,0,0);continue}
+   const[sx,sy,sz]=stackPos(k,j);
+   if(jun){const d=dest[i],st0=((k*m+j)%(n*m))/(n*m)*0.55,v=Math.max(0,Math.min(1,(u-st0)/0.4)),e=v*v*(3-2*v);
+    if(d>=0){const[cx,cy,cz]=centralPos(d);setI(box,i,sx+(cx-sx)*e,sy+(cy-sy)*e+3*e*(1-e),sz+(cz-sz)*e,1,1,1,e*2);box.setColorAt(i,_c.setHex(v>=1?P.mint:P.carton));if(v>0)moved++}
+    else{const s=1-Math.max(0,(e-0.6)/0.4);setI(box,i,sx,sy+2.4*e,sz,s,s,s,e*4);box.setColorAt(i,_c.setHex(v>0?P.green:P.carton));if(v>0)freed++}}
+   else{/* a week of sales: each city's peak comes at its own moment and eats the top of its own cushion */
+    const pk=Math.max(0,Math.sin(Math.PI*Math.max(0,Math.min(1,(u-phase[k]*0.7)/0.3)))),use=Math.round(pk*m*0.6),hot=j>=m-use;
+    setI(box,i,sx,sy,sz,1,1,1);box.setColorAt(i,_c.setHex(hot?P.red:P.carton))}}
+  box.instanceMatrix.needsUpdate=true;if(box.instanceColor)box.instanceColor.needsUpdate=true;
+  const lab=[];for(let k=0;k<n;k++){const c=cities[k];lab.push({x:c.x-1.4*c.sc*Math.cos(c.ang),y:2.4,z:c.z-1.4*c.sc*Math.sin(c.ang),html:T(`Ciudad ${L(k)}`,`City ${L(k)}`)})}
+  lab.push({x:CX,y:3.4,z:CZ-0.9,html:u>=1&&jun?`<span class="g">${T("Central","Central")} · ${nf(J*PER)} ${T("cajas","boxes")}</span>`:T("Central","Central")});S.labels=lab;
+  S.clock=jun?(u<1?T("Mudando el stock a la central","Moving stock to the central warehouse"):T("Todo en la central","All in the central warehouse")):T(`Día ${Math.min(7,1+Math.floor(u*7))} de 7`,`Day ${Math.min(7,1+Math.floor(u*7))} of 7`);
+  S.cap=jun?T(`${B_(nf(r.sep)+" cajas")} separadas · la central necesita ${B_(nf(r.jun))}`,`${B_(nf(r.sep)+" boxes")} apart · the central needs ${B_(nf(r.jun))}`):T(`Cada bodega guarda ${B_(nf(cur.b)+" cajas")} para su mala semana · ${B_(nf(r.sep))} en total`,`Each warehouse keeps ${B_(nf(cur.b)+" boxes")} for its bad week · ${B_(nf(r.sep))} in total`);return true}
+ S.info=()=>null;
+ S.apply=st2=>{cur=Object.assign({},st2);reset()};S.prewarm=()=>{reset();ms=dur*0.45;at(0)};S.startRun=()=>{reset();S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>cur.pol==="juntas"?({v:nf(r.jun)+" "+T("cajas","boxes"),l:T(`en la central, en vez de ${nf(r.sep)}`,`in the central warehouse, instead of ${nf(r.sep)}`)}):({v:nf(r.sep)+" "+T("cajas","boxes"),l:T(`en ${n} ${n===1?"bodega":"bodegas"}`,`in ${n} ${n===1?"warehouse":"warehouses"}`)})}return at(dt)};
+ S.ff=st2=>S.apply(st2);
+ reset();return S}
+
 /* ---------------- UPS · the race repeats ---------------- */
 function sceneUps(st){const a=st.X/40,b=st.X/40;const W=Math.max(32,2*(a+6)),D=Math.max(32,2*(b+6));const{scene,g}=diorama(W,D,P.grass);
  roadZ(g,D/2-0.4,-D/2+0.4,0,3.0);roadX(g,-W/2+0.4,W/2-0.4,0,3.0);for(let i=-3;i<=3;i++){flat(g,0.32,1.6,P.line,i*0.42,0.022,2.4);flat(g,1.6,0.32,P.line,-2.4,0.022,i*0.42)}

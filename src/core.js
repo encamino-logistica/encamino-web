@@ -62,7 +62,12 @@ function quedatelo(o){const f=Math.max(0,1-o.d/100*o.t),k=o.r/100*f,rec=o.V*k,co
 /* ---------- CADENA · pedido perfecto (Richards, cap. 13): P = p^n si las fallas son independientes; si van juntas (el mismo pedido falla en todo) P = p, la cota alta. ---------- */
 function cadena(o){const p=o.p/100,n=o.n,perf=o.pol==="juntas"?p:Math.pow(p,n),bad=1-perf,need=Math.pow(0.95,1/n),ref=100*(1-Math.pow(0.95,4)),you=bad*100;
  return{p,n,perf,bad,need,mes:bad*o.m,ref,you,score:score(ref,you),valid:o.pol==="indep"}}
-return{cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
+/* ---------- BODEGAS · ley de la raíz cuadrada (Maister 1976; correlación: Eppen 1979). n bodegas iguales con b cajas de stock de seguridad cada una.
+   Separadas: n·b. Juntas en una central: b·√(n + n(n−1)ρ); con ρ = 0 es b·√n (la raíz de Maister) y con ρ = 1 vuelve a n·b (sin ahorro). ---------- */
+function bodegas(o){const n=o.n,b=o.b,r=Math.max(0,Math.min(1,o.rho/100)),k=Math.sqrt(n+n*(n-1)*r),sep=n*b,jun=b*k,ahorro=sep-jun,frac=n>0?jun/sep:1,
+ you=o.pol==="juntas"?frac:1,ref=0.5;
+ return{n,b,r,k,sep,jun,ahorro,frac,costo:ahorro*(o.c||0),you,ref,score:score(ref,you),valid:true}}
+return{bodegas,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
 })();
 /* </core> */
 if(typeof module!=="undefined")module.exports=EC;

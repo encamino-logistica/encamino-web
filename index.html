@@ -505,7 +505,12 @@ function quedatelo(o){const f=Math.max(0,1-o.d/100*o.t),k=o.r/100*f,rec=o.V*k,co
 /* ---------- CADENA · pedido perfecto (Richards, cap. 13): P = p^n si las fallas son independientes; si van juntas (el mismo pedido falla en todo) P = p, la cota alta. ---------- */
 function cadena(o){const p=o.p/100,n=o.n,perf=o.pol==="juntas"?p:Math.pow(p,n),bad=1-perf,need=Math.pow(0.95,1/n),ref=100*(1-Math.pow(0.95,4)),you=bad*100;
  return{p,n,perf,bad,need,mes:bad*o.m,ref,you,score:score(ref,you),valid:o.pol==="indep"}}
-return{cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
+/* ---------- BODEGAS · ley de la raíz cuadrada (Maister 1976; correlación: Eppen 1979). n bodegas iguales con b cajas de stock de seguridad cada una.
+   Separadas: n·b. Juntas en una central: b·√(n + n(n−1)ρ); con ρ = 0 es b·√n (la raíz de Maister) y con ρ = 1 vuelve a n·b (sin ahorro). ---------- */
+function bodegas(o){const n=o.n,b=o.b,r=Math.max(0,Math.min(1,o.rho/100)),k=Math.sqrt(n+n*(n-1)*r),sep=n*b,jun=b*k,ahorro=sep-jun,frac=n>0?jun/sep:1,
+ you=o.pol==="juntas"?frac:1,ref=0.5;
+ return{n,b,r,k,sep,jun,ahorro,frac,costo:ahorro*(o.c||0),you,ref,score:score(ref,you),valid:true}}
+return{bodegas,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
 })();
 /* </core> */
 
@@ -951,6 +956,60 @@ function sceneCadena(st){const NMAX=10,W=30,D=16;const{scene,g}=diorama(W,D,P.fl
  S.ff=st2=>S.apply(st2);
  reset();return S}
 
+/* ---------------- BODEGAS · four cities pool into one central warehouse (reel 9) ----------------
+   Each city: three houses, its warehouse and its stack of safety stock (1 box = 10 cajas).
+   Run with "juntas": boxes travel to the central pad; the ones the root says are not needed turn mint and are freed.
+   Run with "separadas": a week of sales; each city's cushion is used at a different moment (peaks don't coincide). */
+function sceneBodegas(st){const NMAX=9,W=24,D=20;const{scene,g}=diorama(W,D,P.grass);
+ const RX=7.8,RZ=6.0,CX=0,CZ=0,PAD=[CX+0.2,CZ+2.7],BX=0.44,GAP=0.5,LAY=0.4,PER=10,MAXB=50;
+ /* central warehouse */
+ rb(g,6.2,0.12,6.2,0xE4E6EC,CX,0.01,CZ+0.3,0.08);rb(g,5.0,2.3,3.0,P.white,CX,0,CZ-0.9,0.1);rb(g,5.3,0.28,3.3,P.blue,CX,2.3,CZ-0.9,0.08);
+ rb(g,1.8,1.5,0.08,P.dark,CX,0,CZ+0.62,0.04);rb(g,5.02,0.22,3.02,P.yellow,CX,1.55,CZ-0.9,0.03);
+ const cities=[];
+ for(let k=0;k<NMAX;k++){const cg=new THREE.Group();g.add(cg);const HC=[0xF1E8D6,0xCFE0F5,0xFFD9B8,0xD8F0D5,0xF7E3A1];
+  [[-1.7,-1.3],[-1.7,1.3],[-2.9,0]].forEach(([x,z],q)=>{rb(cg,1.1,0.9,1.1,HC[(k+q)%5],x,0,z,0.12);const r=put(cg,GEO().pyr,mat([P.terracotta,P.roof,0xB4544A][(k+q)%3],{flat:true}),x,1.2,z);r.scale.set(0.9,0.6,0.9);r.rotation.y=Math.PI/4});
+  rb(cg,1.8,1.2,1.4,0xDDE2EA,0,0,0,0.08);rb(cg,1.95,0.18,1.55,P.roof,0,1.2,0,0.05);rb(cg,0.06,0.7,0.7,P.dark,0.92,0,0,0.02);
+  const pad=flat(cg,1.7,1.7,0xC9CCD6,1.95,0.02,0);
+  const road=flat(g,1,0.7,P.road,0,0.018,0);const van=new THREE.Group();g.add(van);rb(van,0.95,0.55,0.55,P.white,-0.1,0.18,0,0.08);rb(van,0.4,0.48,0.55,P.coral,0.5,0.18,0,0.08);
+  cities.push({cg,road,van,x:0,z:0,ang:0})}
+ const box=inst(g,rboxG(BX,BX*0.85,BX,0.04),new THREE.MeshLambertMaterial({color:0xffffff}),NMAX*MAXB);box.material.userData.own=true;
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,4,D/2)),{root:g,az:0.62,azP:0.34,el:0.74});
+ let cur=Object.assign({},st),r=EC.bodegas(cur),ms=0,tt=0,n=1,m=1,J=1,dest=[],phase=[];const dur=5600;
+ const L=k=>String.fromCharCode(65+k);
+ const stackPos=(k,j)=>{const c=cities[k],lay=Math.floor(j/9),q=j%9,lx=(1.95+((q%3)-1)*GAP/c.sc)*c.sc,lz=(Math.floor(q/3)-1)*GAP,ca=Math.cos(c.ang),sa=Math.sin(c.ang);return[c.x+lx*ca-lz*sa,0.2+lay*LAY,c.z+lx*sa+lz*ca]};
+ const centralPos=j=>{const lay=Math.floor(j/16),q=j%16;return[PAD[0]+((q%4)-1.5)*GAP,0.2+lay*LAY,PAD[1]+(Math.floor(q/4)-1.5)*GAP]};
+ function layout(){n=Math.max(1,Math.min(NMAX,cur.n));const sc=n<=4?1.25:n<=6?1.0:0.8;
+  cities.forEach((c,k)=>{const on=k<n;c.cg.visible=on;c.road.visible=on;c.van.visible=on;if(!on)return;
+   const a=n===1?Math.PI*0.25:Math.PI*0.25+2*Math.PI*k/n;c.x=CX+RX*Math.cos(a);c.z=CZ+RZ*Math.sin(a);
+   c.ang=Math.atan2(CZ-c.z,CX-c.x);c.sc=sc;c.cg.position.set(c.x,0,c.z);c.cg.rotation.y=-c.ang;c.cg.scale.setScalar(sc);
+   const sx=c.x+2.9*sc*Math.cos(c.ang),sz=c.z+2.9*sc*Math.sin(c.ang),ex=CX+3.4*Math.cos(c.ang+Math.PI),ez=CZ+3.0*Math.sin(c.ang+Math.PI),len=Math.hypot(ex-sx,ez-sz);
+   c.road.position.set((sx+ex)/2,0.018,(sz+ez)/2);c.road.rotation.y=-Math.atan2(ez-sz,ex-sx);c.road.scale.x=len;c.r0=[sx,sz];c.r1=[ex,ez]})}
+ function reset(){r=EC.bodegas(cur);ms=0;layout();m=Math.max(1,Math.min(MAXB,Math.round(cur.b/PER)));J=Math.max(1,Math.round(r.jun/PER));
+  /* round-robin so every city sends its share to the central pad; the rest are freed */
+  dest=[];const order=[];for(let j=0;j<m;j++)for(let k=0;k<n;k++)order.push([k,j]);order.forEach(([k,j],q)=>{dest[k*MAXB+j]=q<J?q:-1});
+  phase=cities.map((_,k)=>(k*0.618)%1);at(0)}
+ function anim(dt){tt+=dt||0;cities.forEach((c,k)=>{if(k>=n)return;const ph=((tt/5)+k*0.37)%1,u=ph<0.5?ph*2:2-ph*2,e=u*u*(3-2*u);
+  const x=c.r0[0]+(c.r1[0]-c.r0[0])*e,z=c.r0[1]+(c.r1[1]-c.r0[1])*e;c.van.position.set(x,0.05,z);c.van.rotation.y=-Math.atan2(c.r1[1]-c.r0[1],c.r1[0]-c.r0[0])+(ph<0.5?0:Math.PI)})}
+ function at(dt){anim(dt);const RUN=dur*0.85,u=Math.min(1,ms/RUN),jun=cur.pol==="juntas";let freed=0,moved=0;
+  for(let k=0;k<NMAX;k++)for(let j=0;j<MAXB;j++){const i=k*MAXB+j;if(k>=n||j>=m){setI(box,i,0,-5,0,0,0,0);continue}
+   const[sx,sy,sz]=stackPos(k,j);
+   if(jun){const d=dest[i],st0=((k*m+j)%(n*m))/(n*m)*0.55,v=Math.max(0,Math.min(1,(u-st0)/0.4)),e=v*v*(3-2*v);
+    if(d>=0){const[cx,cy,cz]=centralPos(d);setI(box,i,sx+(cx-sx)*e,sy+(cy-sy)*e+3*e*(1-e),sz+(cz-sz)*e,1,1,1,e*2);box.setColorAt(i,_c.setHex(v>=1?P.mint:P.carton));if(v>0)moved++}
+    else{const s=1-Math.max(0,(e-0.6)/0.4);setI(box,i,sx,sy+2.4*e,sz,s,s,s,e*4);box.setColorAt(i,_c.setHex(v>0?P.green:P.carton));if(v>0)freed++}}
+   else{/* a week of sales: each city's peak comes at its own moment and eats the top of its own cushion */
+    const pk=Math.max(0,Math.sin(Math.PI*Math.max(0,Math.min(1,(u-phase[k]*0.7)/0.3)))),use=Math.round(pk*m*0.6),hot=j>=m-use;
+    setI(box,i,sx,sy,sz,1,1,1);box.setColorAt(i,_c.setHex(hot?P.red:P.carton))}}
+  box.instanceMatrix.needsUpdate=true;if(box.instanceColor)box.instanceColor.needsUpdate=true;
+  const lab=[];for(let k=0;k<n;k++){const c=cities[k];lab.push({x:c.x-1.4*c.sc*Math.cos(c.ang),y:2.4,z:c.z-1.4*c.sc*Math.sin(c.ang),html:T(`Ciudad ${L(k)}`,`City ${L(k)}`)})}
+  lab.push({x:CX,y:3.4,z:CZ-0.9,html:u>=1&&jun?`<span class="g">${T("Central","Central")} · ${nf(J*PER)} ${T("cajas","boxes")}</span>`:T("Central","Central")});S.labels=lab;
+  S.clock=jun?(u<1?T("Mudando el stock a la central","Moving stock to the central warehouse"):T("Todo en la central","All in the central warehouse")):T(`Día ${Math.min(7,1+Math.floor(u*7))} de 7`,`Day ${Math.min(7,1+Math.floor(u*7))} of 7`);
+  S.cap=jun?T(`${B_(nf(r.sep)+" cajas")} separadas · la central necesita ${B_(nf(r.jun))}`,`${B_(nf(r.sep)+" boxes")} apart · the central needs ${B_(nf(r.jun))}`):T(`Cada bodega guarda ${B_(nf(cur.b)+" cajas")} para su mala semana · ${B_(nf(r.sep))} en total`,`Each warehouse keeps ${B_(nf(cur.b)+" boxes")} for its bad week · ${B_(nf(r.sep))} in total`);return true}
+ S.info=()=>null;
+ S.apply=st2=>{cur=Object.assign({},st2);reset()};S.prewarm=()=>{reset();ms=dur*0.45;at(0)};S.startRun=()=>{reset();S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>cur.pol==="juntas"?({v:nf(r.jun)+" "+T("cajas","boxes"),l:T(`en la central, en vez de ${nf(r.sep)}`,`in the central warehouse, instead of ${nf(r.sep)}`)}):({v:nf(r.sep)+" "+T("cajas","boxes"),l:T(`en ${n} ${n===1?"bodega":"bodegas"}`,`in ${n} ${n===1?"warehouse":"warehouses"}`)})}return at(dt)};
+ S.ff=st2=>S.apply(st2);
+ reset();return S}
+
 /* ---------------- UPS · the race repeats ---------------- */
 function sceneUps(st){const a=st.X/40,b=st.X/40;const W=Math.max(32,2*(a+6)),D=Math.max(32,2*(b+6));const{scene,g}=diorama(W,D,P.grass);
  roadZ(g,D/2-0.4,-D/2+0.4,0,3.0);roadX(g,-W/2+0.4,W/2-0.4,0,3.0);for(let i=-3;i<=3;i++){flat(g,0.32,1.6,P.line,i*0.42,0.022,2.4);flat(g,1.6,0.32,P.line,-2.4,0.022,i*0.42)}
@@ -1046,6 +1105,10 @@ const SOURCES=[
   idea:{es:"Advierte que lo devuelto puede perder hasta 10–20 % de su valor solo por demoras. Si el producto se deprecia rápido, conviene decidir pronto y cerca del cliente, no mandarlo todo a un centro lejano.",en:"Warns that returns can lose up to 10–20 % of their value through delays alone. If a product depreciates fast, decide early and close to the customer instead of shipping everything to a distant center."}},
  {id:"amazon2025",shelf:"ultima",sp:"Amazon · Reembolso sin devolución",spEn:"Amazon · Returnless resolutions",au:"Amazon · Seller Forums",yr:"2026",ti:{es:"Reduce los costos de devolución con reembolsos sin devolución",en:"Reduce return costs with returnless resolutions",orig:"Reduce return costs with returnless resolutions"},ve:{es:"Ejemplo: «paying $8–$12 to ship back a $5 item»",en:"Example: “paying $8–$12 to ship back a $5 item”"},ty:"ficha",labs:["quedatelo"],url:"https://sellercentral.amazon.com/seller-forums/discussions/t/8f6ea88b-8672-426e-accb-7c9d7f6d911a",
   idea:{es:"De aquí sale el ejemplo: pagar 8 a 12 dólares por traer de vuelta un producto de 5. El reel usa el piso, 8, solo como flete. En otro aviso del foro, Amazon indica que el vendedor fija un precio máximo entre US$ 1 y US$ 75, y que la opción es solo para clientes sin historial de abuso.",en:"The example comes from here: paying $8–$12 to ship back a $5 item. The reel uses the low end, 8, as freight only. In another forum notice, Amazon says the seller sets a maximum price between $1 and $75, and the option is only for customers with no history of returns abuse."}},
+ {id:"maister1976",shelf:"bodega",sp:"Maister · Ley de la raíz cuadrada",spEn:"Maister · Square root law",au:"D. H. Maister",yr:"1976",ti:{es:"La centralización de inventarios y la «ley de la raíz cuadrada»",en:"Centralisation of Inventories and the “Square Root Law”",orig:"Centralisation of Inventories and the “Square Root Law”"},ve:"International Journal of Physical Distribution 6(3), 124–134",ty:"paper",labs:["bodegas"],url:"https://doi.org/10.1108/eb014366",
+  idea:{es:"Maister demuestra que el inventario total de un sistema crece con la raíz cuadrada del número de bodegas donde se guarda el producto. Si cuatro bodegas iguales se juntan en una, el stock de seguridad baja a la mitad, porque raíz de cuatro es dos. El supuesto: ciudades parecidas y ventas que suben y bajan cada una por su lado.",en:"Maister shows that total inventory in a system grows with the square root of the number of locations where the product is stocked. If four equal warehouses are pooled into one, safety stock halves, because the root of four is two. The assumption: similar cities whose sales rise and fall independently."}},
+ {id:"eppen1979",shelf:"bodega",sp:"Eppen · Centralizar y la correlación",spEn:"Eppen · Pooling and correlation",au:"G. D. Eppen",yr:"1979",ti:{es:"Efectos de centralizar sobre los costos esperados en un problema del vendedor de diarios con varias ubicaciones",en:"Effects of Centralization on Expected Costs in a Multi-Location Newsboy Problem",orig:"Effects of Centralization on Expected Costs in a Multi-Location Newsboy Problem"},ve:"Management Science 25(5), 498–501",ty:"paper",labs:["bodegas"],url:"https://doi.org/10.1287/mnsc.25.5.498",
+  idea:{es:"Eppen muestra que el ahorro de centralizar depende de cuánto se parecen las ventas de las ubicaciones. Si son independientes, el costo de seguridad crece con la raíz del número de ubicaciones; si están perfectamente correlacionadas, centralizar no ahorra nada. Es la objeción de Navidad hecha fórmula.",en:"Eppen shows that the saving from centralizing depends on how alike the locations' sales are. If they are independent, safety cost grows with the root of the number of locations; if perfectly correlated, centralizing saves nothing. It's the Christmas objection as a formula."}},
  {id:"richards2014",shelf:"bodega",sp:"Richards · Gestión de bodegas",spEn:"Richards · Warehouse Management",au:"G. Richards",yr:"2014",ti:{es:"Gestión de bodegas: guía completa para mejorar la eficiencia y bajar costos en la bodega moderna",en:"Warehouse Management: A Complete Guide to Improving Efficiency and Minimizing Costs in the Modern Warehouse",orig:"Warehouse Management: A Complete Guide to Improving Efficiency and Minimizing Costs in the Modern Warehouse"},ve:{es:"Kogan Page, 2.ª edición · cap. 13",en:"Kogan Page, 2nd edition · ch. 13"},ty:"libro",labs:["cadena"],url:SCH("Gwynne Richards Warehouse Management Kogan Page"),search:true,
   idea:{es:"Un pedido es perfecto solo si cumple todo a la vez: a tiempo, completo, sin daño y con la documentación correcta. Richards lo calcula multiplicando el porcentaje de cada requisito, y por eso cuatro áreas que cumplen bien pueden entregar un pedido perfecto bastante peor.",en:"An order is perfect only if it meets everything at once: on time, complete, damage free and with correct paperwork. Richards computes it by multiplying each requirement's percentage, which is why four areas that perform well can deliver a much worse perfect order."}},
  {id:"apqc2024",shelf:"bodega",sp:"APQC · Pedido perfecto",spEn:"APQC · Perfect order",au:"APQC",yr:{es:"Ficha",en:"Sheet"},ti:{es:"Desempeño del pedido perfecto (medida 101741)",en:"Perfect order performance (measure 101741)",orig:"Perfect order performance"},ve:{es:"«(% on time delivery) multiplied by (% complete orders) multiplied by (% damage free) multiplied by (% accurate documentation)»",en:"“(% on time delivery) multiplied by (% complete orders) multiplied by (% damage free) multiplied by (% accurate documentation)”"},ty:"ficha",labs:["cadena"],url:"https://www.apqc.org/resources/benchmarking/open-standards-benchmarking/measures/perfect-order-performance",
@@ -1277,6 +1340,31 @@ const LABS=[
    s:st=>{const det=st.X/(st.v/3.6);const e=st.W>0?st.W*(1-Math.exp(-det/st.W)):0;return `= ${HL(nf(e,1)+" s")} ${T("por giro, contra","per turn, versus")} ${nf(det,1)} s ${T("de siempre evitar","for always avoiding")}`}}],
  notApply:{es:"Con flechas de giro protegidas y poco tráfico de frente, la espera es corta y el desvío no compensa. En la muestra de choques de la NHTSA (NMVCCS 2005–2007), el 22,2 % ocurrió doblando a la izquierda y el 1,2 % a la derecha: es una proporción de choques, no la probabilidad de chocar en tu próximo giro. La regla «solo si conviene» es un supuesto del laboratorio: asume una espera al azar con ese promedio y que el conductor la ve antes de decidir.",en:"With protected turn arrows and little oncoming traffic, the wait is short and the detour doesn't pay. In NHTSA's crash sample (NMVCCS 2005–2007), 22.2% happened while turning left and 1.2% while turning right: a share of crashes, not the chance of crashing on your next turn. The “only if it pays” rule is a lab assumption: it assumes a random wait with that average, seen by the driver before deciding."},
  sources:["nhtsa2010","holland2017","dantzig1959"],scene:sceneUps},
+/* ======================= BODEGAS · RAÍZ CUADRADA ======================= */
+{id:"bodegas",cat:"bodega",kicker:{es:"Bodegas · Raíz cuadrada",en:"Warehouses · Square root"},chip:"400 → 200",
+ q:{es:"¿Por qué juntar bodegas puede bajar el stock de seguridad a la mitad?",en:"Why can pooling warehouses cut safety stock in half?"},
+ short:{es:"Juntar bodegas",en:"Pooling warehouses"},
+ lede:{es:"Cuatro ciudades, cada una con su bodega y su colchón de stock para la peor semana. Si las juntas en una central, el peak de una ciudad se compensa con la calma de otra. Cambia las ciudades, el stock de cada bodega y cuánto se parecen sus ventas, y mira cuántas cajas hacen falta.",en:"Four cities, each with its own warehouse and its stock cushion for the worst week. Pool them into one central warehouse and one city's peak is offset by another's calm. Change the cities, each warehouse's stock and how alike their sales are, and see how many boxes you need."},
+ sym:{n:"#6EC1FF",b:"#FFC726",rho:"#FF7A59",c:"#4BE38A"},
+ reto:{intro:{es:"Lleva la cuenta a tu operación: ¿cuánto te cuesta al año guardar una caja?",en:"Bring it to your operation: what does it cost you to hold one box for a year?"},
+  ctl:[{k:"c",type:"range",sym:"c",es:"Costo de guardar una caja al año (US$, ejemplo)",en:"Cost to hold one box a year ($, example)",min:1,max:200,step:1,fmt:v=>"US$ "+nf(v)}],
+  cost:{es:"Cada caja de stock de seguridad es plata parada y espacio ocupado. Juntar bodegas libera cajas, pero el flete a ciudades más lejanas puede comerse parte del ahorro.",en:"Each box of safety stock is idle money and occupied space. Pooling frees boxes, but freight to farther cities can eat part of the saving."}},
+ compute(st){return EC.bodegas(st)},
+ story(r,st){return st.pol==="juntas"?{h:T(`Juntas guardan ${HL(nf(r.jun)+" cajas")} en vez de ${nf(r.sep)}.`,`Pooled they hold ${HL(nf(r.jun)+" boxes")} instead of ${nf(r.sep)}.`),
+  stats:[{v:nf(r.ahorro),l:T("cajas menos, mismo servicio","fewer boxes, same service")},{v:"US$ "+nf(r.costo),l:T("al año con tu costo por caja (ejemplo)","a year at your cost per box (example)")}]}
+  :{h:T(`Separadas guardan ${HL(nf(r.sep)+" cajas")} de stock de seguridad.`,`Apart they hold ${HL(nf(r.sep)+" boxes")} of safety stock.`),
+  stats:[{v:nf(r.jun),l:T("cajas bastarían en una central","boxes would do in one central warehouse")},{v:nf(r.frac*100,1)+" %",l:T("del stock queda si se juntan","of the stock remains if pooled")}]}},
+ refLine(r){return T("Reel: 4 bodegas de 100 cajas → 1 central de 200","Reel: 4 warehouses of 100 boxes → 1 central of 200")},
+ aha:{h:{es:"El stock crece con la raíz, no con la suma.",en:"Stock grows with the root, not the sum."},t:{es:"Cada bodega guarda stock para su mala semana. Juntas, las malas semanas no caen todas a la vez: el peak de una se compensa con la calma de otra. Por eso cuatro bodegas guardan el doble que una sola: raíz de cuatro es dos.",en:"Each warehouse holds stock for its bad week. Pooled, the bad weeks don't all land at once: one's peak is offset by another's calm. That's why four warehouses hold twice what one does: the root of four is two."}},
+ math:[
+  {t:{es:"Separadas",en:"Apart"},p:()=>T("Cada bodega guarda su propio stock de seguridad.","Each warehouse keeps its own safety stock."),
+   f:()=>`SS = ${Vs("n","n")} · ${Vs("b","b")}`,s:st=>`= ${st.n} · ${nf(st.b)} = ${HL(nf(st.n*st.b)+T(" cajas"," boxes"))}`},
+  {t:{es:"Juntas (Maister)",en:"Pooled (Maister)"},p:()=>T("Con ventas independientes, el stock crece con la raíz del número de bodegas.","With independent sales, stock grows with the root of the number of warehouses."),
+   f:()=>`SS = ${Vs("b","b")} · √${Vs("n","n")}`,s:st=>`= ${nf(st.b)} · √${st.n} = ${HL(nf(st.b*Math.sqrt(st.n))+T(" cajas"," boxes"))}`},
+  {t:{es:"Si venden parecido (Eppen)",en:"If they sell alike (Eppen)"},p:()=>T("Con correlación ρ, el ahorro baja; con ρ = 100 % no hay ahorro.","With correlation ρ the saving shrinks; at ρ = 100 % there's none."),
+   f:()=>`SS = ${Vs("b","b")} · √(${Vs("n","n")} + ${Vs("n","n")}(${Vs("n","n")} − 1)${Vs("ρ","rho")})`,s:st=>{const r=EC.bodegas(st);return `= ${nf(st.b)} · ${nf(r.k,2)} = ${HL(nf(r.jun)+T(" cajas"," boxes"))}`}}],
+ notApply:{es:"La raíz supone ciudades parecidas, el mismo nivel de servicio y el mismo plazo de reposición. No incluye el flete extra de llegar más lejos ni los días más de despacho, que pueden comerse parte del ahorro. Si todas las ciudades venden más a la vez (Navidad), la correlación sube y el ahorro baja; con ventas idénticas no hay ahorro. Las 100 cajas por bodega son un ejemplo, no un dato de una empresa. No es crossdock: aquí la carga se queda guardada.",en:"The root assumes similar cities, the same service level and the same replenishment lead time. It leaves out the extra freight to reach farther and the extra delivery days, which can eat part of the saving. If all cities sell more at once (Christmas), correlation rises and the saving falls; with identical sales there's none. The 100 boxes per warehouse are an example, not a company figure. It's not cross-docking: here the goods stay stored."},
+ cuenta:[0,1],sources:["maister1976","eppen1979"],scene:sceneBodegas},
 /* ======================= CADENA · PEDIDO PERFECTO ======================= */
 {id:"cadena",cat:"bodega",kicker:{es:"Cadena · Pedido perfecto",en:"Chain · Perfect order"},chip:"95 % → 81 %",
  q:{es:"Si cada etapa cumple el 95 %, ¿cuántos pedidos salen perfectos?",en:"If every stage hits 95 %, how many orders come out perfect?"},
@@ -1343,9 +1431,11 @@ const BIB={"bailey1952": {"gancho": {"es": "Una sala de espera llena a las nueve
 const QPUB=true;
 /* reel 8 · cadena: flip to true on the day it goes out */
 const CPUB=true;
-const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8};
+/* reel 9 · bodegas: flip to true on the day it goes out */
+const BPUB=false;
+const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8,bodegas:9};
 /* reels published so far: labs with a higher number stay reachable by direct link but are not listed */
-const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB};
+const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB,bodegas:BPUB};
 const listedLabs=()=>LABS.filter(l=>PUBLICADO[l.id]!==false).sort((a,b)=>(REELNUM[b.id]||0)-(REELNUM[a.id]||0));
 const REEL2LAB={};for(const k in REELNUM)if(PUBLICADO[k]!==false)REEL2LAB[REELNUM[k]]=k;
 const pub=id=>PUBLICADO[id]!==false;/* a source shows in the library only if one of its labs is published */
@@ -1450,6 +1540,20 @@ const GAME={
   share(st){const r=EC.ups({W:st.W,X:st.X,v:st.v,G:st.G,pol:"dobla",r:0});return Math.abs(r.diff)<0.05?T(`Con ${st.W} s de espera y ${st.X} m de desvío da lo mismo: doblar y evitar el giro tardan igual.`,`With a ${st.W} s wait and a ${st.X} m detour it's a wash: turning and avoiding take the same time.`):r.diff>0?T(`Doblar a la izquierda le cuesta a cada camión ${nf(r.dayYou,1)} min al día. Evitándolo con ${st.X} m de desvío se ahorran ${nf(r.year)} h al año por camión.`,`Turning left costs each truck ${nf(r.dayYou,1)} min a day. Avoiding it with a ${st.X} m detour saves ${nf(r.year)} h a year per truck.`):T(`Con ${st.W} s de espera y ${st.X} m de desvío, conviene doblar: evitar el giro pierde ${nf(-r.diff,1)} s por maniobra.`,`With a ${st.W} s wait and a ${st.X} m detour, turning pays: avoiding loses ${nf(-r.diff,1)} s per maneuver.`)},
   score(st){const r=EC.ups({W:st.W,X:st.X,v:st.v,G:st.G,pol:st.pol,r:st.r/100});return{score:r.score,valid:true,ref:T(`Reel, siempre evitar: ${nf(r.dayRef,1)} min al día`,`Reel, always avoid: ${nf(r.dayRef,1)} min a day`),you:T(`Tú: ${nf(r.dayYou,1)} min al día`,`You: ${nf(r.dayYou,1)} min a day`),why:st.r>0?T("Reordenar paradas no es gratis: en la realidad alarga otros tramos de la ruta. Por eso aquí llega como máximo al 50 %.","Reordering stops isn't free: in reality it lengthens other parts of the route. That's why it tops out at 50% here."):""}},
   url:[["espera","W",Number,v=>v],["metros","X",Number,v=>v],["regla","pol",v=>v,v=>v],["vel","v",Number,v=>v],["giros","G",Number,v=>v],["reorden","r",Number,v=>v]]},
+ bodegas:{
+  def:{n:4,b:100,rho:0,c:20,pol:"separadas"},
+  rule:SEGF("pol","Cómo guardas el stock de seguridad","How you hold safety stock",[["separadas","Una bodega por ciudad","One warehouse per city",{es:"Cada bodega guarda su propio colchón para su peor semana.",en:"Each warehouse keeps its own cushion for its worst week."}],["juntas","Una bodega central","One central warehouse",{es:"Un solo colchón para todas: el peak de una ciudad se compensa con la calma de otra.",en:"One cushion for all: one city's peak is offset by another's calm."}]]),
+  sliders:[RANGE("n","n","Ciudades (una bodega cada una)","Cities (one warehouse each)",1,9,1,v=>v===1?T("1 ciudad","1 city"):v+T(" ciudades"," cities")),RANGE("b","b","Stock de seguridad de cada bodega","Safety stock per warehouse",20,500,10,v=>nf(v)+T(" cajas"," boxes")),RANGE("rho","ρ","Cuánto venden igual a la vez","How much they sell alike at once",0,100,5,v=>v===0?T("0 % · cada una a su ritmo","0 % · each at its own pace"):v===100?T("100 % · todas iguales","100 % · all alike"):nf(v)+" %")],
+  ajustes:[],
+  chips:[["g","9 ciudades, cada una a su ritmo","9 cities, each at its own pace",{n:9,rho:0,pol:"juntas"}],["y","El reel: 4 de 100","The reel: 4 of 100",{n:4,b:100,rho:0}],["r","Navidad: todas suben juntas","Christmas: all rise together",{n:4,rho:80,pol:"juntas"}]],
+  cta:{es:"Juntar todo en una bodega central",en:"Pool it all in one central warehouse",set:{pol:"juntas"}},next:{separadas:"juntas",juntas:"separadas"},
+  aha:st=>{const r=EC.bodegas(st);return st.pol==="juntas"?T(`¡Ajá! Juntas guardan ${nf(r.jun)} cajas en vez de ${nf(r.sep)}: el stock crece con la raíz, no con la suma.`,`Aha! Pooled they hold ${nf(r.jun)} boxes instead of ${nf(r.sep)}: stock grows with the root, not the sum.`):T(`Separadas, ${st.n} bodegas guardan ${nf(r.sep)} cajas. Prueba juntarlas.`,`Apart, ${st.n} warehouses hold ${nf(r.sep)} boxes. Try pooling them.`)},
+  ouch:(st,from,to)=>{const r=EC.bodegas(st);return to==="juntas"?T(`Juntas: ${nf(r.jun)} cajas en vez de ${nf(r.sep)}. ${r.r>0?`Como venden parecido (${nf(st.rho)} %), el ahorro baja.`:"Mismo servicio, menos stock."}`,`Pooled: ${nf(r.jun)} boxes instead of ${nf(r.sep)}. ${r.r>0?`Since they sell alike (${nf(st.rho)} %), the saving shrinks.`:"Same service, less stock."}`):T(`Separadas vuelven a ${nf(r.sep)} cajas: cada ciudad cubre sola su mala semana.`,`Apart, it's back to ${nf(r.sep)} boxes: each city covers its bad week alone.`)},
+  structural:["n"],ff:3,
+  metrics(st){const r=EC.bodegas(st),tot=st.pol==="juntas"?r.jun:r.sep;return[{cur:true,v:nf(tot),u:T("cajas","boxes"),l:st.pol==="juntas"?T("de stock de seguridad en la central","of safety stock in the central warehouse"):T(`de stock de seguridad en ${st.n} ${st.n===1?"bodega":"bodegas"}`,`of safety stock in ${st.n} ${st.n===1?"warehouse":"warehouses"}`),t:tone(tot/r.sep*100,55,90)},{aux:true,v:nf(r.ahorro),u:T("cajas","boxes"),l:T("menos si se juntan","fewer if pooled")}]},
+  share(st){const r=EC.bodegas(st);return T(`${st.n} bodegas con ${nf(st.b)} cajas de stock de seguridad cada una: ${nf(r.sep)} en total. Juntas en una sola: ${nf(r.jun)}${r.r>0?` (con ventas ${nf(st.rho)} % parecidas)`:""}. Crece con la raíz, no con la suma.`,`${st.n} warehouses with ${nf(st.b)} boxes of safety stock each: ${nf(r.sep)} in total. Pooled into one: ${nf(r.jun)}${r.r>0?` (with sales ${nf(st.rho)} % alike)`:""}. It grows with the root, not the sum.`)},
+  score(st){const r=EC.bodegas(st);return{score:r.score,valid:r.valid,ref:T("Reel: juntas guardan 50 % del stock","Reel: pooled they keep 50 % of the stock"),you:T(`Tú: ${nf(r.you*100,1)} %`,`You: ${nf(r.you*100,1)} %`),why:st.pol!=="juntas"?T("Separadas no hay ahorro: cada bodega guarda lo suyo.","Apart there's no saving: each warehouse keeps its own."):r.r>0?T("Si las ciudades venden igual a la vez, el peak de una ya no se compensa con la calma de otra.","If cities sell alike at once, one's peak is no longer offset by another's calm."):T("Más ciudades independientes, más ahorro: la raíz crece más lento que la suma.","More independent cities, more saving: the root grows slower than the sum.")}},
+  url:[["ciudades","n",Number,v=>v],["stock","b",Number,v=>v],["parecido","rho",Number,v=>v],["costo","c",Number,v=>v],["regla","pol",v=>v,v=>v]]},
  cadena:{
   def:{p:95,n:4,m:1000,pol:"indep"},
   rule:SEGF("pol","Cómo fallan las etapas","How the stages fail",[["indep","Cada una por su cuenta","Each on its own",{es:"Una etapa puede fallar en un pedido que las otras hicieron bien: las fallas se suman.",en:"A stage can fail on an order the others got right: failures add up."}],["juntas","Fallan juntas","They fail together",{es:"El pedido malo es malo en todo: las fallas caen sobre los mismos pedidos.",en:"The bad order is bad everywhere: failures land on the same orders."}]]),
@@ -1480,7 +1584,7 @@ const GAME={
   url:[["precio","V",Number,v=>v],["semanas","t",Number,v=>v],["abierto","r",Number,v=>v],["perdida","d",Number,v=>v],["flete","F",Number,v=>v],["proceso","P",Number,v=>v],["abuso","a",Number,v=>v],["regla","pol",v=>v,v=>v]]}
 };
 /* the reto controls of each lab (from the content file), minus duplicates of the console */
-GAME.bailey.reto=LAB.bailey.reto.ctl;GAME.fila.reto=LAB.fila.reto.ctl;GAME.nivel.reto=[LAB.nivel.reto.ctl[1]];GAME.amazon.reto=LAB.amazon.reto.ctl;GAME.ikea.reto=[];GAME.ups.reto=[LAB.ups.reto.ctl[1]];GAME.quedatelo.reto=LAB.quedatelo.reto.ctl;GAME.cadena.reto=LAB.cadena.reto.ctl;
+GAME.bailey.reto=LAB.bailey.reto.ctl;GAME.fila.reto=LAB.fila.reto.ctl;GAME.nivel.reto=[LAB.nivel.reto.ctl[1]];GAME.amazon.reto=LAB.amazon.reto.ctl;GAME.ikea.reto=[];GAME.ups.reto=[LAB.ups.reto.ctl[1]];GAME.quedatelo.reto=LAB.quedatelo.reto.ctl;GAME.cadena.reto=LAB.cadena.reto.ctl;GAME.bodegas.reto=LAB.bodegas.reto.ctl;
 LABS.forEach(l=>{const G=GAME[l.id];l.def=G.def;l.game=G});
 
 /* =====================================================================
@@ -1489,6 +1593,8 @@ LABS.forEach(l=>{const G=GAME[l.id];l.def=G.def;l.game=G});
 
 /* ---------- equations that live inside the library books ---------- */
 const EQ={
+ maister1976:{f:()=>`SS<sub>${T("central","central")}</sub> = SS<sub>1</sub> · √n`,live:()=>{const s=STATE.bodegas,r=EC.bodegas(Object.assign({},s,{rho:0}));return T(`Con ${s.n} bodegas de ${nf(s.b)} cajas: separadas ${nf(r.sep)}, juntas ${HL(nf(r.jun)+" cajas")}.`,`With ${s.n} warehouses of ${nf(s.b)} boxes: apart ${nf(r.sep)}, pooled ${HL(nf(r.jun)+" boxes")}.`)}},
+ eppen1979:{f:()=>`σ<sub>${T("central","central")}</sub> = σ · √(n + n(n − 1)ρ)`,live:()=>{const s=STATE.bodegas,r=EC.bodegas(s);return T(`Con ventas ${nf(s.rho)} % parecidas: la central guarda ${HL(nf(r.jun)+" cajas")} de ${nf(r.sep)}.`,`With sales ${nf(s.rho)} % alike: the central warehouse holds ${HL(nf(r.jun)+" boxes")} out of ${nf(r.sep)}.`)}},
  richards2014:{f:()=>`P = ${T("a tiempo","on time")} × ${T("completo","complete")} × ${T("sin daño","damage free")} × ${T("factura","invoice")}`,live:()=>{const s=STATE.cadena,r=EC.cadena(s);return T(`Con ${s.n} etapas al ${nf(s.p,1)} %: ${HL(nf(r.perf*100,1)+" %")} de pedidos perfectos.`,`With ${s.n} stages at ${nf(s.p,1)} %: ${HL(nf(r.perf*100,1)+" %")} perfect orders.`)}},
  apqc2024:{stat:()=>T("≈ 77 %","≈ 77 %"),f:()=>T("en su ejemplo: 0,98 × 0,97 × 0,99 × 0,82","in its example: 0.98 × 0.97 × 0.99 × 0.82"),live:()=>{const s=STATE.cadena,r=EC.cadena(s);return T(`Con tus números: ${HL(nf(r.perf*100,1)+" %")}.`,`With your numbers: ${HL(nf(r.perf*100,1)+" %")}.`)}},
  bailey1952:{f:()=>`t<sub>i</sub> = s · ${T("máx","max")}${PA("0, "+CE(FR("i − 2c","c")))}`,live:()=>{const s=STATE.bailey;const b=EC.bStats("bailey",s.N,s.c,s.s,0);return T(`Con ${s.c} andenes, ${s.N} camiones y ${s.s} min de carga: espera promedio ${HL(nf(b.avg,1)+" min")}, termina ${clock(b.fin)}.`,`With ${s.c} docks, ${s.N} trucks and ${s.s} min loads: average wait ${HL(nf(b.avg,1)+" min")}, done at ${clock(b.fin)}.`)}},
@@ -1612,12 +1718,13 @@ function mountLabScene(id){const host=$("stage");if(!host)return;if(!HAS3||!rend
 
 /* ---------- the run: prepare → ▶ Simular → result ---------- */
 const RUNSP={fila:8,bailey:2.6,ups:1.1};
-const rw=id=>{const w=RUNWORD[id];return typeof w==="function"?w(STATE[id]):tx(w)};const RUNWORD={bailey:{es:"el día",en:"the day"},fila:{es:"la hora punta",en:"rush hour"},nivel:{es:"el mes",en:"the month"},amazon:st=>st.o===1?T("1 pedido","1 order"):T(`${st.o} pedidos`,`${st.o} orders`),ikea:{es:"100 entregas",en:"100 deliveries"},ups:{es:"la carrera",en:"the race"},quedatelo:{es:"100 devoluciones",en:"100 returns"},cadena:{es:"100 pedidos",en:"100 orders"}};
+const rw=id=>{const w=RUNWORD[id];return typeof w==="function"?w(STATE[id]):tx(w)};const RUNWORD={bailey:{es:"el día",en:"the day"},fila:{es:"la hora punta",en:"rush hour"},nivel:{es:"el mes",en:"the month"},amazon:st=>st.o===1?T("1 pedido","1 order"):T(`${st.o} pedidos`,`${st.o} orders`),ikea:{es:"100 entregas",en:"100 deliveries"},ups:{es:"la carrera",en:"the race"},quedatelo:{es:"100 devoluciones",en:"100 returns"},cadena:{es:"100 pedidos",en:"100 orders"},bodegas:st=>st.pol==="juntas"?T("la mudanza a la central","the move to the central warehouse"):T("una semana de ventas","a week of sales")};
 const SIT={bailey:st=>T(`${st.N} camiones · ${st.c} andenes · ${st.s} min de carga${st.d?` · llegan ±${st.d} min`:" · llegan puntuales"}`,`${st.N} trucks · ${st.c} docks · ${st.s} min loads${st.d?` · arrive ±${st.d} min`:" · arrive on time"}`),
  fila:st=>T(`${pl(st.c,"puerta","puertas")} · ${pl(st.lam,"camión","camiones")} por hora · ${st.S} min de descarga en promedio`,`${pl(st.c,"","","door","doors")} · ${pl(st.lam,"","","truck","trucks")} per hour · ${st.S} min unloads on average`),
  nivel:st=>T(`${nf(st.p/10,1)} % de éxito por parada · ${st.n} paradas al día${st.n!==85?` (el reel usa 85)`:""} · meta ${st.meta} %${st.round?" (redondea)":""}`,`${nf(st.p/10,1)} % success per stop · ${st.n} stops a day${st.n!==85?` (the reel uses 85)`:""} · ${st.meta} % target${st.round?" (rounded)":""}`),
  amazon:st=>T(`Pasillo de ${st.L} m · ${st.ord==="orden"?"1 lugar":st.k+" copias"} del producto`,`${st.L} m aisle · ${st.ord==="orden"?"1 spot":st.k+" copies"} of the product`),
  ikea:st=>st.pack==="armado"?T(`Armado: 1 bulto de 1,81 m³ · 3 por viaje en un furgón de 5,6 m³ (ejemplo) · cada pieza falla 1 de cada ${nf(EC.IP[st.pi])} (ejemplo)`,`Assembled: 1 piece of 1.81 m³ · 3 per trip in a 5.6 m³ van (example) · each piece fails 1 in ${nf(EC.IP[st.pi])} (example)`):T(`${st.n} cajas (${nf(st.n*0.023,2)} m³) · ${ikeaCap(st.n,false)} por viaje en un furgón de 5,6 m³ (ejemplo) · cada caja falla 1 de cada ${nf(EC.IP[st.pi])} (ejemplo)`,`${st.n} boxes (${nf(st.n*0.023,2)} m³) · ${ikeaCap(st.n,false)} per trip in a 5.6 m³ van (example) · each box fails 1 in ${nf(EC.IP[st.pi])} (example)`),
+ bodegas:st=>T(`${st.n} ${st.n===1?"ciudad":"ciudades"} · ${nf(st.b)} cajas de stock de seguridad en cada bodega · ${st.rho?`ventas ${nf(st.rho)} % parecidas`:"cada ciudad vende a su ritmo"}${st.pol==="juntas"?" · todo en una central":""}`,`${st.n} ${st.n===1?"city":"cities"} · ${nf(st.b)} boxes of safety stock per warehouse · ${st.rho?`sales ${nf(st.rho)} % alike`:"each city sells at its own pace"}${st.pol==="juntas"?" · all in one central warehouse":""}`),
  cadena:st=>T(`${st.n} ${st.n===1?"etapa":"etapas"} al ${nf(st.p,1)} % · ${st.pol==="juntas"?"las fallas caen sobre los mismos pedidos":"cada etapa falla por su cuenta"}`,`${st.n} ${st.n===1?"stage":"stages"} at ${nf(st.p,1)} % · ${st.pol==="juntas"?"failures land on the same orders":"each stage fails on its own"}`),
  quedatelo:st=>T(`Producto de US$ ${st.V} · flete US$ ${st.F} · revisar US$ ${st.P} · vale ${st.r} % abierto · ${st.t===1?"1 semana":st.t+" semanas"} hasta revenderlo${st.a?` · ${st.a} reclamos falsos de 100`:""}`,`$${st.V} product · $${st.F} freight · $${st.P} checking · worth ${st.r} % opened · ${st.t===1?"1 week":st.t+" weeks"} to resale${st.a?` · ${st.a} false claims per 100`:""}`),
  ups:st=>T(`${st.W} s de espera para doblar · ${st.X} m de desvío para evitarlo${st.pol==="conviene"?" · la carrera muestra una espera fija; la regla mira el tráfico cruce a cruce":""}`,`${st.W} s wait to turn left · ${st.X} m detour to avoid it${st.pol==="conviene"?" · the race shows a fixed wait; the rule checks traffic at each crossing":""}`)};
