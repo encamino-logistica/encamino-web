@@ -31,7 +31,7 @@ const checks=[];const ok=(n,c,g)=>{checks.push(!!c);console.log((c?"PASS ":"FAIL
  ok("Separadas: 400 cajas en 4 bodegas",(await p.textContent("#rv"))==="400",await p.textContent("#rv"));
  await p.screenshot({path:"capturas/bodegas_separadas.png"});
  await p.goto("http://127.0.0.1:8794/index.html?reel=9");await p.waitForTimeout(2000);ok("?reel=9 abre #bodegas",await p.evaluate(()=>location.hash)==="#bodegas");
- await p.evaluate(()=>{location.hash="biblioteca"});await p.waitForTimeout(800);const t=await p.textContent("#libintro");ok("Biblioteca: 27 fuentes de nueve reels",/Veintisiete fuentes de nueve reels/.test(t),t.slice(0,45));
+ await p.evaluate(()=>{location.hash="biblioteca"});await p.waitForTimeout(800);const t=await p.textContent("#libintro");const vp=await p.evaluate(()=>!!ECAPP.dev.PUBLICADO.vecino);ok(vp?"Biblioteca: 28 fuentes de diez reels (vecino publicada)":"Biblioteca: 27 fuentes de nueve reels",vp?/(Veintiocho|28) fuentes de diez reels/.test(t):/Veintisiete fuentes de nueve reels/.test(t),t.slice(0,45));
  ok("Biblioteca: Maister y Eppen en el estante Bodega",await p.evaluate(()=>{const tx=document.body.textContent;return /Maister/.test(tx)&&/Eppen/.test(tx)}));
  ok("Sin errores de página",errs.length===0,errs.slice(0,3));
  console.log(`${checks.filter(Boolean).length}/${checks.length}`);await b.close();srv.close&&srv.close();process.exit(checks.every(Boolean)?0:1)})().catch(e=>{console.error(e);process.exit(1)});
