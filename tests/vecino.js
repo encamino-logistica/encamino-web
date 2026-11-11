@@ -25,6 +25,17 @@ const checks=[];const ok=(n,c,g)=>{checks.push(!!c);console.log((c?"PASS ":"FAIL
  await p.tap("#play");await p.waitForFunction(()=>ECAPP.mode==="done",null,{timeout:60000});await p.waitForTimeout(400);
  ok("Resultado: 122,1 km con el vecino",(await p.textContent("#rv"))==="122,1",await p.textContent("#rv"));
  await p.screenshot({path:"capturas/vecino_fin.png"});
+ /* 6 capitales: cifras iguales a resultados_capitales.json (medianas, 2026-11-10) */
+ const V=await p.evaluate(()=>EC.VCAP);const exp={santiago:[.2249,.3893,14.2,341],cdmx:[.2347,.2966,16.1,387],buenos_aires:[.2337,.4578,14.9,357],madrid:[.262,.2517,21.1,506],bogota:[.248,.3994,18.2,436],lima:[.2411,.485,16.7,401]};
+ ok("6 capitales · exceso, arregla, km/día y km/mes por ciudad = json",V.ciudades.length===6&&V.ciudades.every(c=>{const e=exp[c.id];return e&&Math.abs(c.exc-e[0])<1e-4&&Math.abs(c.arr-e[1])<1e-4&&Math.abs(c.kmDia-e[2])<0.05&&c.kmMes===e[3]}),V.ciudades.map(c=>[c.id,c.exc,c.arr,c.kmDia,c.kmMes]));
+ ok("6 capitales · total: +24,3 %, arregla 36,8 %, 16,7 km/día, 400 km/mes",Math.abs(V.total.exc-.2433)<1e-4&&Math.abs(V.total.arr-.3676)<1e-4&&V.total.kmDia===16.7&&V.total.kmMes===400,V.total);
+ ok("6 capitales · método: 50 días, 100 paradas, 3 km, OR-Tools 10 s, 24 días al mes",V.meta.dias===50&&V.meta.paradas===100&&V.meta.radio_km===3&&V.meta.ortools_s===10&&V.meta.dias_mes===24,V.meta);
+ await p.evaluate(()=>ECAPP.openSheet("vecino","ciencia"));await p.waitForTimeout(500);
+ const sh=(await p.textContent("#sheet")).replace(/\u00a0/g," ");
+ ok("«Por qué pasa» muestra las 6 capitales con fuente y método, y ya no dice que descruzar «arregla la mayor parte» en calles reales",["Santiago: +22,5 %","Lima: +24,1 %","Las 6: +24,3 %","arregla 37 %","16,7 km","OpenStreetMap","WorldPop 2020","OR-Tools en 10 s","no es un óptimo demostrado","cerca de un tercio"].every(x=>sh.includes(x)),sh.slice(sh.indexOf("En calles reales"),sh.indexOf("En calles reales")+220));
+ await p.screenshot({path:"capturas/vecino_capitales.png"});
+ const sx=await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth);ok("«Por qué pasa» sin desborde a 360 px",sx);
+ await p.evaluate(()=>ECAPP.closeSheet&&ECAPP.closeSheet());
  ok("Sin desborde horizontal a 360 px",await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await p.goto("http://127.0.0.1:8794/index.html?reel=10");await p.waitForTimeout(2000);ok("?reel=10 abre #vecino",await p.evaluate(()=>location.hash)==="#vecino");
  ok("Sin errores de página",errs.length===0,errs.slice(0,3));
