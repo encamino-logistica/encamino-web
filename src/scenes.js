@@ -421,6 +421,48 @@ function sceneOrdenar(st){const NMAX=150,W=14,D=9;const{scene,g}=diorama(W,D,P.a
  S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>({v:nf(r.tot)+" "+T("revisiones","checks"),l:cur.pol==="revuelto"?T(`en ${n} paradas, revuelto`,`over ${n} stops, mixed`):T(`en vez de ${nf(r.rev)} revuelto`,`instead of ${nf(r.rev)} mixed`)})}return at()};
  S.ff=st2=>S.apply(st2);
  reset();return S}
+/* ---------------- CO2 · la entrega fallida (reel 13) ----------------
+   La calle con la tienda a la izquierda y la casa a la derecha. El furgón llega, la peoneta toca y no hay nadie;
+   con el motor encendido sale humo gris. Sigue la ruta y, si vuelve el mismo día, deshace el tramo y vuelve a la casa.
+   El contador suma los gramos: primero los de la espera, después los de la vuelta. */
+function sceneCo2(st){const W=26,D=14;const{scene,g}=diorama(W,D,P.grass);const RZ=1.6,XH=4.2,X0=-8.2,XF=11.0;
+ roadX(g,-W/2+0.4,W/2-0.4,RZ,2.6);flat(g,W-0.8,1.1,0xDCD6C8,0,0.01,RZ-1.9);
+ /* tienda */
+ rb(g,4.6,2.6,3.2,P.wall,-9.6,0,-2.6,0.25);rb(g,4.9,0.3,3.5,P.blue,-9.6,2.6,-2.6,0.1);rb(g,4.62,0.5,0.06,P.yellow,-9.6,1.9,-0.98,0.02);rb(g,1.4,1.5,0.1,P.door,-9.6,0,-0.97,0.03);
+ for(let i=0;i<3;i++)rb(g,0.9,0.7,0.9,P.carton,-6.6+i*0.0,i*0.72,-1.2,0.1);
+ /* casa */
+ rb(g,2.6,1.7,2.4,0xFFD9B8,XH,0,-2.4,0.2);const rf=put(g,GEO().pyr,mat(P.terracotta,{flat:true}),XH,2.3,-2.4);rf.scale.set(2.05,1.0,1.95);rf.rotation.y=Math.PI/4;
+ rb(g,0.7,1.15,0.08,P.dark,XH,0,-1.17,0.03);rb(g,0.5,0.4,0.06,P.sky,XH-0.85,0.8,-1.17,0.02);rb(g,0.5,0.4,0.06,P.sky,XH+0.85,0.8,-1.17,0.02);
+ [[7.6,-2.6,1],[9.6,-3.4,0.9],[-3.6,-3.0,1.05],[-1.4,-4.2,0.9],[0.6,-2.8,0.8],[12,-4.6,0.9],[-12,4.8,0.9],[-6,5.2,1],[1,5.4,0.95],[7,5.0,1.05],[11.6,4.6,0.85]].forEach(t=>tree(g,t[0],t[1],t[2]));
+ const pe=person(g,P.yellow,XH-0.4,RZ-0.6,Math.PI);pe.visible=false;
+ const F=new Fleet(g,1,0.62,{van:true});F.col[0]=P.white;
+ const NP=14,puff=inst(g,GEO().ball,mat(0x9AA3B5,{op:0.62}),NP,false);puff.material.userData.own=true;
+ const IQ=new Icons(g,"q",1,1.3),IC=new Icons(g,"clock",1,1.2),IK=new Icons(g,"check",1,1.2);
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,3,D/2)),{root:g,az:0.62,azP:0.34,el:0.72});
+ let cur=Object.assign({},st),r=EC.co2(cur),ms=0,tt=0;const dur=8000;
+ const lerp=(a,b,u)=>a+(b-a)*Math.max(0,Math.min(1,u));
+ function at(dt){tt+=dt||0;const u=Math.min(1,ms/dur),on=cur.pol!=="apagado",back=cur.pol!=="manana"&&r.fs>0;
+  /* fases: llegar 0–0,2 · esperar 0,2–0,5 · seguir 0,5–0,66 · volver 0,66–0,84 · irse 0,84–1 */
+  let x,ang=0,ph;if(u<0.2){x=lerp(X0,XH,ease(u/0.2));ph=0}else if(u<0.5){x=XH;ph=1}else if(u<0.66){x=lerp(XH,XF,ease((u-0.5)/0.16));ph=2}
+  else if(back&&u<0.84){x=lerp(XF,XH,ease((u-0.66)/0.18));ang=Math.PI;ph=3}else if(back){x=lerp(XH,XF,ease((u-0.84)/0.16));ph=4}else{x=XF;ph=5}
+  F.go(0,x,RZ-0.5,ang,true);F.snap(0);F.commit();
+  const w=ph===1?(u-0.2)/0.3:0;pe.visible=ph===1;if(ph===1){const k=w<0.35?w/0.35:w<0.7?1:1-(w-0.7)/0.3;pe.position.set(XH-0.4,0,lerp(RZ-1.2,-0.95,k));pe.rotation.y=k<1&&w>=0.7?0:Math.PI}
+  const smoke=on&&ph===1;for(let i=0;i<NP;i++){if(!smoke){setI(puff,i,0,-9,0,0.01,0.01,0.01);continue}const q=((tt*0.6+i/NP)%1);setI(puff,i,x-1.55-q*0.5,0.25+q*1.8,RZ-0.5+Math.sin(i*2.3)*0.25,0.18+q*0.45,0.18+q*0.45,0.18+q*0.45)}
+  puff.instanceMatrix.needsUpdate=true;
+  IQ.set(0,XH,2.0,-0.9,ph===1&&w>0.3);IC.set(0,x,2.1,RZ-0.5,ph===1&&on);IK.set(0,XH,2.0,-0.9,ph===4);
+  IQ.step(dt||0.016,S.cam.quaternion,tt);IC.step(dt||0.016,S.cam.quaternion,tt);IK.step(dt||0.016,S.cam.quaternion,tt);
+  const gE=r.gEsp*(ph===0?0:ph===1?w:1),gB=back?(ph>=3?r.gV*Math.min(1,(u-0.66)/0.18):0):(ph===5?r.gV:0),gs=Math.min(r.g,gE+gB);
+  S.clock=`${nf(gs)} g CO2`;
+  S.labels=u>=1?[{x:0,y:3.2,z:-D/2+1,html:`<span class="y">${nf(r.t,1)} t ${T("al año","a year")}</span>`}]:[{x:-9.6,y:3.4,z:-2.6,html:T("Tienda","Store")}];
+  S.cap=u>=1?T(`${B_(nf(r.g)+" g")} por fallida · ${B_(nf(r.fall))} fallidas al día · ${B_(nf(r.t,1)+" t")} al año`,`${B_(nf(r.g)+" g")} per failed delivery · ${B_(nf(r.fall))} failed a day · ${B_(nf(r.t,1)+" t")} a year`)
+   :ph<=1?(ph===0?T("El furgón llega con tu pedido.","The van arrives with your order."):on?T(`La peoneta toca y llama; el conductor espera ${B_("con el motor encendido")} · ${B_(nf(gE)+" g")}`,`The helper knocks and calls; the driver waits ${B_("with the engine running")} · ${B_(nf(gE)+" g")}`):T(`La peoneta toca y llama; el conductor ${B_("apagó el motor")} · 0 g`,`The helper knocks and calls; the driver ${B_("turned the engine off")} · 0 g`))
+   :ph===2?T("No hay nadie. El furgón sigue la ruta…","Nobody's home. The van carries on…"):ph===5?T(`Queda para mañana: ${B_("+"+nf(EC.C2.SIG,2)+" km")} en la ruta del día siguiente`,`Left for tomorrow: ${B_("+"+nf(EC.C2.SIG,2)+" km")} on the next day's route`)
+   :T(`…y vuelve el mismo día: ${B_(nf(2*cur.d,1)+" km")} de más · ${B_(nf(gs)+" g")} en total`,`…and comes back the same day: ${B_(nf(2*cur.d,1)+" km")} extra · ${B_(nf(gs)+" g")} in total`);return true}
+ S.info=()=>null;
+ S.apply=st2=>{cur=Object.assign({},st2);r=EC.co2(cur);ms=0;at(0)};S.prewarm=()=>{r=EC.co2(cur);ms=dur*0.32;at(0.016)};S.startRun=()=>{r=EC.co2(cur);ms=0;S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>({v:nf(r.g)+" g",l:T("en esta entrega fallida","on this failed delivery")})}return at(dt)};
+ S.ff=st2=>S.apply(st2);
+ r=EC.co2(cur);at(0);return S}
 /* ---------------- VECINO · la ruta: el furgón recorre la ruta de la regla elegida ---------------- */
 function sceneVecino(st){const M=24,W=M+5,D=M+5;const{scene,g}=diorama(W,D,P.asphalt);
  const XZ=q=>[(q[0]-0.5)*M,(0.5-q[1])*M];
