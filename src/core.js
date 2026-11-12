@@ -92,7 +92,16 @@ function vecino(o){const key=o.n+"|"+o.seed;let base=VCACHE[key];if(!base){const
  const o2=o.pol==="vecino"?base.nn:o.pol==="descruzar"?base.dos:base.best,k=o.pol==="vecino"?base.kNN:o.pol==="descruzar"?base.k2:base.kB;
  const exc=k/base.kB-1,arregla=base.kNN>base.kB?(base.kNN-base.k2)/(base.kNN-base.kB):1,dias=o.d||24;
  return Object.assign({},base,{orden:o2,km:k,exc,arregla,extraDia:k-base.kB,extraMes:(k-base.kB)*dias,ref:base.kB,you:k,score:score(base.kB,k),valid:true})}
-return{VCAP,bodegas,vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
+/* ---------- ORDENAR · búsqueda secuencial (Knuth, TAOCP vol. 3 §6.1): buscando sin orden entre m se revisan (m+1)/2 en promedio.
+   Aplicado por En Camino a cada parada sobre los m paquetes que quedan (un paquete por parada, todos igual de probables, sin recordar dónde quedó cada uno).
+   Grupos de s paradas consecutivas sin orden dentro: s(s+3)/4 revisiones por grupo. Reel (98): revuelto 2.474,5 · tercios 874 · pilas de 10 314,5 · secuencia 98. ---------- */
+function oGrupos(n,pol,k){if(pol==="revuelto")return[n];if(pol==="secuencia")return Array(n).fill(1);
+ if(pol==="tercios"){const b=Math.floor(n/3),r=n%3;return[0,1,2].map(i=>b+(i<r?1:0)).filter(x=>x>0)}
+ const g=[];let q=n;while(q>0){g.push(Math.min(k,q));q-=k}return g}
+function ordenar(o){const n=o.n,k=Math.max(1,o.k||10),gr=oGrupos(n,o.pol,k),tot=gr.reduce((a,s)=>a+s*(s+3)/4,0),rev=n*(n+3)/4,sec=n,seg=o.t||0;
+ const porParada=[];gr.forEach(s=>{for(let m=s;m>=1;m--)porParada.push((m+1)/2)});
+ return{n,k,gr,tot,rev,sec,veces:rev/tot,ahorro:rev-tot,prom:tot/n,porParada,primera:porParada[0],min:tot*seg/60,minRev:rev*seg/60,minAhorro:(rev-tot)*seg/60,ref:sec,you:tot,score:score(sec,tot),valid:true}}
+return{ordenar,oGrupos,VCAP,bodegas,vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
 })();
 /* </core> */
 if(typeof module!=="undefined")module.exports=EC;
