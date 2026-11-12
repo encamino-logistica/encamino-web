@@ -11,9 +11,11 @@ const CPUB=true;
 const BPUB=true;
 /* reel 10 · vecino (la ruta): flip to true on the day it goes out */
 const VPUB=true;
-const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8,bodegas:9,vecino:10};
+/* reel 12 · ordenar antes de cargar: flip to true on the day it goes out */
+const OPUB=false;
+const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8,bodegas:9,vecino:10,ordenar:12};
 /* reels published so far: labs with a higher number stay reachable by direct link but are not listed */
-const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB,bodegas:BPUB,vecino:VPUB};
+const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB,bodegas:BPUB,vecino:VPUB,ordenar:OPUB};
 const listedLabs=()=>LABS.filter(l=>PUBLICADO[l.id]!==false).sort((a,b)=>(REELNUM[b.id]||0)-(REELNUM[a.id]||0));
 const REEL2LAB={};for(const k in REELNUM)if(PUBLICADO[k]!==false)REEL2LAB[REELNUM[k]]=k;
 const pub=id=>PUBLICADO[id]!==false;/* a source shows in the library only if one of its labs is published */
@@ -146,6 +148,20 @@ const GAME={
   share(st){const r=EC.cadena(st);return T(`${st.n} etapas al ${nf(st.p,1)} %: solo ${nf(r.perf*100,1)} de cada 100 pedidos salen perfectos. Para 95 % al final, cada etapa necesita ${nf(r.need*100,1)} %.`,`${st.n} stages at ${nf(st.p,1)} %: only ${nf(r.perf*100,1)} out of 100 orders come out perfect. For 95 % at the end, each stage needs ${nf(r.need*100,1)} %.`)},
   score(st){const r=EC.cadena(st);return{score:r.score,valid:r.valid,ref:T(`Reel: ${nf(r.ref,1)} de cada 100 salen con problema`,`Reel: ${nf(r.ref,1)} out of 100 come out with a problem`),you:T(`Tú: ${nf(r.you,1)} de cada 100`,`You: ${nf(r.you,1)} out of 100`),why:r.valid?T("Menos etapas o etapas más precisas son mejoras reales.","Fewer stages or more precise stages are real improvements."):T("Que las fallas vayan juntas es un supuesto distinto: no compara con el reel.","Failures going together is a different assumption: it doesn't compare with the reel.")}},
   url:[["etapa","p",Number,v=>v],["etapas","n",Number,v=>v],["pedidos","m",Number,v=>v],["fallas","pol",v=>v,v=>v]]},
+ ordenar:{
+  def:{n:98,k:10,t:3,pol:"revuelto"},
+  rule:SEGF("pol","Cómo cargas el furgón","How you load the van",[["revuelto","Revuelto","Mixed",{es:"Sin orden: en cada parada buscas entre todos los paquetes que te quedan.",en:"No order: at each stop you search among all the parcels you have left."}],["tercios","Tercios","Thirds",{es:"La ruta en tres partes, cada tercio junto; dentro del tercio, revuelto.",en:"The route in three parts, each third together; within the third, mixed."}],["pilas","Pilas","Piles",{es:"Cada pila guarda unas pocas paradas seguidas; buscas solo dentro de la pila que toca.",en:"Each pile holds a few consecutive stops; you only search the pile that's up."}],["secuencia","Secuencia","Sequence",{es:"Lo primero que entregas, junto a la puerta: miras uno y es ese.",en:"What you deliver first goes by the door: you look at one and that's it."}]]),
+  sliders:[RANGE("n","n","Paquetes de la ruta (uno por parada)","Parcels on the route (one per stop)",10,150,1,v=>v+T(" paquetes"," parcels")),RANGE("k","k","Paradas por pila","Stops per pile",2,30,1,v=>v+T(" paradas"," stops"))],
+  ajustes:[],
+  chips:[["r","El reel: 98 revueltos","The reel: 98 mixed",{n:98,pol:"revuelto"}],["y","98 en pilas de 10","98 in piles of 10",{n:98,k:10,pol:"pilas"}],["g","98 en secuencia exacta","98 in exact sequence",{n:98,pol:"secuencia"}]],
+  cta:{es:"Ordenar en pilas de 10 paradas",en:"Sort into piles of 10 stops",set:{pol:"pilas",k:10}},next:{revuelto:"tercios",tercios:"pilas",pilas:"secuencia",secuencia:"revuelto"},
+  aha:st=>{const r=EC.ordenar(st);return st.pol==="revuelto"?T(`Revuelto, ${st.n} paquetes son ${nf(r.tot)} revisiones en la ruta. Prueba ordenarlos.`,`Mixed, ${st.n} parcels are ${nf(r.tot)} checks on the route. Try sorting them.`):T(`¡Ajá! De ${nf(r.rev)} a ${nf(r.tot)} revisiones: ${nf(r.veces,1)} veces menos, la misma ruta.`,`Aha! From ${nf(r.rev)} to ${nf(r.tot)} checks: ${nf(r.veces,1)} times fewer, the same route.`)},
+  ouch:(st,from,to)=>{const r=EC.ordenar(st);return to==="revuelto"?T(`Revuelto otra vez: ${nf(r.tot)} revisiones, la primera parada ya pide mirar ${nf(r.primera,1)} en promedio.`,`Mixed again: ${nf(r.tot)} checks; the first stop alone takes ${nf(r.primera,1)} looks on average.`):to==="secuencia"?T(`Secuencia exacta: ${nf(r.tot)} revisiones, una por parada.`,`Exact sequence: ${nf(r.tot)} checks, one per stop.`):T(`${to==="tercios"?"Por tercios":"En pilas de "+st.k+" paradas"}: ${nf(r.tot)} revisiones, ${nf(r.veces,1)} veces menos que revuelto.`,`${to==="tercios"?"By thirds":"In piles of "+st.k+" stops"}: ${nf(r.tot)} checks, ${nf(r.veces,1)} times fewer than mixed.`)},
+  structural:["n","k","pol"],ff:3,
+  metrics(st){const r=EC.ordenar(st);return[{cur:true,v:nf(r.tot),u:T("revisiones","checks"),l:T("en promedio en la ruta con esta carga","on average on the route with this load"),t:tone(r.prom,2,10)},{aux:true,v:nf(r.prom,1),u:"",l:T("revisiones por parada en promedio","checks per stop on average")}]},
+  share(st){const r=EC.ordenar(st);return T(`Con ${st.n} paquetes revueltos, en cada parada revisas en promedio la mitad de lo que queda: unas ${nf(r.rev)} revisiones en la ruta. ${st.pol==="revuelto"?"":`${st.pol==="tercios"?"Por tercios":st.pol==="pilas"?`En pilas de ${st.k} paradas`:"En secuencia exacta"}: ${nf(r.tot)}.`}`,`With ${st.n} mixed parcels, at each stop you check on average half of what's left: about ${nf(r.rev)} checks on the route. ${st.pol==="revuelto"?"":`${st.pol==="tercios"?"By thirds":st.pol==="pilas"?`In piles of ${st.k} stops`:"In exact sequence"}: ${nf(r.tot)}.`}`)},
+  score(st){const r=EC.ordenar(st);return{score:r.score,valid:true,ref:T(`Secuencia exacta: ${nf(r.sec)} revisiones`,`Exact sequence: ${nf(r.sec)} checks`),you:T(`Tú: ${nf(r.tot)}`,`You: ${nf(r.tot)}`),why:T("El puntaje compara contra la secuencia exacta: una revisión por parada.","The score compares against the exact sequence: one check per stop.")}},
+  url:[["paquetes","n",Number,v=>v],["pila","k",Number,v=>v],["segundos","t",Number,v=>v],["regla","pol",v=>v,v=>v]]},
  vecino:{
   def:{n:100,seed:0,pol:"vecino",d:24},
   rule:SEGF("pol","Cómo armas la ruta","How you build the route",[["vecino","Vecino más cercano","Nearest neighbor",{es:"Desde cada parada, ir a la más cercana que falta: la regla más lógica.",en:"From each stop, go to the nearest one left: the most logical rule."}],["descruzar","Vecino y descruzar","Neighbor, then uncross",{es:"La misma ruta, pero cada vez que dos tramos se cruzan se cambian por dos que no se cruzan (2-opt).",en:"The same route, but whenever two segments cross they're swapped for two that don't (2-opt)."}],["mejor","Mejor encontrada","Best found",{es:"La mejor ruta que encontró la búsqueda para esta ciudad (no es un óptimo certificado).",en:"The best route the search found for this city (not a certified optimum)."}]]),
@@ -176,5 +192,5 @@ const GAME={
   url:[["precio","V",Number,v=>v],["semanas","t",Number,v=>v],["abierto","r",Number,v=>v],["perdida","d",Number,v=>v],["flete","F",Number,v=>v],["proceso","P",Number,v=>v],["abuso","a",Number,v=>v],["regla","pol",v=>v,v=>v]]}
 };
 /* the reto controls of each lab (from the content file), minus duplicates of the console */
-GAME.bailey.reto=LAB.bailey.reto.ctl;GAME.fila.reto=LAB.fila.reto.ctl;GAME.nivel.reto=[LAB.nivel.reto.ctl[1]];GAME.amazon.reto=LAB.amazon.reto.ctl;GAME.ikea.reto=[];GAME.ups.reto=[LAB.ups.reto.ctl[1]];GAME.quedatelo.reto=LAB.quedatelo.reto.ctl;GAME.cadena.reto=LAB.cadena.reto.ctl;GAME.bodegas.reto=LAB.bodegas.reto.ctl;GAME.vecino.reto=LAB.vecino.reto.ctl;
+GAME.bailey.reto=LAB.bailey.reto.ctl;GAME.fila.reto=LAB.fila.reto.ctl;GAME.nivel.reto=[LAB.nivel.reto.ctl[1]];GAME.amazon.reto=LAB.amazon.reto.ctl;GAME.ikea.reto=[];GAME.ups.reto=[LAB.ups.reto.ctl[1]];GAME.quedatelo.reto=LAB.quedatelo.reto.ctl;GAME.cadena.reto=LAB.cadena.reto.ctl;GAME.bodegas.reto=LAB.bodegas.reto.ctl;GAME.vecino.reto=LAB.vecino.reto.ctl;GAME.ordenar.reto=LAB.ordenar.reto.ctl;
 LABS.forEach(l=>{const G=GAME[l.id];l.def=G.def;l.game=G});

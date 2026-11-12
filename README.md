@@ -7,6 +7,7 @@ bilingüe (ES/EN), pensada para abrirse desde reels de Instagram en el celular.
 - `src/` — el código fuente por partes; `node src/build.js` vuelve a armar `index.html`.
 - `tests/` — pruebas automáticas con Playwright (`node tests/verify.js`). El barrido completo de la fila (reel 6) va aparte: `node tests/sweep_fila.js` (unos minutos).
 - `tests/quedatelo.js` — reel 7: números, barrido y enlaces (`QPUB` en `src/game.js` publica u oculta el laboratorio).
+- `tests/ordenar.js` — reel 12: ordenar antes de cargar (Knuth por parada), números contra el reel, Monte Carlo, barrido y enlaces (`OPUB` en `src/game.js` publica u oculta el laboratorio).
 - `capturas/` — capturas de pantalla que dejan las pruebas.
 
 Enlaces profundos por número de reel: `?reel=1` giros UPS, `?reel=2` pasillo de Amazon, `?reel=3` entregas IKEA, `?reel=4` andenes, `?reel=5` nivel de servicio, `?reel=6` fila, `?reel=7` quédatelo;

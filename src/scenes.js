@@ -383,6 +383,44 @@ function sceneBodegas(st){const NMAX=9,W=24,D=20;const{scene,g}=diorama(W,D,P.gr
  S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>cur.pol==="juntas"?({v:nf(r.jun)+" "+T("cajas","boxes"),l:T(`en la central, en vez de ${nf(r.sep)}`,`in the central warehouse, instead of ${nf(r.sep)}`)}):({v:nf(r.sep)+" "+T("cajas","boxes"),l:T(`en ${n} ${n===1?"bodega":"bodegas"}`,`in ${n} ${n===1?"warehouse":"warehouses"}`)})}return at(dt)};
  S.ff=st2=>S.apply(st2);
  reset();return S}
+/* ---------------- ORDENAR · la carga del furgón, parada por parada (reel 12) ----------------
+   El piso de carga con un paquete por parada. La puerta está a la derecha. En cada parada se iluminan en amarillo
+   los paquetes que en promedio revisas ((m+1)/2 de los m que quedan en el grupo) y en verde el que entregas.
+   Revuelto: un solo grupo. Pilas y tercios: grupos de color, el más cercano a la puerta primero. Secuencia: el primero junto a la puerta. */
+function sceneOrdenar(st){const NMAX=150,W=14,D=9;const{scene,g}=diorama(W,D,P.asphalt);
+ const BX=0.36,GAP=0.42,LAY=0.36,ROWS=5,LAYS=2,PER=ROWS*LAYS,X0=4.2,Z0=-(ROWS-1)*GAP/2;
+ /* furgón: piso, paredes, cabina y puerta abierta */
+ rb(g,8.6,0.16,2.6,P.white,-0.1,0.25,0,0.05);rb(g,8.6,1.4,0.08,P.white,-0.1,0.41,-1.3,0.03,{noCast:true});rb(g,0.08,1.4,2.6,P.white,-4.4,0.41,0,0.03);
+ rb(g,1.6,1.5,2.5,P.coral,-5.3,0.25,0,0.12);rb(g,0.08,0.6,1.8,P.glass,-6.12,1.0,0,0.03);
+ [-3.2,2.6].forEach(x=>{[-1.32,1.32].forEach(z=>{const w=put(g,GEO().wheelS,mat(P.dark),x,0.22,z);w.rotation.x=Math.PI/2;w.scale.set(1.1,0.5,1.1)})});
+ rb(g,0.08,1.4,1.2,P.white,4.45,0.41,1.9,0.03);
+ const box=inst(g,rboxG(BX,BX*0.85,BX,0.04),new THREE.MeshLambertMaterial({color:0xffffff}),NMAX);box.material.userData.own=true;
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-6.3,0,-1.6),new THREE.Vector3(4.8,2.2,2.6)),{root:g,az:0.62,azP:0.34,el:0.74});
+ const GC=[0x6EC1FF,0xFFC726,0xB79CFF,0xFF9F7A,0x86C97F];
+ let cur=Object.assign({},st),r=EC.ordenar(cur),ms=0,n=1,slot=[],grp=[],gIni=[];const dur=7000;
+ const pos=p=>{const c=Math.floor(p/PER),q=p%PER;return[X0-c*GAP,0.42+Math.floor(q/ROWS)*LAY,Z0+(q%ROWS)*GAP]};
+ function reset(){r=EC.ordenar(cur);ms=0;n=Math.max(1,Math.min(NMAX,cur.n));const gr=r.gr,rng=EC.rngFrom(12);slot=[];grp=[];gIni=[];let off=0;
+  gr.forEach((s,gi)=>{const ids=[];for(let j=0;j<s;j++)ids.push(off+j);
+   if(s>1)for(let j=ids.length-1;j>0;j--){const q=Math.floor(rng()*(j+1));[ids[j],ids[q]]=[ids[q],ids[j]]}
+   for(let j=0;j<s;j++){slot[off+j]=ids[j];grp[off+j]=gi;gIni[off+j]=off}off+=s});at(0)}
+ function at(){const RUN=dur*0.88,u=Math.min(1,ms/RUN),i=Math.min(n-1,Math.floor(u*n)),fin=u>=1,gi=grp[i],ini=gIni[i];
+  /* lo que queda del grupo de la parada i, en el orden en que lo miras desde la puerta */
+  const rest=[];for(let j=i;j<n&&grp[j]===gi;j++)rest.push(j);rest.sort((a,b)=>slot[a]-slot[b]);
+  const m=rest.length,look=Math.max(1,Math.round((m+1)/2)),seen=new Set();
+  if(!fin){const tpos=rest.indexOf(i),others=rest.filter(j=>j!==i);for(let q=0;q<Math.min(look-1,others.length);q++)seen.add(others[q]);void tpos}
+  let acc=0;for(let j=0;j<Math.min(i,n);j++)acc+=r.porParada[j];
+  for(let j=0;j<NMAX;j++){if(j>=n||(j<i)||(fin)){setI(box,j,0,-5,0,0,0,0);continue}const[x,y,z]=pos(slot[j]);
+   const tgt=j===i,pk=tgt?0.18:seen.has(j)?0.08:0;setI(box,j,x+(tgt?0.25:0),y+pk,z,1,1,1);
+   box.setColorAt(j,_c.setHex(tgt?P.mint:seen.has(j)?P.yellow:cur.pol==="revuelto"||cur.pol==="secuencia"?P.carton:GC[grp[j]%GC.length]))}
+  box.instanceMatrix.needsUpdate=true;if(box.instanceColor)box.instanceColor.needsUpdate=true;
+  S.labels=fin?[{x:0,y:2.2,z:0,html:`<span class="g">${nf(r.tot)} ${T("revisiones","checks")}</span>`}]:[{x:X0+0.6,y:1.9,z:0,html:T("Puerta","Door")}];
+  S.clock=fin?T("Ruta terminada","Route done"):T(`Parada ${i+1} de ${n}`,`Stop ${i+1} of ${n}`);
+  S.cap=fin?T(`${B_(nf(r.tot)+" revisiones")} en la ruta · revuelto serían ${B_(nf(r.rev))}`,`${B_(nf(r.tot)+" checks")} on the route · mixed would be ${B_(nf(r.rev))}`):T(`Quedan ${m} en ${cur.pol==="revuelto"?"la carga":"este grupo"} · miras ${B_(nf(r.porParada[i],1))} en promedio · llevas ${B_(nf(acc))}`,`${m} left in ${cur.pol==="revuelto"?"the load":"this group"} · you look at ${B_(nf(r.porParada[i],1))} on average · ${B_(nf(acc))} so far`);return true}
+ S.info=()=>null;
+ S.apply=st2=>{cur=Object.assign({},st2);reset()};S.prewarm=()=>{reset();ms=dur*0.2;at()};S.startRun=()=>{reset();S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>({v:nf(r.tot)+" "+T("revisiones","checks"),l:cur.pol==="revuelto"?T(`en ${n} paradas, revuelto`,`over ${n} stops, mixed`):T(`en vez de ${nf(r.rev)} revuelto`,`instead of ${nf(r.rev)} mixed`)})}return at()};
+ S.ff=st2=>S.apply(st2);
+ reset();return S}
 /* ---------------- VECINO · la ruta: el furgón recorre la ruta de la regla elegida ---------------- */
 function sceneVecino(st){const M=24,W=M+5,D=M+5;const{scene,g}=diorama(W,D,P.asphalt);
  const XZ=q=>[(q[0]-0.5)*M,(0.5-q[1])*M];
