@@ -12,7 +12,7 @@ const BPUB=true;
 /* reel 10 · vecino (la ruta): flip to true on the day it goes out */
 const VPUB=true;
 /* reel 12 · ordenar antes de cargar: flip to true on the day it goes out */
-const OPUB=false;
+const OPUB=true;
 const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8,bodegas:9,vecino:10,ordenar:12};
 /* reels published so far: labs with a higher number stay reachable by direct link but are not listed */
 const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB,bodegas:BPUB,vecino:VPUB,ordenar:OPUB};
