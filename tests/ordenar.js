@@ -16,6 +16,11 @@ const checks=[];const ok=(n,c,g)=>{checks.push(!!c);console.log((c?"PASS ":"FAIL
   const rng=EC.rngFrom(20261113),R=4000,res={};for(const [pol,k] of [["revuelto",10],["pilas",10]]){const gr=EC.oGrupos(98,pol,k);let s=0;
    for(let t=0;t<R;t++)for(const g of gr)for(let m=g;m>=1;m--)s+=1+Math.floor(rng()*m);res[pol]=s/R}return res});
  ok("Monte Carlo (4.000 rutas) cerca del exacto: revuelto ±1 %, pilas ±1 %",Math.abs(mc.revuelto/2474.5-1)<0.01&&Math.abs(mc.pilas/314.5-1)<0.01,mc);
+ const ed=await p.evaluate(()=>{const G=ECAPP.LAB.ordenar.game,L=ECAPP.LAB.ordenar,bad=[];
+  for(let n=10;n<=150;n++){const rv=EC.ordenar({n,pol:"revuelto"}),te=EC.ordenar({n,pol:"tercios"}),se=EC.ordenar({n,pol:"secuencia"});if(!(rv.tot>=te.tot&&te.tot>=se.tot))bad.push(["orden",n]);
+   for(let k=2;k<=30;k++){const st={n,k,t:3,pol:"pilas"},pi=EC.ordenar(st);if(pi.tot>rv.tot+1e-9||pi.tot<se.tot-1e-9)bad.push(["pilas",n,k]);
+    if(pi.gr.length===1){const tx=G.aha(st)+G.ouch(st,"revuelto","pilas")+JSON.stringify(L.story(pi,st));if(/1[,.]0 ?(veces|times|×)|en vez de|instead of/.test(tx))bad.push(["tonto",n,k,tx.slice(0,80)])}}}return bad.slice(0,5)});
+ ok("Sin resultados tontos: revuelto ≥ tercios ≥ secuencia, pilas entre ambos, y una pila que lo junta todo se avisa como revuelto",ed.length===0,ed);
  const sw=await p.evaluate(()=>{const bad=[];let n=0;const s=ECAPP.STATE.ordenar,G=ECAPP.LAB.ordenar.game,L=ECAPP.LAB.ordenar,Dd=JSON.stringify(s);const R=/NaN|undefined|Infinity|∞|−-|--|\[object/;
   for(const lg of ["es","en"]){document.getElementById("lang-"+lg).click();
    for(const pol of ["revuelto","tercios","pilas","secuencia"])for(let nn=10;nn<=150;nn+=7)for(let kk=2;kk<=30;kk+=4)for(const tt of [1,3,20]){const st={n:nn,k:kk,t:tt,pol};n++;const c=EC.ordenar(st);

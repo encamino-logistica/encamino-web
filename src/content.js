@@ -379,7 +379,7 @@ const LABS=[
   ctl:[{k:"t",type:"range",sym:"t",es:"Segundos por revisión (ejemplo tuyo)",en:"Seconds per check (your example)",min:1,max:20,step:1,fmt:v=>v+" s"}],
   cost:{es:"Cada revisión es tiempo con el furgón detenido. Ordenar también cuesta: media hora o más antes de salir. Conviene cuando lo que ahorras en la ruta supera lo que gastas ordenando.",en:"Each check is time with the van stopped. Sorting also costs: half an hour or more before leaving. It pays when what you save on the route beats what you spend sorting."}},
  compute(st){return EC.ordenar(st)},
- story(r,st){return st.pol==="revuelto"?{h:T(`Revuelto: ${HL(nf(r.tot)+" revisiones")} en la ruta.`,`Mixed: ${HL(nf(r.tot)+" checks")} on the route.`),
+ story(r,st){return st.pol==="revuelto"||r.gr.length===1&&st.pol!=="secuencia"?{h:st.pol==="revuelto"?T(`Revuelto: ${HL(nf(r.tot)+" revisiones")} en la ruta.`,`Mixed: ${HL(nf(r.tot)+" checks")} on the route.`):T(`Una sola pila: ${HL(nf(r.tot)+" revisiones")}, igual que revuelto.`,`A single pile: ${HL(nf(r.tot)+" checks")}, same as mixed.`),
   stats:[{v:nf(r.primera,1),l:T("revisiones solo en la primera parada","checks at the first stop alone")},{v:nf(r.min)+" min",l:T(`con ${st.t} s por revisión (ejemplo)`,`at ${st.t} s per check (example)`)}]}
   :{h:T(`${HL(nf(r.tot)+" revisiones")} en vez de ${nf(r.rev)}.`,`${HL(nf(r.tot)+" checks")} instead of ${nf(r.rev)}.`),
   stats:[{v:nf(r.veces,1)+"×",l:T("menos que revuelto","fewer than mixed")},{v:nf(r.minAhorro)+" min",l:T(`menos en la ruta con ${st.t} s por revisión (ejemplo)`,`less on the route at ${st.t} s per check (example)`)}]}},
