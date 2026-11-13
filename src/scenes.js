@@ -441,26 +441,26 @@ function sceneCo2(st){const W=26,D=14;const{scene,g}=diorama(W,D,P.grass);const 
  const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,3,D/2)),{root:g,az:0.62,azP:0.34,el:0.72});
  let cur=Object.assign({},st),r=EC.co2(cur),ms=0,tt=0;const dur=8000;
  const lerp=(a,b,u)=>a+(b-a)*Math.max(0,Math.min(1,u));
- function at(dt){tt+=dt||0;const u=Math.min(1,ms/dur),on=cur.pol!=="apagado",back=cur.pol!=="manana"&&r.fs>0;
+ function at(dt){tt+=dt||0;const u=Math.min(1,ms/dur),on=cur.pol!=="apagado",vec=cur.pol==="vecino",back=cur.pol!=="manana"&&!vec&&r.fs>0;
   /* fases: llegar 0–0,2 · esperar 0,2–0,5 · seguir 0,5–0,66 · volver 0,66–0,84 · irse 0,84–1 */
   let x,ang=0,ph;if(u<0.2){x=lerp(X0,XH,ease(u/0.2));ph=0}else if(u<0.5){x=XH;ph=1}else if(u<0.66){x=lerp(XH,XF,ease((u-0.5)/0.16));ph=2}
   else if(back&&u<0.84){x=lerp(XF,XH,ease((u-0.66)/0.18));ang=Math.PI;ph=3}else if(back){x=lerp(XH,XF,ease((u-0.84)/0.16));ph=4}else{x=XF;ph=5}
   F.go(0,x,RZ-0.5,ang,true);F.snap(0);F.commit();
-  const w=ph===1?(u-0.2)/0.3:0;pe.visible=ph===1;if(ph===1){const k=w<0.35?w/0.35:w<0.7?1:1-(w-0.7)/0.3;pe.position.set(XH-0.4,0,lerp(RZ-1.2,-0.95,k));pe.rotation.y=k<1&&w>=0.7?0:Math.PI}
+  const w=ph===1?(u-0.2)/0.3:0;pe.visible=ph===1;if(ph===1){const k=w<0.35?w/0.35:w<0.7?1:1-(w-0.7)/0.3;if(vec&&w>=0.55){const q=Math.min(1,(w-0.55)/0.35);pe.position.set(lerp(XH-0.4,XH+3.2,q),0,-0.95);pe.rotation.y=-Math.PI/2}else{pe.position.set(XH-0.4,0,lerp(RZ-1.2,-0.95,k));pe.rotation.y=k<1&&w>=0.7?0:Math.PI}}
   const smoke=on&&ph===1;for(let i=0;i<NP;i++){if(!smoke){setI(puff,i,0,-9,0,0.01,0.01,0.01);continue}const q=((tt*0.6+i/NP)%1);setI(puff,i,x-1.55-q*0.5,0.25+q*1.8,RZ-0.5+Math.sin(i*2.3)*0.25,0.18+q*0.45,0.18+q*0.45,0.18+q*0.45)}
   puff.instanceMatrix.needsUpdate=true;
-  IQ.set(0,XH,2.0,-0.9,ph===1&&w>0.3);IC.set(0,x,2.1,RZ-0.5,ph===1&&on);IK.set(0,XH,2.0,-0.9,ph===4);
+  IQ.set(0,XH,2.0,-0.9,ph===1&&w>0.3);IC.set(0,x,2.1,RZ-0.5,ph===1&&on);IK.set(0,vec?XH+3.2:XH,2.0,-0.9,ph===4||(vec&&ph>=1&&w>0.85)||(vec&&ph>=2));
   IQ.step(dt||0.016,S.cam.quaternion,tt);IC.step(dt||0.016,S.cam.quaternion,tt);IK.step(dt||0.016,S.cam.quaternion,tt);
-  const gE=r.gEsp*(ph===0?0:ph===1?w:1),gB=back?(ph>=3?r.gV*Math.min(1,(u-0.66)/0.18):0):(ph===5?r.gV:0),gs=Math.min(r.g,gE+gB);
+  const gE=r.gEsp*(ph===0?0:ph===1?w:1),gB=vec?0:back?(ph>=3?r.gV*Math.min(1,(u-0.66)/0.18):0):(ph===5?r.gV:0),gs=Math.min(r.g,gE+gB);
   S.clock=`${nf(gs)} g CO2`;
   S.labels=u>=1?[{x:0,y:3.2,z:-D/2+1,html:`<span class="y">${nf(r.t,1)} t ${T("al año","a year")}</span>`}]:[{x:-9.6,y:3.4,z:-2.6,html:T("Tienda","Store")}];
   S.cap=u>=1?T(`${B_(nf(r.g)+" g")} por fallida · ${B_(nf(r.fall))} fallidas al día · ${B_(nf(r.t,1)+" t")} al año`,`${B_(nf(r.g)+" g")} per failed delivery · ${B_(nf(r.fall))} failed a day · ${B_(nf(r.t,1)+" t")} a year`)
    :ph<=1?(ph===0?T("El furgón llega con tu pedido.","The van arrives with your order."):on?T(`La peoneta toca y llama; el conductor espera ${B_("con el motor encendido")} · ${B_(nf(gE)+" g")}`,`The helper knocks and calls; the driver waits ${B_("with the engine running")} · ${B_(nf(gE)+" g")}`):T(`La peoneta toca y llama; el conductor ${B_("apagó el motor")} · 0 g`,`The helper knocks and calls; the driver ${B_("turned the engine off")} · 0 g`))
-   :ph===2?T("No hay nadie. El furgón sigue la ruta…","Nobody's home. The van carries on…"):ph===5?T(`Queda para mañana: ${B_("+"+nf(EC.C2.SIG,2)+" km")} en la ruta del día siguiente`,`Left for tomorrow: ${B_("+"+nf(EC.C2.SIG,2)+" km")} on the next day's route`)
+   :ph===2?(vec?T(`No hay nadie: ${B_("se lo deja al vecino")}. Esta no vuelve.`,`Nobody's home: ${B_("left with the neighbour")}. This one doesn't come back.`):T("No hay nadie. El furgón sigue la ruta…","Nobody's home. The van carries on…")):ph===5&&vec?T(`Con vecino, ${B_("37,5 % menos vueltas")} (Ofcom) · ${B_(nf(r.g)+" g")} en promedio por fallida`,`With a neighbour, ${B_("37.5 % fewer trips back")} (Ofcom) · ${B_(nf(r.g)+" g")} on average per failure`):ph===5?T(`Queda para mañana: ${B_("+"+nf(EC.C2.SIG,2)+" km")} en la ruta del día siguiente`,`Left for tomorrow: ${B_("+"+nf(EC.C2.SIG,2)+" km")} on the next day's route`)
    :T(`…y vuelve el mismo día: ${B_(nf(2*cur.d,1)+" km")} de más · ${B_(nf(gs)+" g")} en total`,`…and comes back the same day: ${B_(nf(2*cur.d,1)+" km")} extra · ${B_(nf(gs)+" g")} in total`);return true}
  S.info=()=>null;
  S.apply=st2=>{cur=Object.assign({},st2);r=EC.co2(cur);ms=0;at(0)};S.prewarm=()=>{r=EC.co2(cur);ms=dur*0.32;at(0.016)};S.startRun=()=>{r=EC.co2(cur);ms=0;S.done=false;S.obs=null};S.progress=()=>ms/dur;
- S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>({v:nf(r.g)+" g",l:T("en esta entrega fallida","on this failed delivery")})}return at(dt)};
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>cur.pol==="vecino"?({v:nf(r.gEsp)+" g",l:T("en esta: quedó con el vecino, no vuelve","on this one: left with the neighbour, no trip back")}):({v:nf(r.g)+" g",l:T("en esta entrega fallida","on this failed delivery")})}return at(dt)};
  S.ff=st2=>S.apply(st2);
  r=EC.co2(cur);at(0);return S}
 /* ---------------- VECINO · la ruta: el furgón recorre la ruta de la regla elegida ---------------- */

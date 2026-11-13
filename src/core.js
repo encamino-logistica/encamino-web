@@ -104,13 +104,14 @@ function ordenar(o){const n=o.n,k=Math.max(1,o.k||10),gr=oGrupos(n,o.pol,k),tot=
 /* ---------- CO2 · la entrega fallida (reel 13). Solo el furgón, no el viaje del cliente. Valor esperado del Monte Carlo de En Camino
    (cifras_v8.py, N=200.000): ralentí 0,17–0,39 gal/h (Argonne, auto diésel 2,0 L) · 2,676 kg CO2/l (IPCC 2006: 74.100 kg/TJ × 43,0 TJ/Gg × 0,84 kg/l)
    · m min con motor encendido · furgón 247 g/km (Gutenschwager 2024) · s % vuelve el mismo día: desvío 2·d km · el resto al día siguiente: +0,29 km (GPS de nuestra operación, n=6).
+   Regla "vecino": si no hay nadie, se deja con un vecino; las fallidas que vuelven bajan 37,5 % (Ofcom 2012 §4.3: 12 % → 7,5 %).
    Reel: 10.000 pedidos/día · 5 % no están · 2 min · d 0,6 km · 80 % → 346 g por fallida · 63,2 t al año · 2.870 árboles (22 kg EEA) · 27,3 % esperando. ---------- */
-const C2={GAL:3.785411784,KGL:74100*43.0e-6*0.84,IDLE:0.28,IDLO:0.17,IDHI:0.39,VAN:247,SIG:0.29,ARB:22,DIAS:365};
+const C2={GAL:3.785411784,KGL:74100*43.0e-6*0.84,IDLE:0.28,IDLO:0.17,IDHI:0.39,VAN:247,SIG:0.29,ARB:22,DIAS:365,VEC:0.375};
 function co2(o){const lh=C2.IDLE*C2.GAL,P=o.P,a=o.a/100,av=(o.av||0)/100,m=o.m,d=o.d,man=o.pol==="manana";
  const fs=man?0:o.s/100,gEsp=o.pol==="apagado"?0:lh*m/60*C2.KGL*1000,gMismo=2*d*C2.VAN,gSig=C2.SIG*C2.VAN,gV=fs*gMismo+(1-fs)*gSig,g=gEsp+gV;
- const fall=P*a*(1-av),tDia=fall*g/1e6,t=tDia*C2.DIAS,arb=t*1000/C2.ARB;
+ const vec=o.pol==="vecino"?C2.VEC:0,fall=P*a*(1-av)*(1-vec),tDia=fall*g/1e6,t=tDia*C2.DIAS,arb=t*1000/C2.ARB;
  const refG=lh*2/60*C2.KGL*1000+0.8*2*0.6*C2.VAN+0.2*gSig,ref=P*a*C2.DIAS*refG/1e6;
- return{g,gEsp,gV,gMismo,gSig,fs,lh,fall,fallAnio:fall*C2.DIAS,t,tDia,arb,esp:g>0?gEsp/g:0,refG,ref,you:t,ahorro:ref-t,score:score(ref,t),valid:true}}
+ return{g,gEsp,gV,gMismo,gSig,fs,lh,vec,fall,fallAnio:fall*C2.DIAS,t,tDia,arb,esp:g>0?gEsp/g:0,refG,ref,you:t,ahorro:ref-t,score:score(ref,t),valid:true}}
 return{co2,C2,ordenar,oGrupos,VCAP,bodegas,vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
 })();
 /* </core> */

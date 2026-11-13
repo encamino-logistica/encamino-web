@@ -18,6 +18,8 @@ const checks=[];const ok=(n,c,g)=>{checks.push(!!c);console.log((c?"PASS ":"FAIL
  const mc=await p.evaluate(()=>{/* Monte Carlo independiente con las distribuciones del reel (cifras_v8.py): ralentí U(0,17;0,39) gal/h, motor U(1;3) min, d U(0,2;1,0) km, 80 % mismo día */
   const rng=EC.rngFrom(20261111),N=60000,C=EC.C2;let sg=0,se=0;for(let i=0;i<N;i++){const idle=(C.IDLO+(C.IDHI-C.IDLO)*rng())*C.GAL,mn=1+2*rng(),d=0.2+0.8*rng();
    const e=idle*mn/60*C.KGL*1000,g=rng()<0.8?e+2*d*C.VAN:e+C.SIG*C.VAN;sg+=g;se+=e}return{g:sg/N,esp:se/sg}});
+ const vc=await p.evaluate(R=>{const e=EC.co2(R),v=EC.co2(Object.assign({},R,{pol:"vecino"}));return{t:v.t,ah:e.t-v.t,arb:(e.t-v.t)*1000/22}},R);
+ ok("Solución del reel · vecino (Ofcom −37,5 %): 39,5 t; ahorro 23,7 t ≈ 1.076 árboles («más de mil»)",Math.abs(vc.t-63.15*0.625)<0.01&&vc.arb>1000&&vc.arb<1100,vc);
  ok("Monte Carlo (60.000 casos) cerca del valor esperado: ±1 % (el reel: 346,4 g con 200.000)",Math.abs(mc.g/r.g-1)<0.01&&Math.abs(mc.esp-r.esp)<0.01,mc);
  const ed=await p.evaluate(()=>{const bad=[];const base={P:10000,a:5,m:2,d:0.6,s:80,av:0};
   for(const pol of ["encendido","apagado","manana"])for(let m=0;m<=10;m+=0.5)for(let d=0.2;d<=3.001;d+=0.4)for(let s=0;s<=100;s+=20){const st=Object.assign({},base,{pol,m,d,s}),c=EC.co2(st),e=EC.co2(Object.assign({},st,{pol:"encendido"}));
@@ -27,7 +29,7 @@ const checks=[];const ok=(n,c,g)=>{checks.push(!!c);console.log((c?"PASS ":"FAIL
  ok("Sin resultados tontos: apagar el motor nunca sube, mañana = 0,29 km, la mitad que avisa = la mitad del CO2, el doble de pedidos = el doble",ed.length===0,ed);
  const sw=await p.evaluate(()=>{const bad=[];let n=0;const s=ECAPP.STATE.co2,G=ECAPP.LAB.co2.game,L=ECAPP.LAB.co2,Dd=JSON.stringify(s);const RX=/NaN|undefined|Infinity|∞|−-|--|\[object/;
   for(const lg of ["es","en"]){document.getElementById("lang-"+lg).click();
-   for(const pol of ["encendido","apagado","manana"])for(const P of [1000,10000,50000])for(const a of [1,5,25])for(const m of [0,2,10])for(const d of [0.2,0.6,3])for(const sm of [0,80,100])for(const av of [0,50,100]){const st={P,a,m,d,s:sm,av,pol};n++;const c=EC.co2(st);
+   for(const pol of ["encendido","apagado","manana","vecino"])for(const P of [1000,10000,50000])for(const a of [1,5,25])for(const m of [0,2,10])for(const d of [0.2,0.6,3])for(const sm of [0,80,100])for(const av of [0,50,100]){const st={P,a,m,d,s:sm,av,pol};n++;const c=EC.co2(st);
     const txt=JSON.stringify(G.metrics(st))+G.share(st)+G.ouch(st,"encendido",pol)+JSON.stringify(L.story(c,st))+L.math.map(x=>x.s(st)).join("")+G.aha(st)+JSON.stringify(G.score(st));if(RX.test(txt))bad.push([st,txt.match(RX)[0]]);
     const sc=G.score(st).score;if(!(sc>=0&&sc<=1000))bad.push(["score",st,sc])}}
   document.getElementById("lang-es").click();Object.assign(s,JSON.parse(Dd));return{n,nb:bad.length,bad:bad.slice(0,5)}});
@@ -43,9 +45,13 @@ const checks=[];const ok=(n,c,g)=>{checks.push(!!c);console.log((c?"PASS ":"FAIL
  await p.tap("#play");await p.waitForFunction(()=>ECAPP.mode==="done",null,{timeout:90000});await p.waitForTimeout(300);
  ok("Motor apagado: 45,9 t al año (la espera se va)",(await p.textContent("#rv"))==="45,9",await p.textContent("#rv"));
  await p.screenshot({path:"capturas/co2_apagado_fin.png"});
+  await p.goto("http://127.0.0.1:8797/index.html?caso=co2&pedidos=10000&ausentes=5&regla=vecino");await p.waitForSelector("#play");await p.waitForTimeout(1200);
+ await p.tap("#play");await p.waitForFunction(()=>ECAPP.mode==="done",null,{timeout:90000});await p.waitForTimeout(300);
+ ok("Con vecino: 39,5 t al año",(await p.textContent("#rv"))==="39,5",await p.textContent("#rv"));
+ await p.screenshot({path:"capturas/co2_vecino_fin.png"});
  await p.goto("http://127.0.0.1:8797/index.html?reel=13");await p.waitForTimeout(2000);ok("?reel=13 abre #co2",await p.evaluate(()=>location.hash)==="#co2");
  await p.evaluate(()=>{location.hash="biblioteca"});await p.waitForTimeout(800);const t=await p.textContent("#libintro");
- ok("Biblioteca: 36 fuentes de doce reels",/(Treinta y seis|36) fuentes de doce reels/.test(t),t.slice(0,45));
- ok("Biblioteca: Gutenschwager, Argonne, IPCC, EEA, Edwards y van Duin",await p.evaluate(()=>{const tx=document.body.textContent;return ["Gutenschwager","Argonne","IPCC","Agencia Europea","Edwards","van Duin"].every(k=>tx.includes(k))}));
+ ok("Biblioteca: 40 fuentes de doce reels",/(Cuarenta|40) fuentes de doce reels/.test(t),t.slice(0,45));
+ ok("Biblioteca: Gutenschwager, Argonne, IPCC, EEA, Ofcom, Australia Post, Sagawa, Kübler, Edwards y van Duin",await p.evaluate(()=>{const tx=document.body.textContent;return ["Gutenschwager","Argonne","IPCC","Agencia Europea","Ofcom","Australia Post","Sagawa","Kübler","Edwards","van Duin"].every(k=>tx.includes(k))}));
  ok("Sin errores de página",errs.length===0,errs.slice(0,3));
  console.log(`${checks.filter(Boolean).length}/${checks.length}`);await b.close();srv.close&&srv.close();process.exit(checks.every(Boolean)?0:1)})().catch(e=>{console.error(e);process.exit(1)});
