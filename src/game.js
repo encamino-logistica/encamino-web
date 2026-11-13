@@ -14,7 +14,7 @@ const VPUB=true;
 /* reel 12 · ordenar antes de cargar: flip to true on the day it goes out */
 const OPUB=true;
 /* reel 13 · CO2 de la entrega fallida: flip to true on the day it goes out */
-const XPUB=false;
+const XPUB=true;
 const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8,bodegas:9,vecino:10,ordenar:12,co2:13};
 /* reels published so far: labs with a higher number stay reachable by direct link but are not listed */
 const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB,bodegas:BPUB,vecino:VPUB,ordenar:OPUB,co2:XPUB};
