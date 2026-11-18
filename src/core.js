@@ -112,7 +112,20 @@ function co2(o){const lh=C2.IDLE*C2.GAL,P=o.P,a=o.a/100,av=(o.av||0)/100,m=o.m,d
  const vec=o.pol==="vecino"?C2.VEC:0,fall=P*a*(1-av)*(1-vec),tDia=fall*g/1e6,t=tDia*C2.DIAS,arb=t*1000/C2.ARB;
  const refG=lh*2/60*C2.KGL*1000+0.8*2*0.6*C2.VAN+0.2*gSig,ref=P*a*C2.DIAS*refG/1e6;
  return{g,gEsp,gV,gMismo,gSig,fs,lh,vec,fall,fallAnio:fall*C2.DIAS,t,tDia,arb,esp:g>0?gEsp/g:0,refG,ref,you:t,ahorro:ref-t,score:score(ref,t),valid:true}}
-return{co2,C2,ordenar,oGrupos,VCAP,bodegas,vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
+/* ---------- AIRE · pagas por el aire (reel 16). Peso volumétrico = largo × ancho × alto (cm) / divisor; se cobra el mayor entre el real y el
+   volumétrico, redondeado hacia arriba al kg (guía de tarifas de la ficha, servicio Expedited: «rounded up to the next kilogram»; Express redondea al medio kg).
+   Divisor 5.000 cm³/kg (grandes couriers) o 6.000: depende del courier y del servicio. «Achicar» quita 5 cm a cada lado (mínimo 5 cm).
+   Aire: la parte de la caja que tu peso no paga, 1 − real·divisor / volumen (0 si el real manda).
+   Reel: 50×40×30 con 2 kg → 12 kg cobrados (6 veces); achicada 45×35×25 → 7,875 → 8 kg (un tercio menos). ---------- */
+const AI={DIVS:[5000,6000],REC:5,MIN:5};
+function aKg(L,A,H,kg,div){const V=L*A*H,vol=V/div,cob=Math.ceil(Math.max(kg,vol)-1e-9);return{V,vol,cob}}
+function aire(o){const div=AI.DIVS.includes(+o.div)?+o.div:5000,kg=Math.max(0.1,+o.kg||0.1),dim=k=>Math.max(AI.MIN,+o[k]||AI.MIN),ach=o.pol==="achicar";
+ const L0=dim("L"),A0=dim("A"),H0=dim("H"),sh=x=>ach?Math.max(AI.MIN,x-AI.REC):x,L=sh(L0),A=sh(A0),H=sh(H0);
+ const c=aKg(L,A,H,kg,div),c0=aKg(L0,A0,H0,kg,div),real=Math.ceil(kg-1e-9),manda=c.vol>kg?"volumen":"peso";
+ const aireKg=Math.max(0,c.cob-kg),aireFr=c.V>0?Math.max(0,1-kg*div/c.V):0;
+ return{L,A,H,L0,A0,H0,div,kg,ach,V:c.V,vol:c.vol,cob:c.cob,V0:c0.V,vol0:c0.vol,cob0:c0.cob,veces:c.cob/kg,veces0:c0.cob/kg,aireKg,aireFr,manda,
+  menos:c0.cob>0?(c0.cob-c.cob)/c0.cob:0,ref:real,you:c.cob,score:score(real,c.cob),valid:true}}
+return{aire,aKg,AI,co2,C2,ordenar,oGrupos,VCAP,bodegas,vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
 })();
 /* </core> */
 if(typeof module!=="undefined")module.exports=EC;
