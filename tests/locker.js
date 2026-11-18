@@ -79,10 +79,10 @@ const U="http://127.0.0.1:8798/index.html";const SRCJS=require("fs").readFileSyn
  await p.screenshot({path:"capturas/locker_numeros.png",fullPage:false});
  await p.goto(U+"?reel=14");await p.waitForTimeout(2000);ok("?reel=14 abre #locker",await p.evaluate(()=>location.hash)==="#locker");
  await p.evaluate(()=>{location.hash="biblioteca"});await p.waitForTimeout(800);const t=await p.textContent("#libintro");
- ok("Biblioteca: 41 fuentes de trece reels (ES)",/Cuarenta y una fuentes de trece reels/.test(t),t.slice(0,48));
+ const apL=await p.evaluate(()=>!!ECAPP.dev.PUBLICADO.aire);ok(apL?"Biblioteca: 43 fuentes de catorce reels (ES, aire publicada)":"Biblioteca: 41 fuentes de trece reels (ES)",apL?/Cuarenta y tres fuentes de catorce reels/.test(t):/Cuarenta y una fuentes de trece reels/.test(t),t.slice(0,48));
  ok("Biblioteca: ficha de Hovi y Bø con el DOI, y PostNord solo como nota dentro de ella",await p.evaluate(()=>{const tx=document.body.textContent;return tx.includes("Hovi y Bø")&&tx.includes("Unlocking the potential")})&&/id:"hovi2024"[^\n]*url:"https:\/\/doi\.org\/10\.1016\/j\.sftr\.2024\.100189"/.test(SRCJS)&&/id:"hovi2024"[^\n]*labs:\["locker"\]/.test(SRCJS)&&/citada por el estudio/.test(SRCJS)&&(SRCJS.match(/PostNord/g)||[]).length>=1&&!/id:"postnord/.test(SRCJS));
  await p.evaluate(()=>document.getElementById("lang-en").click());await p.waitForTimeout(400);const te=await p.textContent("#libintro");
- ok("Library: forty-one sources from thirteen reels (EN)",/Forty-one sources from thirteen reels/.test(te),te.slice(0,48));
+ ok(apL?"Library: forty-three sources from fourteen reels (EN, aire published)":"Library: forty-one sources from thirteen reels (EN)",(apL?/Forty-three sources from fourteen reels/:/Forty-one sources from thirteen reels/).test(te),te.slice(0,48));
  await p.evaluate(()=>document.getElementById("lang-es").click());
  ok("Sin errores de página (390 px)",errs.length===0,errs.slice(0,3));
  /* 6 · escritorio 1280 px */
@@ -100,6 +100,6 @@ const U="http://127.0.0.1:8798/index.html";const SRCJS=require("fs").readFileSyn
  await q.goto(U+"?reel=14");await q.waitForTimeout(1500);const h14=await q.evaluate(()=>location.hash);
  await q.goto(U+"?caso=locker");await q.waitForTimeout(1500);const hc=await q.evaluate(()=>location.hash);
  await q.evaluate(()=>{location.hash="biblioteca"});await q.waitForTimeout(800);const tq=await q.textContent("#libintro");
- ok(LP?"LPUB=true: ?reel=14 abre, 41 fuentes de trece reels":"LPUB=false: ?reel=14 no abre, ?caso=locker sí, biblioteca sigue en 40 de doce y sin Hovi",LP?h14==="#locker"&&/Cuarenta y una fuentes de trece/.test(tq):h14!=="#locker"&&hc==="#locker"&&/Cuarenta fuentes de doce/.test(tq)&&!/Hovi/.test(await q.textContent("#shelves")),[LP,h14,hc,tq.slice(0,40)]);
+ ok(LP?(apL?"LPUB=true: ?reel=14 abre, 43 fuentes de catorce reels (aire publicada)":"LPUB=true: ?reel=14 abre, 41 fuentes de trece reels"):(apL?"LPUB=false: ?reel=14 no abre, ?caso=locker sí, biblioteca en 41 de trece (aire publicada) y sin Hovi":"LPUB=false: ?reel=14 no abre, ?caso=locker sí, biblioteca sigue en 40 de doce y sin Hovi"),LP?h14==="#locker"&&(apL?/Cuarenta y tres fuentes de catorce/:/Cuarenta y una fuentes de trece/).test(tq):h14!=="#locker"&&hc==="#locker"&&(apL?/Cuarenta y una fuentes de trece/:/Cuarenta fuentes de doce/).test(tq)&&!/Hovi/.test(await q.textContent("#shelves")),[LP,h14,hc,tq.slice(0,40)]);
  ok("Sin errores de página (bandera real)",errq.length===0,errq.slice(0,3));
  console.log(`${checks.filter(Boolean).length}/${checks.length}`);await b.close();srv.close&&srv.close();process.exit(checks.every(Boolean)?0:1)})().catch(e=>{console.error(e);process.exit(1)});

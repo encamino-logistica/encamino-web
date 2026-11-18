@@ -17,9 +17,11 @@ const OPUB=true;
 const XPUB=true;
 /* reel 14 · locker (furgón contra furgón): flip to true on the day it goes out */
 const LPUB=true;
-const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8,bodegas:9,vecino:10,ordenar:12,co2:13,locker:14};
+/* reel 17 · pagas por el aire (peso volumétrico): flip to true on the day it goes out */
+const APUB=true;
+const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8,bodegas:9,vecino:10,ordenar:12,co2:13,locker:14,aire:17};
 /* reels published so far: labs with a higher number stay reachable by direct link but are not listed */
-const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB,bodegas:BPUB,vecino:VPUB,ordenar:OPUB,co2:XPUB,locker:LPUB};
+const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB,bodegas:BPUB,vecino:VPUB,ordenar:OPUB,co2:XPUB,locker:LPUB,aire:APUB};
 const listedLabs=()=>LABS.filter(l=>PUBLICADO[l.id]!==false).sort((a,b)=>(REELNUM[b.id]||0)-(REELNUM[a.id]||0));
 const REEL2LAB={};for(const k in REELNUM)if(PUBLICADO[k]!==false)REEL2LAB[REELNUM[k]]=k;
 const pub=id=>PUBLICADO[id]!==false;/* a source shows in the library only if one of its labs is published */
@@ -32,6 +34,10 @@ const SEGF=(k,es,en,opts)=>({k,type:"seg",es,en,opts});
 const RANGE=(k,sym,es,en,min,max,step,fmt,x)=>Object.assign({k,type:"range",sym,es,en,min,max,step,fmt},x||{});
 const STEP=(k,sym,es,en,min,max,x)=>Object.assign({k,type:"step",sym,es,en,min,max},x||{});
 const CHECK=(k,es,en)=>({k,type:"check",es,en});
+/* kilos with only the decimals they need (7,875 · 12 · 2,5) */
+const kgf=x=>{const r=Math.round(x*1000)/1000;for(let d=0;d<3;d++)if(Math.abs(r-+r.toFixed(d))<1e-9)return nf(r,d);return nf(r,3)};
+/* «6 veces lo que pesa», «4,8 veces…»; with 1, «lo mismo que pesa» */
+const vecesT=v=>Math.abs(v-1)<1e-9?T("lo mismo que pesa","the same as it weighs"):T(`${nf(v,v%1?1:0)} veces lo que pesa`,`${nf(v,v%1?1:0)} times what it weighs`);
 const filaRho=st=>st.lam/(st.c*60/st.S);
 const GAME={
  bailey:{
@@ -191,6 +197,21 @@ const GAME={
    return T(`En el modelo de Hovi y Bø, el mismo furgón en un turno de 8 horas entrega ${nf(r.n)} paquetes ${how}: ${nf(r.c,2)} € cada uno, solo transporte. A domicilio sin firma: ${nf(r.nH)} y ${nf(r.cH,2)} €. ¿Hasta cuántos metros caminarías?`,`In Hovi & Bø's model, the same van in an 8-hour shift delivers ${nf(r.n)} parcels ${how}: ${nf(r.c,2)} € each, transport only. At home without a signature: ${nf(r.nH)} and ${nf(r.cH,2)} €. How many metres would you walk?`)},
   score(st){const r=EC.locker(st);return{score:r.score,valid:true,ref:T(`El reel: 5 por locker, ${nf(r.ref,2)} € por paquete (el estudio publica 2,80; otra tabla suma 2,51)`,`The reel: 5 per locker, ${nf(r.ref,2)} € per parcel (the study publishes 2.80; another table adds up to 2.51)`),you:T(`Tú: ${nf(r.c,2)} €`,`You: ${nf(r.c,2)} €`),why:T("El puntaje compara tu costo por paquete contra el del reel con 5 por locker: 364 € ÷ 132 = 2,76. A domicilio sin firma, 355 € ÷ 63 = 5,63 (el estudio publica 5,64).","The score compares your cost per parcel against the reel's with 5 per locker: 364 € ÷ 132 = 2.76. At home without a signature, 355 € ÷ 63 = 5.63 (the study publishes 5.64).")}},
   url:[["porlocker","k",Number,v=>v],["metros","dist",v=>v,v=>v],["usan","u",Number,v=>v],["regla","pol",v=>v,v=>v]]},
+ aire:{
+  def:{L:50,A:40,H:30,kg:2,div:"5000",pol:"tal"},
+  rule:SEGF("pol","Tu caja","Your box",[["tal","Como viene","As it is",{es:"La caja tal como la mandas, con el largo, el ancho y el alto que elegiste.",en:"The box as you send it, with the length, width and height you chose."}],["achicar","Achicar 5 cm por lado","Shrink 5 cm per side",{es:"La solución del reel: lo mismo en una caja 5 cm más chica de largo, de ancho y de alto.",en:"The reel's solution: the same thing in a box 5 cm smaller in length, width and height."}]]),
+  sliders:[RANGE("L","L","Largo de la caja","Box length",10,150,5,v=>v+" cm"),RANGE("A","A","Ancho de la caja","Box width",10,150,5,v=>v+" cm"),RANGE("H","H","Alto de la caja","Box height",10,150,5,v=>v+" cm"),RANGE("kg","kg","Peso real","Actual weight",0.5,30,0.5,v=>kgf(v)+" kg"),
+   SEGF("div","Divisor (cm³ por kg)","Divisor (cm³ per kg)",[["5000","5.000","5,000",{es:"Depende del courier y del servicio. 5.000 es el de los grandes couriers y el de la guía de tarifas de la ficha.",en:"It depends on the courier and the service. 5,000 is the big couriers' one and the one in the rate guide we cite."}],["6000","6.000","6,000",{es:"Depende del courier y del servicio. Con 6.000 la misma caja da menos kilos de volumen.",en:"It depends on the courier and the service. With 6,000 the same box gives fewer volume kilos."}]])],
+  ajustes:[],
+  chips:[["r","El reel: 50×40×30, 2 kg","The reel: 50×40×30, 2 kg",{L:50,A:40,H:30,kg:2,div:"5000"}],["y","Divisor 6.000","Divisor 6,000",{div:"6000"}],["g","Caja justa: 25×20×20","Snug box: 25×20×20",{L:25,A:20,H:20}]],
+  cta:{es:"Achicar 5 cm por lado",en:"Shrink 5 cm per side",set:{pol:"achicar"}},next:{tal:"achicar",achicar:"tal"},
+  aha:st=>{const r=EC.aire(st);if(r.ach&&r.cob<r.cob0)return T(`¡Ajá! 5 cm menos por lado: de ${nf(r.cob0)} a ${nf(r.cob)} kg cobrados, ${nf(r.menos*100)} % menos. Lo que mandas sigue pesando ${kgf(r.kg)} kg.`,`Aha! 5 cm less per side: from ${nf(r.cob0)} to ${nf(r.cob)} kg charged, ${nf(r.menos*100)} % less. What you send still weighs ${kgf(r.kg)} kg.`);if(r.ach)return T(`Aquí achicar no cambia el cobro: manda el peso real, ${kgf(r.kg)} kg, y se cobran ${nf(r.cob)}.`,`Here shrinking doesn't change the charge: the actual weight rules, ${kgf(r.kg)} kg, and ${nf(r.cob)} are charged.`);return r.manda==="volumen"?T(`Pesa ${kgf(r.kg)} kg y se cobra como ${nf(r.cob)}: ${vecesT(r.veces)}. Prueba achicar 5 cm por lado.`,`It weighs ${kgf(r.kg)} kg and is charged as ${nf(r.cob)}: ${vecesT(r.veces)}. Try shrinking 5 cm per side.`):T(`Aquí manda el peso: ${kgf(r.kg)} kg reales pesan más que su volumen (${kgf(r.vol)} kg). No pagas aire.`,`Here weight rules: ${kgf(r.kg)} kg actual outweigh its volume (${kgf(r.vol)} kg). You don't pay for air.`)},
+  ouch:(st,from,to)=>{const r=EC.aire(st);return to==="tal"?T(`Como viene: ${nf(r.cob)} kg cobrados, ${kgf(r.aireKg)} de ellos de aire.`,`As it is: ${nf(r.cob)} kg charged, ${kgf(r.aireKg)} of them air.`):T(`Achicada: ${nf(r.cob)} kg cobrados.`,`Shrunk: ${nf(r.cob)} kg charged.`)},
+  structural:["pol"],ff:3,
+  metrics(st){const r=EC.aire(st);return[{cur:true,v:nf(r.cob),u:T("kg cobrados","kg charged"),l:T(`por ${kgf(r.kg)} kg de peso real · ${vecesT(r.veces)}`,`for ${kgf(r.kg)} kg of actual weight · ${vecesT(r.veces)}`),t:tone(r.veces,1.25,3)},{aux:true,v:kgf(r.vol),u:"kg",l:T(`de peso volumétrico (${r.L}×${r.A}×${r.H} cm ÷ ${nf(r.div)})`,`of dimensional weight (${r.L}×${r.A}×${r.H} cm ÷ ${nf(r.div)})`)}]},
+  share(st){const r=EC.aire(st);return T(`Una caja de ${r.L}×${r.A}×${r.H} cm con ${kgf(r.kg)} kg adentro: con divisor ${nf(r.div)} son ${kgf(r.vol)} kg de volumen y se cobran ${nf(r.cob)} kg, ${vecesT(r.veces)}. ¿Cuánto aire mandas tú?`,`A ${r.L}×${r.A}×${r.H} cm box with ${kgf(r.kg)} kg inside: with divisor ${nf(r.div)} that's ${kgf(r.vol)} kg of volume and ${nf(r.cob)} kg are charged, ${vecesT(r.veces)}. How much air do you ship?`)},
+  score(st){const r=EC.aire(st);return{score:r.score,valid:true,ref:T(`Tu peso real: ${nf(r.ref)} kg`,`Your actual weight: ${nf(r.ref)} kg`),you:T(`Tú: ${nf(r.cob)} kg cobrados`,`You: ${nf(r.cob)} kg charged`),why:T("El puntaje compara contra lo menos que podrías pagar: tu peso real, redondeado hacia arriba al kg. Cada centímetro de aire lo baja.","The score compares against the least you could pay: your actual weight, rounded up to the kg. Every centimetre of air lowers it.")}},
+  url:[["largo","L",Number,v=>v],["ancho","A",Number,v=>v],["alto","H",Number,v=>v],["kilos","kg",Number,v=>v],["divisor","div",v=>v,v=>v],["regla","pol",v=>v,v=>v]]},
  co2:{
   def:{P:10000,a:5,m:2,d:0.6,s:80,av:0,pol:"encendido"},
   rule:SEGF("pol","Qué hace el furgón cuando no estás","What the van does when you're not home",[["encendido","Espera y vuelve","Waits and comes back",{es:"Como en el reel: espera con el motor encendido y después vuelve (el mismo día o al siguiente).",en:"As in the reel: it waits with the engine running and then comes back (the same day or the next)."}],["apagado","Apaga el motor","Turns the engine off",{es:"Espera lo mismo, pero con el motor apagado: solo queda la vuelta.",en:"It waits just as long, but with the engine off: only the trip back is left."}],["manana","Vuelve mañana","Comes back tomorrow",{es:"Espera con el motor encendido, pero no vuelve hoy: la parada se suma a la ruta del día siguiente.",en:"It waits with the engine running, but doesn't come back today: the stop joins the next day's route."}],["vecino","Lo deja con un vecino","Leaves it with a neighbour",{es:"La solución del reel: si no hay nadie, se lo deja a un vecino. En el ensayo de Royal Mail (Ofcom) las devoluciones bajaron de 12 a 7,5 de cada 100: 37,5 % menos vueltas.",en:"The reel's solution: if nobody's home, it's left with a neighbour. In Royal Mail's trial (Ofcom) returns fell from 12 to 7.5 out of 100: 37.5 % fewer trips back."}]]),
@@ -235,5 +256,5 @@ const GAME={
   url:[["precio","V",Number,v=>v],["semanas","t",Number,v=>v],["abierto","r",Number,v=>v],["perdida","d",Number,v=>v],["flete","F",Number,v=>v],["proceso","P",Number,v=>v],["abuso","a",Number,v=>v],["regla","pol",v=>v,v=>v]]}
 };
 /* the reto controls of each lab (from the content file), minus duplicates of the console */
-GAME.bailey.reto=LAB.bailey.reto.ctl;GAME.fila.reto=LAB.fila.reto.ctl;GAME.nivel.reto=[LAB.nivel.reto.ctl[1]];GAME.amazon.reto=LAB.amazon.reto.ctl;GAME.ikea.reto=[];GAME.ups.reto=[LAB.ups.reto.ctl[1]];GAME.quedatelo.reto=LAB.quedatelo.reto.ctl;GAME.cadena.reto=LAB.cadena.reto.ctl;GAME.bodegas.reto=LAB.bodegas.reto.ctl;GAME.vecino.reto=LAB.vecino.reto.ctl;GAME.ordenar.reto=LAB.ordenar.reto.ctl;GAME.co2.reto=LAB.co2.reto.ctl;GAME.locker.reto=LAB.locker.reto.ctl;
+GAME.bailey.reto=LAB.bailey.reto.ctl;GAME.fila.reto=LAB.fila.reto.ctl;GAME.nivel.reto=[LAB.nivel.reto.ctl[1]];GAME.amazon.reto=LAB.amazon.reto.ctl;GAME.ikea.reto=[];GAME.ups.reto=[LAB.ups.reto.ctl[1]];GAME.quedatelo.reto=LAB.quedatelo.reto.ctl;GAME.cadena.reto=LAB.cadena.reto.ctl;GAME.bodegas.reto=LAB.bodegas.reto.ctl;GAME.vecino.reto=LAB.vecino.reto.ctl;GAME.ordenar.reto=LAB.ordenar.reto.ctl;GAME.co2.reto=LAB.co2.reto.ctl;GAME.locker.reto=LAB.locker.reto.ctl;GAME.aire.reto=[];
 LABS.forEach(l=>{const G=GAME[l.id];l.def=G.def;l.game=G});

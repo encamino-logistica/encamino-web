@@ -463,6 +463,40 @@ function sceneCo2(st){const W=26,D=14;const{scene,g}=diorama(W,D,P.grass);const 
  S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>cur.pol==="vecino"?({v:nf(r.gEsp)+" g",l:T("en esta: quedó con el vecino, no vuelve","on this one: left with the neighbour, no trip back")}):({v:nf(r.g)+" g",l:T("en esta entrega fallida","on this failed delivery")})}return at(dt)};
  S.ff=st2=>S.apply(st2);
  r=EC.co2(cur);at(0);return S}
+/* ---------------- AIRE · pagas por el aire (reel 17) ----------------
+   La caja (1 unidad = 10 cm) baja a la balanza, se mide largo, ancho y alto y, con «achicar», pierde 5 cm por lado (queda la silueta
+   de la original). Al final aparece el bloque naranjo: el volumen que tu peso real alcanza a pagar (kg × divisor); lo demás es aire. */
+function sceneAire(st){const U=0.1,r0=EC.aire(st);const W=Math.max(12,r0.L0*U+8),D=Math.max(10,r0.A0*U+5);const{scene,g}=diorama(W,D,P.slabTop);const PY=0.35;
+ rb(g,r0.L0*U+0.9,PY,r0.A0*U+0.9,P.dark,0,0,0,0.12);const XD=-(r0.L0*U/2+1.35),ZD=r0.A0*U/2-0.2;rb(g,1.9,0.8,0.22,0x10151F,XD,0,ZD,0.06);rb(g,1.5,0.4,0.04,P.mint,XD,0.24,ZD+0.12,0.02,{basic:true});
+ for(let i=-3;i<=3;i++){flat(g,0.04,D-1.2,0x3A4766,i*2,0.005,0);}
+ const U1=rboxG(1,1,1,0.04);const box=put(g,U1,mat(P.carton,{op:0.55}),0,0,0),tape=put(g,U1,mat(0xC79A5B),0,0,0,false),ghost=put(g,U1,mat(P.white,{op:0.13}),0,0,0,false),inner=put(g,U1,mat(P.coral),0,0,0);
+ const bm=[P.sky,P.yellow,P.mint].map(c=>put(g,U1,mat(c,{basic:true}),0,-5,0,false));
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,Math.max(3.5,r0.H0*U+2),D/2)),{root:g,az:0.62,azP:0.34,el:0.66});
+ let cur=Object.assign({},st),r=r0,ms=0;const dur=6000;const lerp=(a,b,u)=>a+(b-a)*Math.max(0,Math.min(1,u));
+ function at(){const u=Math.min(1,ms/dur),ach=r.ach,kq=Math.cbrt(Math.min(1,r.kg*r.div/Math.max(1,r.V)));
+  const drop=u<0.18?(1-ease(u/0.18))*4:0,sh=ach?ease(Math.max(0,Math.min(1,(u-0.45)/0.2))):0;
+  const l=lerp(r.L0,r.L,sh)*U,a=lerp(r.A0,r.A,sh)*U,h=lerp(r.H0,r.H,sh)*U,y0=PY+drop;
+  box.scale.set(l,h,a);box.position.set(0,y0+h/2,0);tape.scale.set(l*1.01,0.03,Math.min(0.5,a*0.3));tape.position.set(0,y0+h+0.005,0);
+  ghost.visible=ach&&u>=0.45;ghost.scale.set(r.L0*U,r.H0*U,r.A0*U);ghost.position.set(0,PY+r.H0*U/2,0);
+  const gi=u<0.65?0:ease(Math.min(1,(u-0.65)/0.2));inner.visible=gi>0;inner.scale.set(Math.max(0.001,l*kq*gi),Math.max(0.001,h*kq*gi),Math.max(0.001,a*kq*gi));inner.position.set(0,PY+h*kq*gi/2+0.002,0);
+  const mp=u<0.22?0:ease(Math.min(1,(u-0.22)/0.23)),t=0.07;
+  bm[0].scale.set(Math.max(0.001,l*mp),t,t);bm[0].position.set(0,PY+0.04,a/2+0.22);bm[1].scale.set(t,t,Math.max(0.001,a*mp));bm[1].position.set(l/2+0.22,PY+0.04,0);
+  bm[2].scale.set(t,Math.max(0.001,h*mp),t);bm[2].position.set(l/2+0.22,PY+h*mp/2,a/2+0.22);bm.forEach(m=>m.visible=mp>0);
+  const kgS=u<0.14?0:r.kg*Math.min(1,(u-0.14)/0.08),cm=x=>Math.round(x/U);
+  S.clock=u<0.45?`${kgf(kgS)} kg ${T("en la balanza","on the scale")}`:`${nf(r.cob)} kg ${T("cobrados","charged")}`;
+  const lab=[{x:XD,y:1.2,z:ZD+0.3,html:`${kgf(kgS)} kg`}];
+  if(u<1&&mp>0)lab.push({x:0,y:PY+0.1,z:a/2+0.7,html:`<span style="color:#6EC1FF">${cm(l)} cm</span>`},{x:l/2+0.9,y:PY+0.1,z:-a/4,html:`<span style="color:#FFC726">${cm(a)} cm</span>`},{x:l/2+0.5,y:PY+h/2,z:a/2+0.5,html:`<span style="color:#4BE38A">${cm(h)} cm</span>`});
+  if(u>=1)lab.push({x:0,y:PY+r.H0*U+1.9,z:0,html:`${r.L}×${r.A}×${r.H} cm → <span class="y">${nf(r.cob)} kg ${T("cobrados","charged")}</span>`});S.labels=lab;
+  S.cap=u>=1?T(`${B_(nf(r.cob)+" kg")} cobrados · ${B_(vecesT(r.veces))} · ${B_(kgf(r.aireKg)+" kg")} de aire`,`${B_(nf(r.cob)+" kg")} charged · ${B_(vecesT(r.veces))} · ${B_(kgf(r.aireKg)+" kg")} of air`)
+   :u<0.22?T(`La caja sube a la balanza: ${B_(kgf(r.kg)+" kg")} reales.`,`The box goes on the scale: ${B_(kgf(r.kg)+" kg")} actual.`)
+   :u<0.45?T(`Se mide: ${r.L0}×${r.A0}×${r.H0} cm = ${B_(nf(r.V0)+" cm³")} ÷ ${nf(r.div)} = ${B_(kgf(r.vol0)+" kg")} de volumen`,`Measured: ${r.L0}×${r.A0}×${r.H0} cm = ${B_(nf(r.V0)+" cm³")} ÷ ${nf(r.div)} = ${B_(kgf(r.vol0)+" kg")} of volume`)
+   :u<0.65?(ach?T(`5 cm menos por lado: ${r.L}×${r.A}×${r.H} cm = ${B_(kgf(r.vol)+" kg")} de volumen`,`5 cm less per side: ${r.L}×${r.A}×${r.H} cm = ${B_(kgf(r.vol)+" kg")} of volume`):T(`Se cobra el mayor, hacia arriba al kilo: ${B_(nf(r.cob)+" kg")}`,`The greater is charged, rounded up to the kilo: ${B_(nf(r.cob)+" kg")}`))
+   :r.aireFr>0?T(`El bloque naranjo es lo que paga tu peso; el resto, ${B_(nf(r.aireFr*100)+" %")} de la caja, es aire`,`The orange block is what your weight pays for; the rest, ${B_(nf(r.aireFr*100)+" %")} of the box, is air`):T(`Aquí manda el peso: la caja va llena, ${B_("sin aire que pagar")}`,`Here weight rules: the box is full, ${B_("no air to pay for")}`);return true}
+ S.info=()=>null;
+ S.apply=st2=>{cur=Object.assign({},st2);r=EC.aire(cur);ms=0;at()};S.prewarm=()=>{r=EC.aire(cur);ms=dur*0.5;at()};S.startRun=()=>{r=EC.aire(cur);ms=0;S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=null}return at()};
+ S.ff=st2=>S.apply(st2);
+ at();return S}
 /* ---------------- LOCKER · furgón contra furgón (reel 14) ----------------
    Dos calles con las mismas casas, como en el reel. Abajo, el furgón de domicilio sin firma para en cada puerta (la referencia).
    Arriba, tu ruta: con lockers para solo en los dos lockers y llena k celdas en cada uno; con ruta mixta para también en las casas
