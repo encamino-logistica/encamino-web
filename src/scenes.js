@@ -497,6 +497,44 @@ function sceneVecino(st){const M=24,W=M+5,D=M+5;const{scene,g}=diorama(W,D,P.asp
  S.ff=st2=>S.apply(st2);
  build();at(0);return S}
 
+/* ---------------- GPS · la más corta contra barrio por barrio (reel 18) ---------------- */
+function sceneGps(st){const M=24,W=M+5,D=M+5;const{scene,g}=diorama(W,D,P.asphalt);
+ const XZ=q=>[(q[0]-0.5)*M,(0.5-q[1])*M],BCOL=[0xF1E8D6,0xCFE0F5,0xFFD9B8,0xD8F0D5,0xE3DAF5,0xF5D6DE,0xD6EEF0,0xEFE7C4];
+ const lote=inst(g,rboxG(1,0.05,1,0.04),new THREE.MeshLambertMaterial({color:0xffffff}),24,false);lote.material.userData.own=true;
+ const casa=inst(g,rboxG(0.55,0.42,0.55,0.08),new THREE.MeshLambertMaterial({color:0xffffff}),170);casa.material.userData.own=true;
+ const techo=inst(g,GEO().pyr,new THREE.MeshLambertMaterial({color:0xffffff,flatShading:true}),170);techo.material.userData.own=true;
+ const tr=inst(g,rboxG(1,0.07,0.16,0.02),new THREE.MeshBasicMaterial({color:0xffffff}),175,false);tr.material.userData.own=true;
+ const dep=new THREE.Group();rb(dep,2.0,1.0,1.4,P.wall,0,0,0,0.1);rb(dep,2.1,0.16,1.5,P.blue,0,1.0,0,0.05);rb(dep,0.06,0.6,0.8,P.door,1.02,0,0,0.02);g.add(dep);
+ const F=new Fleet(g,1,0.5,{van:true});F.col[0]=P.white;
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-M/2,0,-M/2),new THREE.Vector3(M/2,2.5,M/2)),{root:g,az:0.62,azP:0.4,el:0.95});
+ let cur=Object.assign({},st),r=EC.gps(cur),ms=0,tt=0;const dur=7500;let segs=[],acc=[],tot=0;
+ const COL={corta:P.red,barrios:P.mint};
+ function build(){r=EC.gps(cur);const p=r.p,o=r.orden,B=cur.B,cols=Math.ceil(Math.sqrt(B)),rows=Math.ceil(B/cols);segs=[];acc=[];tot=0;
+  for(let i=0;i<o.length;i++){const a=XZ(p[o[i]]),b=XZ(p[o[(i+1)%o.length]]),l=Math.hypot(b[0]-a[0],b[1]-a[1]);segs.push([a,b,l]);acc.push(tot);tot+=l}
+  const[dx,dz]=XZ(p[0]);dep.position.set(dx,0,dz-0.9);
+  const cw=0.94/cols*M,ch=0.86/rows*M;for(let b=0;b<24;b++){if(b<B){const[x,z]=XZ(r.cen[b]);setI(lote,b,x,0.02,z,cw*0.86,1,ch*0.86);lote.setColorAt(b,_c.setHex(BCOL[b%8]))}else setI(lote,b,0,-9,0,0.01,1,0.01)}
+  lote.instanceMatrix.needsUpdate=true;if(lote.instanceColor)lote.instanceColor.needsUpdate=true;
+  for(let k=0;k<170;k++){if(k<p.length-1){const[x,z]=XZ(p[k+1]),h=0.42;setI(casa,k,x,0.06,z,1,1,1,Math.PI/4);setI(techo,k,x,0.06+h+0.17,z,0.62,0.4,0.62,Math.PI/4)}else{setI(casa,k,0,-9,0,0.01,0.01,0.01);setI(techo,k,0,-9,0,0.01,0.01,0.01)}}
+  casa.instanceMatrix.needsUpdate=true;techo.instanceMatrix.needsUpdate=true}
+ function at(dt){tt+=dt||0;const u=Math.min(1,ms/(dur*0.92)),d=u*tot,o=r.orden,n=o.length;let vx=0,vz=0,va=0,vis=0;
+  for(let i=0;i<175;i++){if(i<n){const[a,b,l]=segs[i],f=Math.max(0,Math.min(1,(d-acc[i])/(l||1)));if(f>0){const mx=a[0]+(b[0]-a[0])*f/2,mz=a[1]+(b[1]-a[1])*f/2,ang=Math.atan2(-(b[1]-a[1]),b[0]-a[0]);setI(tr,i,mx,0.14,mz,Math.max(0.01,l*f),1,1,ang);
+     tr.setColorAt(i,_c.setHex(COL[cur.pol]||P.red));if(f<1||i===n-1){vx=a[0]+(b[0]-a[0])*f;vz=a[1]+(b[1]-a[1])*f;va=ang}vis=i+1}else setI(tr,i,0,-9,0,0.01,1,1)}else setI(tr,i,0,-9,0,0.01,1,1)}
+  tr.instanceMatrix.needsUpdate=true;if(tr.instanceColor)tr.instanceColor.needsUpdate=true;
+  /* barrios: cuántas veces entró la ruta hasta ahora a cada uno (techo verde = terminado de una vez; rojo = vuelve a entrar) */
+  const hecho=new Set(o.slice(0,Math.min(n,vis+1))),ent={};let prev=-2;for(let i=1;i<Math.min(n,vis+1);i++){const b=r.z[o[i]];if(b!==prev){ent[b]=(ent[b]||0)+1;prev=b}}
+  for(let k=1;k<r.p.length&&k<=170;k++){const on=u>0&&hecho.has(k),bz=r.z[k];techo.setColorAt(k-1,_c.setHex(!on?P.terracotta:(ent[bz]||0)>1?P.red:P.mint));casa.setColorAt(k-1,_c.setHex(BCOL[bz%8]))}
+  if(techo.instanceColor)techo.instanceColor.needsUpdate=true;if(casa.instanceColor)casa.instanceColor.needsUpdate=true;
+  if(u<=0){const[dx,dz]=XZ(r.p[0]);vx=dx;vz=dz}F.go(0,vx,vz,va,true);F.snap(0);F.commit();
+  const km=u*r.km,vuelve=Object.values(ent).filter(x=>x>1).length;S.clock=`${nf(km,1)} km`;
+  S.labels=u>=1?[{x:0,y:2.4,z:-M/2-0.6,html:`<span class="${cur.pol==="barrios"?"g":"y"}">${nf(r.km,1)} km · ${nf(r.min)} min</span>`}]:[];
+  S.cap=u>=1?(cur.pol==="barrios"?T(`Barrio por barrio: ${B_(nf(r.km,1)+" km")}, ${cur.B} barrios terminados de una vez · la más corta hace ${nf(r.kC,1)} km`,`Neighbourhood by neighbourhood: ${B_(nf(r.km,1)+" km")}, ${cur.B} neighbourhoods finished in one go · the shortest does ${nf(r.kC,1)} km`):T(`La más corta: ${B_(nf(r.km,1)+" km")}, entra ${r.entradas} veces a ${cur.B} barrios · ${pl(r.faltan,"barrio queda","barrios quedan","neighbourhood is","neighbourhoods are")} a medias`,`The shortest: ${B_(nf(r.km,1)+" km")}, it enters ${cur.B} neighbourhoods ${r.entradas} times · ${r.faltan} left half done`))
+   :cur.pol==="barrios"?T("El furgón termina cada barrio antes de pasar al siguiente","The van finishes each neighbourhood before moving to the next"):T(`El furgón sigue la ruta más corta · ${vuelve} ${vuelve===1?"barrio":"barrios"} con techo rojo: entró más de una vez`,`The van follows the shortest route · ${vuelve} ${vuelve===1?"neighbourhood":"neighbourhoods"} with a red roof: it went in more than once`);return true}
+ S.info=()=>null;
+ S.apply=st2=>{cur=Object.assign({},st2);build();ms=0;at(0)};S.prewarm=()=>{build();ms=dur*0.4;at(0)};S.startRun=()=>{build();ms=0;S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>({v:nf(r.t)+" min",l:T("con esta ruta","with this route")})}return at(dt)};
+ S.ff=st2=>S.apply(st2);
+ build();at(0);return S}
+
 /* ---------------- UPS · the race repeats ---------------- */
 function sceneUps(st){const a=st.X/40,b=st.X/40;const W=Math.max(32,2*(a+6)),D=Math.max(32,2*(b+6));const{scene,g}=diorama(W,D,P.grass);
  roadZ(g,D/2-0.4,-D/2+0.4,0,3.0);roadX(g,-W/2+0.4,W/2-0.4,0,3.0);for(let i=-3;i<=3;i++){flat(g,0.32,1.6,P.line,i*0.42,0.022,2.4);flat(g,1.6,0.32,P.line,-2.4,0.022,i*0.42)}

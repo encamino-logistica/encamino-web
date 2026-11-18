@@ -106,13 +106,44 @@ function ordenar(o){const n=o.n,k=Math.max(1,o.k||10),gr=oGrupos(n,o.pol,k),tot=
    · m min con motor encendido · furgón 247 g/km (Gutenschwager 2024) · s % vuelve el mismo día: desvío 2·d km · el resto al día siguiente: +0,29 km (GPS de nuestra operación, n=6).
    Regla "vecino": si no hay nadie, se deja con un vecino; las fallidas que vuelven bajan 37,5 % (Ofcom 2012 §4.3: 12 % → 7,5 %).
    Reel: 10.000 pedidos/día · 5 % no están · 2 min · d 0,6 km · 80 % → 346 g por fallida · 63,2 t al año · 2.870 árboles (22 kg EEA) · 27,3 % esperando. ---------- */
+/* reel 18 · el GPS contra el conductor. Datos del estudio: Cook, Held y Helsgaun (2021), arXiv 2112.15192 v2, tablas 1 y 3:
+   ruta óptima por tiempo de viaje (ATSP) 10.853,3 s, la del conductor 12.250,0 s, la que termina cada zona antes de la siguiente
+   11.235,1 s; unas 20 zonas por ruta (§4.2). El empate por barrio es cálculo propio (calculo_R018): (12.250,0 − 10.853,3) ÷ 20 ÷ 60. */
+const GPSD={OPT:10853.3,COND:12250.0,ZON:11235.1,ZONAS:20,LADO:8};
+function gpsEstudio(){const ex=GPSD.COND-GPSD.OPT,hm=s=>{const m=Math.round(s/60);return[Math.floor(m/60),m%60]};
+ return{extraS:ex,extraMin:ex/60,extraPct:100*ex/GPSD.OPT,zonPct:100*(GPSD.ZON-GPSD.OPT)/GPSD.OPT,explica:100*(GPSD.ZON-GPSD.OPT)/ex,empMin:ex/GPSD.ZONAS/60,relOpt:hm(GPSD.OPT),relCond:hm(GPSD.COND),zonas:GPSD.ZONAS}}
+function gPts(B,m,seed){const r=rngFrom(seed*7919+B*131+m*17+5),cols=Math.ceil(Math.sqrt(B)),rows=Math.ceil(B/cols),cw=0.94/cols,ch=0.86/rows,p=[[0.5,0.02]],z=[-1],cen=[];
+ for(let b=0;b<B;b++){const i=b%cols,j=Math.floor(b/cols),cx=0.03+cw*(i+0.5)+(r()-0.5)*cw*0.18,cy=0.11+ch*(j+0.5)+(r()-0.5)*ch*0.18;cen.push([cx,cy]);
+  for(let k=0;k<m;k++){p.push([cx+(r()-0.5)*cw*0.72,cy+(r()-0.5)*ch*0.72]);z.push(b)}}return{p,z,cen}}
+function gLen(p,o){let s=0;for(let i=0;i<o.length;i++){const a=p[o[i]],b=p[o[(i+1)%o.length]];s+=Math.hypot(a[0]-b[0],a[1]-b[1])}return s*GPSD.LADO}
+function gRuns(z,o){const runs={};let prev=-2;for(let i=1;i<o.length;i++){const b=z[o[i]];if(b!==prev){runs[b]=(runs[b]||0)+1;prev=b}}return runs}
+function gBarrios(p,z,cen){/* orden de los barrios: la mejor vuelta por sus centros; dentro de cada barrio, vecino más cercano y 2-opt sin salir del barrio */
+ const q=[p[0]].concat(cen),oc=vOr(q,vNN(q)).slice(1).map(i=>i-1),o=[0];let cur=p[0];
+ for(const b of oc){const rest=[];for(let i=1;i<p.length;i++)if(z[i]===b)rest.push(i);
+  while(rest.length){let bi=0,bd=1e9;rest.forEach((i,k)=>{const d=Math.hypot(p[i][0]-cur[0],p[i][1]-cur[1]);if(d<bd){bd=d;bi=k}});const i=rest.splice(bi,1)[0];o.push(i);cur=p[i]}}
+ const n=o.length,D=(a,b)=>Math.hypot(p[a][0]-p[b][0],p[a][1]-p[b][1]);let mej=true,pasos=0;
+ while(mej&&pasos<4000){mej=false;for(let i=0;i<n-1;i++)for(let k=i+2;k<n;k++){const zb=z[o[i+1]];if(z[o[k]]!==zb)continue;let mismo=true;for(let t=i+2;t<k;t++)if(z[o[t]]!==zb){mismo=false;break}if(!mismo)continue;
+  const a=o[i],b=o[i+1],c=o[k],d=o[(k+1)%n];if(a===d)continue;if(D(a,b)+D(c,d)>D(a,c)+D(b,d)+1e-12){let x=i+1,y=k;while(x<y){const t=o[x];o[x]=o[y];o[y]=t;x++;y--}mej=true;pasos++}}}
+ return{o,ordenB:oc}}
+const GCACHE={};
+function gps(o){const B=o.B,m=o.m,key=B+"|"+m+"|"+o.seed;let base=GCACHE[key];
+ if(!base){const{p,z,cen}=gPts(B,m,o.seed),bar=gBarrios(p,z,cen);let oc=vOr(p,vNN(p));const kC0=gLen(p,oc),kB=gLen(p,bar.o);
+  if(kB<kC0)oc=bar.o.slice();/* la ruta por barrios también es una ruta: la más corta no puede ser más larga que ella */
+  const kC=Math.min(kC0,kB),runs=gRuns(z,oc),runsB=gRuns(z,bar.o);let una=0,ent=0;for(let b=0;b<B;b++){if(runs[b]===1)una++;ent+=runs[b]||0}
+  base=GCACHE[key]={p,z,cen,oc,ob:bar.o,ordenB:bar.ordenB,kC,kB,una,ent,unaB:Object.keys(runsB).filter(k=>runsB[k]===1).length}}
+ const v=o.v,g=o.g,minC=base.kC/v*60,minB=base.kB/v*60,tC=minC-g*base.una,tB=minB-g*B,extra=base.kC>0?base.kB/base.kC-1:0;
+ const faltan=B-base.una,gEmp=faltan>0?Math.max(0,(minB-minC)/faltan):null,bar=o.pol==="barrios";
+ const km=bar?base.kB:base.kC,min=bar?minB:minC,t=bar?tB:tC,una=bar?B:base.una,ref=Math.min(tC,tB);
+ return{p:base.p,z:base.z,cen:base.cen,orden:bar?base.ob:base.oc,oc:base.oc,ob:base.ob,ordenB:base.ordenB,kC:base.kC,kB:base.kB,minC,minB,tC,tB,extra,extraMin:minB-minC,
+  una,unaC:base.una,unaB:base.unaB,entradas:base.ent,faltan,gEmp,km,min,t,porBarrio:min/B,gana:tB<tC-1e-9?"barrios":tC<tB-1e-9?"corta":"empate",paradas:B*m,
+  ref,you:t,score:score(ref,t),valid:true,E:gpsEstudio()}}
 const C2={GAL:3.785411784,KGL:74100*43.0e-6*0.84,IDLE:0.28,IDLO:0.17,IDHI:0.39,VAN:247,SIG:0.29,ARB:22,DIAS:365,VEC:0.375};
 function co2(o){const lh=C2.IDLE*C2.GAL,P=o.P,a=o.a/100,av=(o.av||0)/100,m=o.m,d=o.d,man=o.pol==="manana";
  const fs=man?0:o.s/100,gEsp=o.pol==="apagado"?0:lh*m/60*C2.KGL*1000,gMismo=2*d*C2.VAN,gSig=C2.SIG*C2.VAN,gV=fs*gMismo+(1-fs)*gSig,g=gEsp+gV;
  const vec=o.pol==="vecino"?C2.VEC:0,fall=P*a*(1-av)*(1-vec),tDia=fall*g/1e6,t=tDia*C2.DIAS,arb=t*1000/C2.ARB;
  const refG=lh*2/60*C2.KGL*1000+0.8*2*0.6*C2.VAN+0.2*gSig,ref=P*a*C2.DIAS*refG/1e6;
  return{g,gEsp,gV,gMismo,gSig,fs,lh,vec,fall,fallAnio:fall*C2.DIAS,t,tDia,arb,esp:g>0?gEsp/g:0,refG,ref,you:t,ahorro:ref-t,score:score(ref,t),valid:true}}
-return{co2,C2,ordenar,oGrupos,VCAP,bodegas,vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
+return{gps,gpsEstudio,GPSD,gPts,co2,C2,ordenar,oGrupos,VCAP,bodegas,vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
 })();
 /* </core> */
 if(typeof module!=="undefined")module.exports=EC;
