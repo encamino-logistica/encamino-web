@@ -125,7 +125,31 @@ function aire(o){const div=AI.DIVS.includes(+o.div)?+o.div:5000,kg=Math.max(0.1,
  const aireKg=Math.max(0,c.cob-kg),aireFr=c.V>0?Math.max(0,1-kg*div/c.V):0;
  return{L,A,H,L0,A0,H0,div,kg,ach,V:c.V,vol:c.vol,cob:c.cob,V0:c0.V,vol0:c0.vol,cob0:c0.cob,veces:c.cob/kg,veces0:c0.cob/kg,aireKg,aireFr,manda,
   menos:c0.cob>0?(c0.cob-c.cob)/c0.cob:0,ref:real,you:c.cob,score:score(real,c.cob),valid:true}}
-return{aire,aKg,AI,co2,C2,ordenar,oGrupos,VCAP,bodegas,vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
+/* ---------- LOCKER · furgón contra furgón (reel 14). Hovi y Bø (2024), Sustainable Futures 7, 100189. Turno de 8 h (Tabla 3.3):
+   30 min de carga en el terminal; el resto se reparte en paquetes. Minutos por paquete = tiempo de la parada ÷ paquetes por parada + km por paquete ÷ velocidad.
+   Domicilio sin firma: parada 15+10+10+60 s + 50 s por paquete, 1 por parada, 1,33 km a 17,2 km/h → 7,056 min → ⌊450/7,056⌋ = 63.
+   Locker: parada 30+18+10+90 s + 30 s por paquete, 5 por locker, 0,93 km a 23,1 km/h → 3,409 min → ⌊450/3,409⌋ = 132. Sin calibrar nada.
+   Otros paquetes por locker: los escenarios de la misma tabla (1, 10, 15, 20, 25, 30) con interpolación lineal entre ellos; sobre 30 el estudio
+   no publica y se dejan los de 30. El furgón de 14 m³ al 80 % (Tabla 3.2) lleva ⌊11.200 / 27,3 dm³⌋ = 410 paquetes de locker (Tabla 4.1): tope.
+   Costo por paquete = costo por viaje (Tabla 4.1: 355 € sin firma, 364 € locker, el mismo para cualquier escenario: el estudio no publica otro) ÷ paquetes.
+   Ruta mixta (simulación de En Camino): una parte p de los paquetes va al locker (la intención declarada de la encuesta PostNord citada por el estudio
+   × los que lo hacen de verdad) y el resto a domicilio, en el mismo turno: paquetes por viaje = ⌊450 / (p·t_locker + (1 − p)·t_dom)⌋ y costo promedio
+   por paquete = p · costo del locker + (1 − p) · costo a domicilio (así nunca sube cuando más gente usa el locker). ---------- */
+const LK={TURNO:480,CARGA:30,DH:1.33,VH:17.2,PH:15+10+10+60,EH:50,VL:23.1,PL:30+18+10+90,KS:[1,5,10,15,20,25,30],DL:[1.06,0.93,0.76,0.60,0.44,0.28,0.11],EL:[31,30,28,26,25,23,21],
+ CH:355,CL:364,PUB:2.80,T42:2.51,VAN:14*0.8*1000,VOLH:27.7,VOLL:27.3,ACC:{300:47,500:33,1000:14},PROM:5};
+function lkInterp(xs,ys,x){if(x<=xs[0])return ys[0];for(let i=1;i<xs.length;i++)if(x<=xs[i]){const u=(x-xs[i-1])/(xs[i]-xs[i-1]);return ys[i-1]+(ys[i]-ys[i-1])*u}return ys[ys.length-1]}
+function lkMinL(k){const km=lkInterp(LK.KS,LK.DL,k),ent=lkInterp(LK.KS,LK.EL,k);return{km,ent,par:(LK.PL/k+ent)/60,viaje:km/LK.VL*60}}
+function locker(o){const k=Math.max(1,Math.min(50,Math.round(+o.k||LK.PROM))),dist=LK.ACC[o.dist]!==undefined?+o.dist:300,u=Math.max(0,Math.min(100,o.u===undefined?100:+o.u)),pol=o.pol||"locker";
+ const MIN=LK.TURNO-LK.CARGA,tHpar=(LK.PH+LK.EH)/60,tHv=LK.DH/LK.VH*60,tH=tHpar+tHv,L=lkMinL(k),tL=L.par+L.viaje;
+ const capH=Math.floor(LK.VAN/LK.VOLH),capL=Math.floor(LK.VAN/LK.VOLL);
+ const nHt=Math.floor(MIN/tH+1e-9),nLt=Math.floor(MIN/tL+1e-9),nH=Math.min(nHt,capH),nL=Math.min(nLt,capL);
+ const cH=LK.CH/nH,cL=LK.CL/nL,acc=LK.ACC[dist],p=acc/100*u/100;
+ const tM=p*tL+(1-p)*tH,capM=Math.floor(LK.VAN/(p*LK.VOLL+(1-p)*LK.VOLH)),nMt=Math.floor(MIN/tM+1e-9),nM=Math.min(nMt,capM),cM=p*cL+(1-p)*cH,costM=cM*nM;
+ const n=pol==="domicilio"?nH:pol==="mixta"?nM:nL,c=pol==="domicilio"?cH:pol==="mixta"?cM:cL,lleno=pol==="domicilio"?nHt>capH:pol==="mixta"?nMt>capM:nLt>capL;
+ const L5=lkMinL(LK.PROM),ref=LK.CL/Math.floor(MIN/(L5.par+L5.viaje)+1e-9);
+ return{k,dist,u,pol,acc,p,MIN,tH,tHpar,tHv,tL,tLpar:L.par,tLv:L.viaje,kmL:L.km,entL:L.ent,nH,nL,nM,nHt,nLt,nMt,capH,capL,capM,cH,cL,cM,costM,n,c,lleno,
+  veces:cH/c,usoL:nL*LK.VOLL/LK.VAN,ref,you:c,score:score(ref,c),valid:true}}
+return{aire,aKg,AI,locker,LK,lkInterp,co2,C2,ordenar,oGrupos,VCAP,bodegas,vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
 })();
 /* </core> */
 if(typeof module!=="undefined")module.exports=EC;

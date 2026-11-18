@@ -1,12 +1,12 @@
 // Reel 17 · Pagas por el aire (peso volumétrico): cifras del reel, TODAS las posiciones de los controles sin resultados incoherentes,
 // entradas inválidas, barrido de textos ES/EN, el botón «Achicar 5 cm por lado», enlaces, biblioteca y capturas de celular (390 px).
-// Uso: node tests/aire.js   (fuerza APUB=true para probar la versión publicada; al final comprueba que con APUB=false no aparece)
+// Uso: node tests/aire.js   (primero con APUB=true, la versión publicada; al final con APUB=false, aunque la rama ya la tenga encendida)
 const {chromium}=require(process.env.PW||"playwright");const serve=require("./serve.js"),env=require("./env.js");
 const checks=[];const ok=(n,c,g)=>{checks.push(!!c);console.log((c?"PASS ":"FAIL ")+n+(g!==undefined?"  → "+JSON.stringify(g):""))};
 const PORT=8801,U=`http://127.0.0.1:${PORT}/index.html`;
 (async()=>{const srv=await serve(PORT);const b=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]});
  const mk=async pubOn=>{const ctx=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2,locale:"es-CL"});
-  if(pubOn)await ctx.route("**/index.html*",async r=>{const x=await r.fetch();await r.fulfill({response:x,body:(await x.text()).replace("const APUB=false;","const APUB=true;")})});
+  await ctx.route("**/index.html*",async r=>{const x=await r.fetch();await r.fulfill({response:x,body:pubOn?(await x.text()).replace("const APUB=false;","const APUB=true;"):(await x.text()).replace("const APUB=true;","const APUB=false;")})});
   const p=await ctx.newPage();await env(p);return{ctx,p}};
  const {ctx,p}=await mk(true);const errs=[];p.on("pageerror",e=>errs.push(e.message));
  await p.goto(U);await p.waitForTimeout(2500);
@@ -85,7 +85,7 @@ const PORT=8801,U=`http://127.0.0.1:${PORT}/index.html`;
  // reel 17 y biblioteca con APUB=true
  await p.goto(`${U}?reel=17`);await p.waitForTimeout(2000);ok("?reel=17 abre #aire",await p.evaluate(()=>location.hash)==="#aire");
  await p.evaluate(()=>{location.hash="biblioteca"});await p.waitForTimeout(900);const t=await p.textContent("#libintro");
- ok("Biblioteca con APUB=true: 42 fuentes de trece reels",/Cuarenta y dos fuentes de trece reels/.test(t),t.slice(0,50));
+ const LKp=await p.evaluate(()=>!!ECAPP.dev.PUBLICADO.locker);ok(LKp?"Biblioteca con APUB=true: 43 fuentes de catorce reels (con el locker)":"Biblioteca con APUB=true: 42 fuentes de trece reels",(LKp?/Cuarenta y tres fuentes de catorce reels/:/Cuarenta y dos fuentes de trece reels/).test(t),t.slice(0,50));
  ok("Biblioteca: McKinnon (pp. 15–16) y la guía de tarifas, sin empresas chilenas en la ficha",await p.evaluate(()=>{const S=ECAPP.SOURCES.filter(s=>s.labs.includes("aire"));const tx=JSON.stringify(S)+JSON.stringify(ECAPP.LAB.aire.notApply);return S.length===2&&/pp\. 15–16/.test(tx)&&/Expedited/.test(tx)&&!/Chilexpress|Starken|Correos de Chile|Blue Express|BlueExpress|Mercado Libre/i.test(tx)}));
  await p.evaluate(()=>ECAPP.openBook("mckinnon2015"));await p.waitForTimeout(900);
  const bk=await p.textContent("body");ok("Libro McKinnon: el dato (≈ ×2) con tus números y «la proporción de cargas… casi se duplicó»",/≈ ×2/.test(bk)&&/Tu caja también se llena por espacio/.test(bk)&&/la proporción de cargas de camión limitadas por volumen/.test(bk)&&/la proporción de cargas limitadas solo o en parte por volumen casi se duplicó/.test(bk));
@@ -97,6 +97,6 @@ const PORT=8801,U=`http://127.0.0.1:${PORT}/index.html`;
  const q=await mk(false);const e2=[];q.p.on("pageerror",e=>e2.push(e.message));await q.p.goto(`${U}?reel=17`);await q.p.waitForTimeout(2000);
  ok("Con APUB=false: ?reel=17 no abre el laboratorio",await q.p.evaluate(()=>location.hash!=="#aire"),await q.p.evaluate(()=>location.hash));
  await q.p.evaluate(()=>{location.hash="biblioteca"});await q.p.waitForTimeout(900);const t2=await q.p.textContent("#libintro");
- ok("Con APUB=false: la biblioteca sigue en 40 fuentes de doce reels, sin McKinnon ni la guía",/Cuarenta fuentes de doce reels/.test(t2)&&!(await q.p.evaluate(()=>!!document.querySelector('#v-biblioteca [data-id="mckinnon2015"],#v-biblioteca [data-id="ups_sg2024"]')))&&!/Camiones que se llenan por volumen/.test(await q.p.textContent("#v-biblioteca")),t2.slice(0,45));
+ const LKq=await q.p.evaluate(()=>!!ECAPP.dev.PUBLICADO.locker);ok(LKq?"Con APUB=false: la biblioteca queda en 41 fuentes de trece reels (con el locker), sin McKinnon ni la guía":"Con APUB=false: la biblioteca sigue en 40 fuentes de doce reels, sin McKinnon ni la guía",(LKq?/Cuarenta y una fuentes de trece reels/:/Cuarenta fuentes de doce reels/).test(t2)&&!(await q.p.evaluate(()=>!!document.querySelector('#v-biblioteca [data-id="mckinnon2015"],#v-biblioteca [data-id="ups_sg2024"]')))&&!/Camiones que se llenan por volumen/.test(await q.p.textContent("#v-biblioteca")),t2.slice(0,45));
  ok("Con APUB=false: sin errores de página",e2.length===0,e2.slice(0,3));
  console.log(`${checks.filter(Boolean).length}/${checks.length}`);await b.close();srv.close&&srv.close();process.exit(checks.every(Boolean)?0:1)})().catch(e=>{console.error(e);process.exit(1)});

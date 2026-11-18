@@ -51,7 +51,7 @@ const checks=[];const ok=(n,c,g)=>{checks.push(!!c);console.log((c?"PASS ":"FAIL
  await p.screenshot({path:"capturas/co2_vecino_fin.png"});
  await p.goto("http://127.0.0.1:8797/index.html?reel=13");await p.waitForTimeout(2000);ok("?reel=13 abre #co2",await p.evaluate(()=>location.hash)==="#co2");
  await p.evaluate(()=>{location.hash="biblioteca"});await p.waitForTimeout(800);const t=await p.textContent("#libintro");
- ok("Biblioteca: 40 fuentes de doce reels",/(Cuarenta|40) fuentes de doce reels/.test(t),t.slice(0,45));
+ const lp=await p.evaluate(()=>!!ECAPP.dev.PUBLICADO.locker),ap=await p.evaluate(()=>!!ECAPP.dev.PUBLICADO.aire);ok(ap?"Biblioteca: 43 fuentes de catorce reels (aire publicada)":lp?"Biblioteca: 41 fuentes de trece reels (locker publicada)":"Biblioteca: 40 fuentes de doce reels",ap?/(Cuarenta y tres|43) fuentes de catorce reels/.test(t):lp?/(Cuarenta y una|41) fuentes de trece reels/.test(t):/(Cuarenta|40) fuentes de doce reels/.test(t),t.slice(0,45));
  ok("Biblioteca: Gutenschwager, Argonne, IPCC, EEA, Ofcom, Australia Post, Sagawa, Kübler, Edwards y van Duin",await p.evaluate(()=>{const tx=document.body.textContent;return ["Gutenschwager","Argonne","IPCC","Agencia Europea","Ofcom","Australia Post","Sagawa","Kübler","Edwards","van Duin"].every(k=>tx.includes(k))}));
  ok("Sin errores de página",errs.length===0,errs.slice(0,3));
  console.log(`${checks.filter(Boolean).length}/${checks.length}`);await b.close();srv.close&&srv.close();process.exit(checks.every(Boolean)?0:1)})().catch(e=>{console.error(e);process.exit(1)});
