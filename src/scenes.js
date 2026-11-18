@@ -463,7 +463,7 @@ function sceneCo2(st){const W=26,D=14;const{scene,g}=diorama(W,D,P.grass);const 
  S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>cur.pol==="vecino"?({v:nf(r.gEsp)+" g",l:T("en esta: quedó con el vecino, no vuelve","on this one: left with the neighbour, no trip back")}):({v:nf(r.g)+" g",l:T("en esta entrega fallida","on this failed delivery")})}return at(dt)};
  S.ff=st2=>S.apply(st2);
  r=EC.co2(cur);at(0);return S}
-/* ---------------- AIRE · pagas por el aire (reel 16) ----------------
+/* ---------------- AIRE · pagas por el aire (reel 17) ----------------
    La caja (1 unidad = 10 cm) baja a la balanza, se mide largo, ancho y alto y, con «achicar», pierde 5 cm por lado (queda la silueta
    de la original). Al final aparece el bloque naranjo: el volumen que tu peso real alcanza a pagar (kg × divisor); lo demás es aire. */
 function sceneAire(st){const U=0.1,r0=EC.aire(st);const W=Math.max(12,r0.L0*U+8),D=Math.max(10,r0.A0*U+5);const{scene,g}=diorama(W,D,P.slabTop);const PY=0.35;

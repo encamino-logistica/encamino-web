@@ -112,7 +112,7 @@ function co2(o){const lh=C2.IDLE*C2.GAL,P=o.P,a=o.a/100,av=(o.av||0)/100,m=o.m,d
  const vec=o.pol==="vecino"?C2.VEC:0,fall=P*a*(1-av)*(1-vec),tDia=fall*g/1e6,t=tDia*C2.DIAS,arb=t*1000/C2.ARB;
  const refG=lh*2/60*C2.KGL*1000+0.8*2*0.6*C2.VAN+0.2*gSig,ref=P*a*C2.DIAS*refG/1e6;
  return{g,gEsp,gV,gMismo,gSig,fs,lh,vec,fall,fallAnio:fall*C2.DIAS,t,tDia,arb,esp:g>0?gEsp/g:0,refG,ref,you:t,ahorro:ref-t,score:score(ref,t),valid:true}}
-/* ---------- AIRE · pagas por el aire (reel 16). Peso volumétrico = largo × ancho × alto (cm) / divisor; se cobra el mayor entre el real y el
+/* ---------- AIRE · pagas por el aire (reel 17). Peso volumétrico = largo × ancho × alto (cm) / divisor; se cobra el mayor entre el real y el
    volumétrico, redondeado hacia arriba al kg (guía de tarifas de la ficha, servicio Expedited: «rounded up to the next kilogram»; Express redondea al medio kg).
    Divisor 5.000 cm³/kg (grandes couriers) o 6.000: depende del courier y del servicio. «Achicar» quita 5 cm a cada lado (mínimo 5 cm).
    Aire: la parte de la caja que tu peso no paga, 1 − real·divisor / volumen (0 si el real manda).

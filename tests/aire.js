@@ -1,4 +1,4 @@
-// Reel 16 · Pagas por el aire (peso volumétrico): cifras del reel, TODAS las posiciones de los controles sin resultados incoherentes,
+// Reel 17 · Pagas por el aire (peso volumétrico): cifras del reel, TODAS las posiciones de los controles sin resultados incoherentes,
 // entradas inválidas, barrido de textos ES/EN, el botón «Achicar 5 cm por lado», enlaces, biblioteca y capturas de celular (390 px).
 // Uso: node tests/aire.js   (fuerza APUB=true para probar la versión publicada; al final comprueba que con APUB=false no aparece)
 const {chromium}=require(process.env.PW||"playwright");const serve=require("./serve.js"),env=require("./env.js");
@@ -82,19 +82,20 @@ const PORT=8801,U=`http://127.0.0.1:${PORT}/index.html`;
  const sitEn=await p.textContent(".sit");await p.tap("#play");await p.waitForFunction(()=>ECAPP.mode==="done",null,{timeout:90000});await p.waitForTimeout(400);
  ok("Inglés: «shrunk to 45×35×25» y «8 kg charged» tras la corrida",/shrunk to 45×35×25/.test(sitEn)&&(await p.textContent("#rv"))==="8"&&/kg charged/.test(await p.textContent(".result")),sitEn);
  await p.screenshot({path:"capturas/aire_en_fin.png"});await p.evaluate(()=>document.getElementById("lang-es").click());
- // reel 16 y biblioteca con APUB=true
- await p.goto(`${U}?reel=16`);await p.waitForTimeout(2000);ok("?reel=16 abre #aire",await p.evaluate(()=>location.hash)==="#aire");
+ // reel 17 y biblioteca con APUB=true
+ await p.goto(`${U}?reel=17`);await p.waitForTimeout(2000);ok("?reel=17 abre #aire",await p.evaluate(()=>location.hash)==="#aire");
  await p.evaluate(()=>{location.hash="biblioteca"});await p.waitForTimeout(900);const t=await p.textContent("#libintro");
  ok("Biblioteca con APUB=true: 42 fuentes de trece reels",/Cuarenta y dos fuentes de trece reels/.test(t),t.slice(0,50));
  ok("Biblioteca: McKinnon (pp. 15–16) y la guía de tarifas, sin empresas chilenas en la ficha",await p.evaluate(()=>{const S=ECAPP.SOURCES.filter(s=>s.labs.includes("aire"));const tx=JSON.stringify(S)+JSON.stringify(ECAPP.LAB.aire.notApply);return S.length===2&&/pp\. 15–16/.test(tx)&&/Expedited/.test(tx)&&!/Chilexpress|Starken|Correos de Chile|Blue Express|BlueExpress|Mercado Libre/i.test(tx)}));
  await p.evaluate(()=>ECAPP.openBook("mckinnon2015"));await p.waitForTimeout(900);
- const bk=await p.textContent("body");ok("Libro McKinnon: el dato (≈ ×2) calculado con tus números",/≈ ×2/.test(bk)&&/Tu caja también se llena por espacio/.test(bk));
+ const bk=await p.textContent("body");ok("Libro McKinnon: el dato (≈ ×2) con tus números y «la proporción de cargas… casi se duplicó»",/≈ ×2/.test(bk)&&/Tu caja también se llena por espacio/.test(bk)&&/la proporción de cargas de camión limitadas por volumen/.test(bk)&&/la proporción de cargas limitadas solo o en parte por volumen casi se duplicó/.test(bk));
+ ok("McKinnon: siempre la PROPORCIÓN de cargas, nunca «las cargas … se duplicaron» (ficha, libro, «Por qué pasa», ES y EN)",await p.evaluate(()=>{const L=ECAPP.LAB.aire,S=ECAPP.SOURCES.find(s=>s.id==="mckinnon2015"),t=JSON.stringify([L.aha,L.lede,L.notApply,S.idea]);return !/las cargas[^.]{0,40}se duplicaron/.test(t)&&!/UK truck loads constrained/.test(t)&&/proporción de cargas de camión limitadas por volumen casi se duplicó/.test(t)&&/share of truck loads constrained by volume approximately doubled/.test(t)}));
  await p.screenshot({path:"capturas/aire_biblioteca_mckinnon.png"});
  ok("Sin errores de página",errs.length===0,errs.slice(0,3));
  await ctx.close();
- // ---- con APUB=false (como queda la rama): no se lista, no suma fuentes, ?reel=16 no abre
- const q=await mk(false);const e2=[];q.p.on("pageerror",e=>e2.push(e.message));await q.p.goto(`${U}?reel=16`);await q.p.waitForTimeout(2000);
- ok("Con APUB=false: ?reel=16 no abre el laboratorio",await q.p.evaluate(()=>location.hash!=="#aire"),await q.p.evaluate(()=>location.hash));
+ // ---- con APUB=false (como queda la rama): no se lista, no suma fuentes, ?reel=17 no abre
+ const q=await mk(false);const e2=[];q.p.on("pageerror",e=>e2.push(e.message));await q.p.goto(`${U}?reel=17`);await q.p.waitForTimeout(2000);
+ ok("Con APUB=false: ?reel=17 no abre el laboratorio",await q.p.evaluate(()=>location.hash!=="#aire"),await q.p.evaluate(()=>location.hash));
  await q.p.evaluate(()=>{location.hash="biblioteca"});await q.p.waitForTimeout(900);const t2=await q.p.textContent("#libintro");
  ok("Con APUB=false: la biblioteca sigue en 40 fuentes de doce reels, sin McKinnon ni la guía",/Cuarenta fuentes de doce reels/.test(t2)&&!(await q.p.evaluate(()=>!!document.querySelector('#v-biblioteca [data-id="mckinnon2015"],#v-biblioteca [data-id="ups_sg2024"]')))&&!/Camiones que se llenan por volumen/.test(await q.p.textContent("#v-biblioteca")),t2.slice(0,45));
  ok("Con APUB=false: sin errores de página",e2.length===0,e2.slice(0,3));
