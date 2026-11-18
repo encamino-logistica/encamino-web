@@ -84,6 +84,8 @@ const PORT=8801,U=`http://127.0.0.1:${PORT}/index.html`;
  await p.screenshot({path:"capturas/aire_en_fin.png"});await p.evaluate(()=>document.getElementById("lang-es").click());
  // reel 17 y biblioteca con APUB=true
  await p.goto(`${U}?reel=17`);await p.waitForTimeout(2000);ok("?reel=17 abre #aire",await p.evaluate(()=>location.hash)==="#aire");
+ await p.evaluate(()=>ECAPP.openSheet("aire","reels"));await p.waitForTimeout(700);const lst=await p.evaluate(()=>[...document.querySelectorAll("#sheet-body .mrow")].map(e=>e.textContent.replace(/\s+/g," ").trim()));
+ ok("Con APUB=true aparece en la lista de reels, primero: «#17 ¿Por qué un paquete de 2 kilos se cobra como 12?»",/^#17 ?¿Por qué un paquete de 2 kilos se cobra como 12\?/.test(lst[0]||""),lst.slice(0,3));await p.screenshot({path:"capturas/aire_lista_reels.png"});await p.evaluate(()=>ECAPP.closeSheet());await p.waitForTimeout(400);
  await p.evaluate(()=>{location.hash="biblioteca"});await p.waitForTimeout(900);const t=await p.textContent("#libintro");
  const LKp=await p.evaluate(()=>!!ECAPP.dev.PUBLICADO.locker);ok(LKp?"Biblioteca con APUB=true: 43 fuentes de catorce reels (con el locker)":"Biblioteca con APUB=true: 42 fuentes de trece reels",(LKp?/Cuarenta y tres fuentes de catorce reels/:/Cuarenta y dos fuentes de trece reels/).test(t),t.slice(0,50));
  ok("Biblioteca: McKinnon (pp. 15–16) y la guía de tarifas, sin empresas chilenas en la ficha",await p.evaluate(()=>{const S=ECAPP.SOURCES.filter(s=>s.labs.includes("aire"));const tx=JSON.stringify(S)+JSON.stringify(ECAPP.LAB.aire.notApply);return S.length===2&&/pp\. 15–16/.test(tx)&&/Expedited/.test(tx)&&!/Chilexpress|Starken|Correos de Chile|Blue Express|BlueExpress|Mercado Libre/i.test(tx)}));
@@ -96,6 +98,7 @@ const PORT=8801,U=`http://127.0.0.1:${PORT}/index.html`;
  // ---- con APUB=false (como queda la rama): no se lista, no suma fuentes, ?reel=17 no abre
  const q=await mk(false);const e2=[];q.p.on("pageerror",e=>e2.push(e.message));await q.p.goto(`${U}?reel=17`);await q.p.waitForTimeout(2000);
  ok("Con APUB=false: ?reel=17 no abre el laboratorio",await q.p.evaluate(()=>location.hash!=="#aire"),await q.p.evaluate(()=>location.hash));
+ await q.p.evaluate(()=>ECAPP.openSheet("co2","reels"));await q.p.waitForTimeout(700);ok("Con APUB=false: no aparece en la lista de reels",!(await q.p.evaluate(()=>[...document.querySelectorAll("#sheet-body .mrow")].some(e=>/#17|2 kilos/.test(e.textContent)))));await q.p.evaluate(()=>ECAPP.closeSheet());await q.p.waitForTimeout(400);
  await q.p.evaluate(()=>{location.hash="biblioteca"});await q.p.waitForTimeout(900);const t2=await q.p.textContent("#libintro");
  const LKq=await q.p.evaluate(()=>!!ECAPP.dev.PUBLICADO.locker);ok(LKq?"Con APUB=false: la biblioteca queda en 41 fuentes de trece reels (con el locker), sin McKinnon ni la guía":"Con APUB=false: la biblioteca sigue en 40 fuentes de doce reels, sin McKinnon ni la guía",(LKq?/Cuarenta y una fuentes de trece reels/:/Cuarenta fuentes de doce reels/).test(t2)&&!(await q.p.evaluate(()=>!!document.querySelector('#v-biblioteca [data-id="mckinnon2015"],#v-biblioteca [data-id="ups_sg2024"]')))&&!/Camiones que se llenan por volumen/.test(await q.p.textContent("#v-biblioteca")),t2.slice(0,45));
  ok("Con APUB=false: sin errores de página",e2.length===0,e2.slice(0,3));

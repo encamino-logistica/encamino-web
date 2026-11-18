@@ -82,7 +82,7 @@ const U="http://127.0.0.1:8798/index.html";const SRCJS=require("fs").readFileSyn
  const apL=await p.evaluate(()=>!!ECAPP.dev.PUBLICADO.aire);ok(apL?"Biblioteca: 43 fuentes de catorce reels (ES, aire publicada)":"Biblioteca: 41 fuentes de trece reels (ES)",apL?/Cuarenta y tres fuentes de catorce reels/.test(t):/Cuarenta y una fuentes de trece reels/.test(t),t.slice(0,48));
  ok("Biblioteca: ficha de Hovi y Bø con el DOI, y PostNord solo como nota dentro de ella",await p.evaluate(()=>{const tx=document.body.textContent;return tx.includes("Hovi y Bø")&&tx.includes("Unlocking the potential")})&&/id:"hovi2024"[^\n]*url:"https:\/\/doi\.org\/10\.1016\/j\.sftr\.2024\.100189"/.test(SRCJS)&&/id:"hovi2024"[^\n]*labs:\["locker"\]/.test(SRCJS)&&/citada por el estudio/.test(SRCJS)&&(SRCJS.match(/PostNord/g)||[]).length>=1&&!/id:"postnord/.test(SRCJS));
  await p.evaluate(()=>document.getElementById("lang-en").click());await p.waitForTimeout(400);const te=await p.textContent("#libintro");
- ok("Library: forty-one sources from thirteen reels (EN)",/Forty-one sources from thirteen reels/.test(te),te.slice(0,48));
+ ok(apL?"Library: forty-three sources from fourteen reels (EN, aire published)":"Library: forty-one sources from thirteen reels (EN)",(apL?/Forty-three sources from fourteen reels/:/Forty-one sources from thirteen reels/).test(te),te.slice(0,48));
  await p.evaluate(()=>document.getElementById("lang-es").click());
  ok("Sin errores de página (390 px)",errs.length===0,errs.slice(0,3));
  /* 6 · escritorio 1280 px */
