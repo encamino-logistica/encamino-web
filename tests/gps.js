@@ -13,6 +13,7 @@ const fs=require("fs"),path=require("path");const CAP=path.join(__dirname,"..","
   await p.goto("http://127.0.0.1:8799/index.html?reel=18");await p.waitForTimeout(2000);const h18=await p.evaluate(()=>location.hash);
   await p.evaluate(()=>{location.hash="biblioteca"});await p.waitForTimeout(800);const bib=await p.evaluate(()=>!!document.querySelector(`#v-biblioteca [data-book="cook2021"]`)||!!document.querySelector(`#v-biblioteca [data-book="encamino_r018"]`));
   const pub={enPortada:/El GPS contra el conductor/.test(home),reel18:h18,enBiblioteca:bib};
+  {const ti=await p.textContent("#libintro");ok("Con GPUB=false la biblioteca sigue en 43 fuentes de catorce reels",/Cuarenta y tres fuentes de catorce reels/.test(ti),ti.slice(0,48))}
   ok("Bandera GPUB=false: el laboratorio no sale en la portada, ?reel=18 no lo abre y sus fuentes no salen en la biblioteca",!pub.enPortada&&pub.reel18!=="#gps"&&!pub.enBiblioteca,pub);
   await p.goto("http://127.0.0.1:8799/index.html?caso=gps");await p.waitForSelector("#play");await p.waitForTimeout(1200);
   ok("Sin publicar, el enlace directo ?caso=gps abre el laboratorio",await p.evaluate(()=>location.hash)==="#gps",await p.evaluate(()=>location.hash));
@@ -50,6 +51,9 @@ const fs=require("fs"),path=require("path");const CAP=path.join(__dirname,"..","
      if(!(c.km>0&&c.min>0&&c.t>0&&c.porBarrio>0))bad.push(["negativo",st,c.km,c.min,c.t]);
      if(Math.abs(c.minB-c.minC-(c.kB-c.kC)/v*60)>1e-9)bad.push(["minutos",st]);
      const txt=JSON.stringify(G.metrics(st))+G.share(st)+G.ouch(st,"corta",pol)+JSON.stringify(L.story(c,st))+L.math.map(x=>x.s(st)).join("")+G.aha(st)+JSON.stringify(G.score(st))+L.refLine(c);if(RX.test(txt))bad.push([st,txt.match(RX)[0]]);
+     /* la cuenta bajo el número grande: manejo − ganado = total, y el total es el número grande */
+     {const M=G.metrics(st)[0],num=x=>lg==="es"?+x.replace(/\./g,"").replace(",","."):+x.replace(/,/g,""),mm=M.l.match(/^([\d.,]+) min (?:de manejo|of driving) − ([\d.,]+) min (?:ganados|gained) .+ = ([\d.,]+) min$/);
+      if(!mm||Math.abs(num(mm[1])-num(mm[2])-num(mm[3]))>1e-6||mm[3]!==M.v||Math.abs(num(mm[1])-c.min)>0.5+1e-9||Math.abs(num(mm[3])-c.t)>0.5+1e-9)bad.push(["cuenta",st,M.l,M.v])}
      const sc=G.score(st).score;if(!(sc>=0&&sc<=1000))bad.push(["score",st,sc])}}}
   document.getElementById("lang-es").click();Object.assign(s,JSON.parse(Dd));return{n,nMap,nb:bad.length,bad:bad.slice(0,6)}});
  ok(`Barrido: ${sw.nMap} mapas (barrios 4–20 × paradas 3–8 × 4 ciudades) y ${sw.n} configuraciones en ES y EN — sin km ni minutos negativos, sin rutas que se salten paradas, barrios sin partir, empate con sentido, sin NaN ni textos rotos`,sw.nb===0,sw.bad);
@@ -63,6 +67,13 @@ const fs=require("fs"),path=require("path");const CAP=path.join(__dirname,"..","
  const exp2=await p.evaluate(()=>ECAPP.metrics("gps")[0].v);ok("Barrio por barrio sin ganancia: más minutos que la más corta",rv2===exp2&&+rv2.replace(/\./g,"")>=+rv1.replace(/\./g,""),[rv1,rv2]);
  const rv3=await run("caso=gps&barrios=20&paradas=7&minutos=1.2&velocidad=20&ciudad=0&regla=barrios","gps_barrios_12");
  const exp3=await p.evaluate(()=>ECAPP.metrics("gps")[0].v);ok("Barrio por barrio con 1,2 min por barrio: gana a la más corta",rv3===exp3&&+rv3.replace(/\./g,"")<+rv1.replace(/\./g,""),[rv1,rv3]);
+ const cuenta=await p.evaluate(()=>{const t=document.body.innerText.replace(/\u00a0/g," "),m=ECAPP.metrics("gps")[0];return{vis:t.includes(m.l),l:m.l,map:t.includes("km · "+m.v+" min"),v:m.v}});
+ ok("Barrio por barrio con 1,2 min: bajo el número grande se ve «193 min de manejo − 24 min ganados por terminar cada barrio = 169 min» y el mapa dice el mismo total",cuenta.vis&&cuenta.l==="193 min de manejo − 24 min ganados por terminar cada barrio = 169 min"&&cuenta.map&&cuenta.v==="169",cuenta);
+ await p.evaluate(()=>document.getElementById("lang-en").click());await p.waitForTimeout(600);
+ await run("caso=gps&barrios=20&paradas=7&minutos=1.2&velocidad=20&ciudad=0&regla=barrios","gps_en_barrios_12");
+ const cuentaEn=await p.evaluate(()=>{const t=document.body.innerText.replace(/\u00a0/g," "),m=ECAPP.metrics("gps")[0];return{vis:t.includes(m.l),l:m.l,map:t.includes("km · "+m.v+" min"),v:m.v}});
+ ok("Lo mismo en inglés: «193 min of driving − 24 min gained for finishing each neighbourhood = 169 min» y el mapa con 169 min",cuentaEn.vis&&cuentaEn.l==="193 min of driving − 24 min gained for finishing each neighbourhood = 169 min"&&cuentaEn.map&&cuentaEn.v==="169",cuentaEn);
+ await p.evaluate(()=>document.getElementById("lang-es").click());await p.waitForTimeout(400);
  ok("Sin desborde horizontal a 390 px",await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await p.evaluate(()=>ECAPP.openSheet("gps","ciencia"));await p.waitForTimeout(600);
  const sh=(await p.textContent("#sheet")).replace(/ /g," ");
@@ -75,6 +86,7 @@ const fs=require("fs"),path=require("path");const CAP=path.join(__dirname,"..","
  ok("Sin empresas ni apps nombradas en el laboratorio ni en sus fuentes",!/amazon|google|waze|\bups\b|fedex|dhl|uber|rappi|mercado ?libre/i.test(marcas),(marcas.match(/amazon|google|waze|\bups\b|fedex|dhl|uber|rappi|mercado ?libre/i)||[])[0]);
  await p.goto("http://127.0.0.1:8799/index.html?reel=18");await p.waitForTimeout(2000);ok("Publicado: ?reel=18 abre #gps",await p.evaluate(()=>location.hash)==="#gps");
  await p.evaluate(()=>{location.hash="biblioteca"});await p.waitForTimeout(800);
+ {const ti=await p.textContent("#libintro"),pp=await p.evaluate(()=>!!ECAPP.dev.PUBLICADO.aire&&!!ECAPP.dev.PUBLICADO.locker);ok(pp?"Publicado: la biblioteca pasa de 43 a 45 fuentes, de quince reels":"Publicado: la biblioteca suma 2 fuentes",pp?/Cuarenta y cinco fuentes de quince reels/.test(ti):true,ti.slice(0,48))}
  ok("Publicado: la biblioteca trae Cook, Held y Helsgaun y el cálculo propio de En Camino",await p.evaluate(()=>!!document.querySelector(`#v-biblioteca [data-book="cook2021"]`)&&!!document.querySelector(`#v-biblioteca [data-book="encamino_r018"]`)));
  await p.evaluate(()=>ECAPP.openBook("cook2021"));await p.waitForTimeout(600);await p.screenshot({path:path.join(CAP,"gps_libro.png")});
  const bk=await p.evaluate(()=>{const pg=document.querySelector(".bk-page");return{eq:!!(pg.querySelector(".beq")||pg.querySelector(".bigstat")),live:!!pg.querySelector(".blive"),t:pg.textContent}});

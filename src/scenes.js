@@ -463,6 +463,91 @@ function sceneCo2(st){const W=26,D=14;const{scene,g}=diorama(W,D,P.grass);const 
  S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>cur.pol==="vecino"?({v:nf(r.gEsp)+" g",l:T("en esta: quedó con el vecino, no vuelve","on this one: left with the neighbour, no trip back")}):({v:nf(r.g)+" g",l:T("en esta entrega fallida","on this failed delivery")})}return at(dt)};
  S.ff=st2=>S.apply(st2);
  r=EC.co2(cur);at(0);return S}
+/* ---------------- AIRE · pagas por el aire (reel 17) ----------------
+   La caja (1 unidad = 10 cm) baja a la balanza, se mide largo, ancho y alto y, con «achicar», pierde 5 cm por lado (queda la silueta
+   de la original). Al final aparece el bloque naranjo: el volumen que tu peso real alcanza a pagar (kg × divisor); lo demás es aire. */
+function sceneAire(st){const U=0.1,r0=EC.aire(st);const W=Math.max(12,r0.L0*U+8),D=Math.max(10,r0.A0*U+5);const{scene,g}=diorama(W,D,P.slabTop);const PY=0.35;
+ rb(g,r0.L0*U+0.9,PY,r0.A0*U+0.9,P.dark,0,0,0,0.12);const XD=-(r0.L0*U/2+1.35),ZD=r0.A0*U/2-0.2;rb(g,1.9,0.8,0.22,0x10151F,XD,0,ZD,0.06);rb(g,1.5,0.4,0.04,P.mint,XD,0.24,ZD+0.12,0.02,{basic:true});
+ for(let i=-3;i<=3;i++){flat(g,0.04,D-1.2,0x3A4766,i*2,0.005,0);}
+ const U1=rboxG(1,1,1,0.04);const box=put(g,U1,mat(P.carton,{op:0.55}),0,0,0),tape=put(g,U1,mat(0xC79A5B),0,0,0,false),ghost=put(g,U1,mat(P.white,{op:0.13}),0,0,0,false),inner=put(g,U1,mat(P.coral),0,0,0);
+ const bm=[P.sky,P.yellow,P.mint].map(c=>put(g,U1,mat(c,{basic:true}),0,-5,0,false));
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,Math.max(3.5,r0.H0*U+2),D/2)),{root:g,az:0.62,azP:0.34,el:0.66});
+ let cur=Object.assign({},st),r=r0,ms=0;const dur=6000;const lerp=(a,b,u)=>a+(b-a)*Math.max(0,Math.min(1,u));
+ function at(){const u=Math.min(1,ms/dur),ach=r.ach,kq=Math.cbrt(Math.min(1,r.kg*r.div/Math.max(1,r.V)));
+  const drop=u<0.18?(1-ease(u/0.18))*4:0,sh=ach?ease(Math.max(0,Math.min(1,(u-0.45)/0.2))):0;
+  const l=lerp(r.L0,r.L,sh)*U,a=lerp(r.A0,r.A,sh)*U,h=lerp(r.H0,r.H,sh)*U,y0=PY+drop;
+  box.scale.set(l,h,a);box.position.set(0,y0+h/2,0);tape.scale.set(l*1.01,0.03,Math.min(0.5,a*0.3));tape.position.set(0,y0+h+0.005,0);
+  ghost.visible=ach&&u>=0.45;ghost.scale.set(r.L0*U,r.H0*U,r.A0*U);ghost.position.set(0,PY+r.H0*U/2,0);
+  const gi=u<0.65?0:ease(Math.min(1,(u-0.65)/0.2));inner.visible=gi>0;inner.scale.set(Math.max(0.001,l*kq*gi),Math.max(0.001,h*kq*gi),Math.max(0.001,a*kq*gi));inner.position.set(0,PY+h*kq*gi/2+0.002,0);
+  const mp=u<0.22?0:ease(Math.min(1,(u-0.22)/0.23)),t=0.07;
+  bm[0].scale.set(Math.max(0.001,l*mp),t,t);bm[0].position.set(0,PY+0.04,a/2+0.22);bm[1].scale.set(t,t,Math.max(0.001,a*mp));bm[1].position.set(l/2+0.22,PY+0.04,0);
+  bm[2].scale.set(t,Math.max(0.001,h*mp),t);bm[2].position.set(l/2+0.22,PY+h*mp/2,a/2+0.22);bm.forEach(m=>m.visible=mp>0);
+  const kgS=u<0.14?0:r.kg*Math.min(1,(u-0.14)/0.08),cm=x=>Math.round(x/U);
+  S.clock=u<0.45?`${kgf(kgS)} kg ${T("en la balanza","on the scale")}`:`${nf(r.cob)} kg ${T("cobrados","charged")}`;
+  const lab=[{x:XD,y:1.2,z:ZD+0.3,html:`${kgf(kgS)} kg`}];
+  if(u<1&&mp>0)lab.push({x:0,y:PY+0.1,z:a/2+0.7,html:`<span style="color:#6EC1FF">${cm(l)} cm</span>`},{x:l/2+0.9,y:PY+0.1,z:-a/4,html:`<span style="color:#FFC726">${cm(a)} cm</span>`},{x:l/2+0.5,y:PY+h/2,z:a/2+0.5,html:`<span style="color:#4BE38A">${cm(h)} cm</span>`});
+  if(u>=1)lab.push({x:0,y:PY+r.H0*U+1.9,z:0,html:`${r.L}×${r.A}×${r.H} cm → <span class="y">${nf(r.cob)} kg ${T("cobrados","charged")}</span>`});S.labels=lab;
+  S.cap=u>=1?T(`${B_(nf(r.cob)+" kg")} cobrados · ${B_(vecesT(r.veces))} · ${B_(kgf(r.aireKg)+" kg")} de aire`,`${B_(nf(r.cob)+" kg")} charged · ${B_(vecesT(r.veces))} · ${B_(kgf(r.aireKg)+" kg")} of air`)
+   :u<0.22?T(`La caja sube a la balanza: ${B_(kgf(r.kg)+" kg")} reales.`,`The box goes on the scale: ${B_(kgf(r.kg)+" kg")} actual.`)
+   :u<0.45?T(`Se mide: ${r.L0}×${r.A0}×${r.H0} cm = ${B_(nf(r.V0)+" cm³")} ÷ ${nf(r.div)} = ${B_(kgf(r.vol0)+" kg")} de volumen`,`Measured: ${r.L0}×${r.A0}×${r.H0} cm = ${B_(nf(r.V0)+" cm³")} ÷ ${nf(r.div)} = ${B_(kgf(r.vol0)+" kg")} of volume`)
+   :u<0.65?(ach?T(`5 cm menos por lado: ${r.L}×${r.A}×${r.H} cm = ${B_(kgf(r.vol)+" kg")} de volumen`,`5 cm less per side: ${r.L}×${r.A}×${r.H} cm = ${B_(kgf(r.vol)+" kg")} of volume`):T(`Se cobra el mayor, hacia arriba al kilo: ${B_(nf(r.cob)+" kg")}`,`The greater is charged, rounded up to the kilo: ${B_(nf(r.cob)+" kg")}`))
+   :r.aireFr>0?T(`El bloque naranjo es lo que paga tu peso; el resto, ${B_(nf(r.aireFr*100)+" %")} de la caja, es aire`,`The orange block is what your weight pays for; the rest, ${B_(nf(r.aireFr*100)+" %")} of the box, is air`):T(`Aquí manda el peso: la caja va llena, ${B_("sin aire que pagar")}`,`Here weight rules: the box is full, ${B_("no air to pay for")}`);return true}
+ S.info=()=>null;
+ S.apply=st2=>{cur=Object.assign({},st2);r=EC.aire(cur);ms=0;at()};S.prewarm=()=>{r=EC.aire(cur);ms=dur*0.5;at()};S.startRun=()=>{r=EC.aire(cur);ms=0;S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=null}return at()};
+ S.ff=st2=>S.apply(st2);
+ at();return S}
+/* ---------------- LOCKER · furgón contra furgón (reel 14) ----------------
+   Dos calles con las mismas casas, como en el reel. Abajo, el furgón de domicilio sin firma para en cada puerta (la referencia).
+   Arriba, tu ruta: con lockers para solo en los dos lockers y llena k celdas en cada uno; con ruta mixta para también en las casas
+   que no usan el locker. El reloj corre el turno de 8 horas (primero 30 min de carga) y los contadores suben hasta los paquetes del modelo. */
+function sceneLocker(st){const W=26,D=13;const{scene,g}=diorama(W,D,P.grass);const ZA=3.6,ZB=-1.6,X0=-12.2,XF=12.2,NH=7,XS=[-9,-6,-3,0,3,6,9],XL=[-4.5,4.5];
+ roadX(g,-W/2+0.4,W/2-0.4,ZA,2.2);roadX(g,-W/2+0.4,W/2-0.4,ZB,2.2);flat(g,W-0.8,0.7,0xDCD6C8,0,0.01,ZA-1.45);flat(g,W-0.8,0.7,0xDCD6C8,0,0.01,ZB-1.45);
+ const COLS=[0xFFD9B8,0xF1E8D6,0xCFE3F2,0xFFE7A8,0xE4D6F2,0xD8EED8,0xFFD0C2];
+ const casa=(x,z,c)=>{rb(g,1.7,1.15,1.4,c,x,0,z,0.14);const rf=put(g,GEO().pyr,mat(P.terracotta,{flat:true}),x,1.6,z);rf.scale.set(1.35,0.8,1.2);rf.rotation.y=Math.PI/4;rb(g,0.45,0.75,0.06,P.dark,x,0,z+0.71,0.03)};
+ XS.forEach((x,i)=>{casa(x,ZA-2.35,COLS[i]);casa(x,ZB-2.6,COLS[(i+3)%NH])});
+ /* lockers: mueble azul oscuro de 4 × 3 celdas que se ponen naranjas al llenarse */
+ const CEL=[];XL.forEach(x=>{const z=ZB-1.95;rb(g,1.6,1.45,0.6,0x1F335C,x,0,z,0.06);rb(g,1.7,0.12,0.7,0x14213D,x,1.45,z,0.03);const cs=[];
+  for(let r_=0;r_<3;r_++)for(let c=0;c<4;c++){const m=new THREE.MeshLambertMaterial({color:0xB3BDCC});m.userData.own=true;cs.push(rb(g,0.32,0.36,0.04,m,x-0.54+c*0.36,0.14+r_*0.42,z+0.31,0.02,{noCast:true}))}CEL.push(cs)});
+ [[-11.5,-5.6,0.9],[-7.5,-5.9,1],[-1.5,-5.7,0.85],[1.5,-5.9,0.95],[7.5,-5.6,0.9],[11.5,-5.8,1]].forEach(t=>tree(g,t[0],t[1],t[2]));
+ const pe=person(g,P.sky,XS[2],ZB-2.0,0);pe.visible=false;
+ const F=new Fleet(g,2,0.6,{van:true});F.col[0]=P.white;F.col[1]=P.white;
+ const IK=new Icons(g,"check",2*NH,1.0);
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,3,D/2)),{root:g,az:0.5,azP:0.3,el:0.78});
+ let cur=Object.assign({},st),r=EC.locker(cur),ms=0,tt=0,TA=null,TB=null,homeB=[],usaB=[];const dur=8000,LOAD=30/480;
+ /* un recorrido: tramos de viaje y paradas; cada parada pesa como 2,2 unidades de calle (en el locker, más con más paquetes) */
+ function track(stops){const sg=[];let x=X0;stops.forEach((s,j)=>{sg.push({m:1,a:x,b:s.x,len:Math.abs(s.x-x)});sg.push({m:0,s:s,j,len:s.w});x=s.x});sg.push({m:1,a:x,b:XF,len:XF-x});return{sg,tot:sg.reduce((a,q)=>a+q.len,0)}}
+ function where(tr,v){let t=Math.max(0,Math.min(1,v))*tr.tot;for(let i=0;i<tr.sg.length;i++){const q=tr.sg[i];if(t<=q.len||i===tr.sg.length-1){if(q.m)return{x:q.a+(q.b-q.a)*Math.min(1,q.len?t/q.len:1),j:-1,done:i};return{x:q.s.x,j:q.j,w:q.len?t/q.len:1,done:i}}t-=q.len}return{x:XF,j:-1,done:tr.sg.length}}
+ function build(){r=EC.locker(cur);const pol=cur.pol;TA=track(XS.map(x=>({x,w:2.2,home:true})));
+  const m=pol==="locker"?NH:pol==="mixta"?Math.round(r.p*NH):0;usaB=XS.map((x,i)=>m>0&&Math.floor((i+1)*m/NH)>Math.floor(i*m/NH));homeB=XS.map((x,i)=>pol==="domicilio"||(pol==="mixta"&&!usaB[i]));
+  const st_=[];XS.forEach((x,i)=>{if(homeB[i])st_.push({x,w:2.2,home:true,i})});if(pol!=="domicilio"&&(pol==="locker"||r.p>0))XL.forEach((x,i)=>st_.push({x,w:2.2+Math.min(12,r.k)*0.25,locker:i}));st_.sort((a,b)=>a.x-b.x);TB=track(st_)}
+ function at(dt){tt+=dt||0;const u=Math.min(1,ms/dur),v=u<LOAD?0:(u-LOAD)/(1-LOAD);
+  const a=where(TA,v),b=where(TB,v);F.go(0,a.x,ZA-0.5,0,true);F.go(1,b.x,ZB-0.5,0,true);F.snap(0);F.snap(1);F.commit();
+  /* entregas hechas: casa con ✓ cuando la parada pasa la mitad */
+  const doneA=i=>{const k=TA.sg.findIndex(q=>!q.m&&q.s.x===XS[i]);return v>=1||a.done>k||(a.done===k&&a.w>0.5)};
+  const doneB=s=>{const k=TB.sg.findIndex(q=>!q.m&&q.s===s);return k>=0&&(v>=1||b.done>k||(b.done===k&&b.w>0.5))};
+  XS.forEach((x,i)=>{IK.set(i,x,2.3,ZA-2.35,u>LOAD&&doneA(i));const s=TB.sg.find(q=>!q.m&&q.s.home&&q.s.i===i);IK.set(NH+i,x,2.3,ZB-2.6,!!s&&u>LOAD&&doneB(s.s))});
+  IK.step(dt||0.016,S.cam.quaternion,tt);
+  /* celdas del locker: se llenan mientras el furgón está detenido; quedan llenas */
+  XL.forEach((x,li)=>{const k=TB.sg.findIndex(q=>!q.m&&q.s.locker===li),q=k>=0?TB.sg[k]:null;let f=0;if(q){f=b.done>k||v>=1?1:b.done===k?b.w:0}const n=Math.min(12,r.k),on=Math.round(f*n);CEL[li].forEach((c,j)=>c.material.color.setHex(j<on?0xFF9E1F:0xB3BDCC))});
+  /* alguien camina de su casa al locker (depende de que el cliente camine) */
+  const walk=cur.pol!=="domicilio"&&(cur.pol==="locker"||r.p>0)&&v>0.55;pe.visible=walk;if(walk){const w=Math.min(1,(v-0.55)/0.35),hx=XS[1],lx=XL[0]-0.2;pe.position.set(hx+(lx-hx)*w,0,ZB-1.6);pe.rotation.y=Math.PI/2}
+  const cA=Math.round(r.nH*v),cB=Math.round(r.n*v),min=Math.round(480*u),hh=8+Math.floor(min/60),mm=min%60;
+  S.clock=`${hh}:${String(mm).padStart(2,"0")} · ${nf(cB)} ${T("paquetes","parcels")}`;
+  const lblB=cur.pol==="domicilio"?T("Tu ruta","Your route"):cur.pol==="mixta"?T("Ruta mixta","Mixed route"):T(`${r.k} por locker`,`${r.k} per locker`);
+  /* rótulos: arriba en el teléfono (la escena gira); a la izquierda en pantalla ancha, lejos de la tarjeta de la derecha */const lx=S.root&&S.root.rotation.y?W/2-3.4:-W/2+3.4;
+  S.labels=[{x:lx,y:1.2,z:ZB,html:`${lblB} · <span class="y">${nf(cB)}</span>`},{x:lx,y:1.2,z:ZA,html:`${T("Domicilio","Home")} · <span class="y">${nf(cA)}</span>`}];
+  S.cap=u>=1?T(`Turno de 8 horas: ${B_(nf(r.nH))} paquetes a domicilio, ${B_(nf(r.n))} en tu ruta · ${B_(nf(r.c,2)+" €")} por paquete`,`8-hour shift: ${B_(nf(r.nH))} parcels at home, ${B_(nf(r.n))} on your route · ${B_(nf(r.c,2)+" €")} per parcel`)
+   :u<LOAD?T(`${B_("Carga en el terminal")}: 30 minutos antes de salir`,`${B_("Loading at the terminal")}: 30 minutes before leaving`)
+   :cur.pol==="domicilio"?T("Los dos furgones paran en cada puerta: un paquete por parada.","Both vans stop at every door: one parcel per stop.")
+   :cur.pol==="mixta"?T(`El de domicilio para en cada puerta. En tu ruta, ${B_(nf(r.p*100)+" de cada 100")} van al locker y el resto a su puerta.`,`The home van stops at every door. On your route, ${B_(nf(r.p*100)+" out of 100")} go to the locker and the rest to their door.`)
+   :T(`El de domicilio para en cada puerta. El tuyo deja ${B_(r.k+" por locker")}: para menos y entrega más.`,`The home van stops at every door. Yours leaves ${B_(r.k+" per locker")}: it stops less and delivers more.`);return true}
+ S.info=()=>null;
+ S.apply=st2=>{cur=Object.assign({},st2);build();ms=0;at(0)};S.prewarm=()=>{build();ms=dur*0.4;at(0.016)};S.startRun=()=>{build();ms=0;S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ /* sin «Esta partida»: el modelo no tiene azar, el número grande no es un promedio */
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=null}return at(dt)};
+ S.ff=st2=>S.apply(st2);
+ build();at(0);return S}
 /* ---------------- VECINO · la ruta: el furgón recorre la ruta de la regla elegida ---------------- */
 function sceneVecino(st){const M=24,W=M+5,D=M+5;const{scene,g}=diorama(W,D,P.asphalt);
  const XZ=q=>[(q[0]-0.5)*M,(0.5-q[1])*M];
@@ -526,12 +611,12 @@ function sceneGps(st){const M=24,W=M+5,D=M+5;const{scene,g}=diorama(W,D,P.asphal
   if(techo.instanceColor)techo.instanceColor.needsUpdate=true;if(casa.instanceColor)casa.instanceColor.needsUpdate=true;
   if(u<=0){const[dx,dz]=XZ(r.p[0]);vx=dx;vz=dz}F.go(0,vx,vz,va,true);F.snap(0);F.commit();
   const km=u*r.km,vuelve=Object.values(ent).filter(x=>x>1).length;S.clock=`${nf(km,1)} km`;
-  S.labels=u>=1?[{x:0,y:2.4,z:-M/2-0.6,html:`<span class="${cur.pol==="barrios"?"g":"y"}">${nf(r.km,1)} km · ${nf(r.min)} min</span>`}]:[];
+  S.labels=u>=1?[{x:0,y:2.4,z:-M/2-0.6,html:`<span class="${cur.pol==="barrios"?"g":"y"}">${nf(r.km,1)} km · ${nf(r.t,r.dec)} min</span>`}]:[];
   S.cap=u>=1?(cur.pol==="barrios"?T(`Barrio por barrio: ${B_(nf(r.km,1)+" km")}, ${cur.B} barrios terminados de una vez · la más corta hace ${nf(r.kC,1)} km`,`Neighbourhood by neighbourhood: ${B_(nf(r.km,1)+" km")}, ${cur.B} neighbourhoods finished in one go · the shortest does ${nf(r.kC,1)} km`):T(`La más corta: ${B_(nf(r.km,1)+" km")}, entra ${r.entradas} veces a ${cur.B} barrios · ${pl(r.faltan,"barrio queda","barrios quedan","neighbourhood is","neighbourhoods are")} a medias`,`The shortest: ${B_(nf(r.km,1)+" km")}, it enters ${cur.B} neighbourhoods ${r.entradas} times · ${r.faltan} left half done`))
    :cur.pol==="barrios"?T("El furgón termina cada barrio antes de pasar al siguiente","The van finishes each neighbourhood before moving to the next"):T(`El furgón sigue la ruta más corta · ${vuelve} ${vuelve===1?"barrio":"barrios"} con techo rojo: entró más de una vez`,`The van follows the shortest route · ${vuelve} ${vuelve===1?"neighbourhood":"neighbourhoods"} with a red roof: it went in more than once`);return true}
  S.info=()=>null;
  S.apply=st2=>{cur=Object.assign({},st2);build();ms=0;at(0)};S.prewarm=()=>{build();ms=dur*0.4;at(0)};S.startRun=()=>{build();ms=0;S.done=false;S.obs=null};S.progress=()=>ms/dur;
- S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>({v:nf(r.t)+" min",l:T("con esta ruta","with this route")})}return at(dt)};
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>({v:nf(r.t,r.dec)+" min",l:T("con esta ruta","with this route")})}return at(dt)};
  S.ff=st2=>S.apply(st2);
  build();at(0);return S}
 
