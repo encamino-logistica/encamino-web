@@ -6,8 +6,8 @@ const checks=[];const ok=(n,c,g)=>{checks.push(!!c);console.log((c?"PASS ":"FAIL
 const fs=require("fs"),path=require("path");const CAP=path.join(__dirname,"..","capturas");if(!fs.existsSync(CAP))fs.mkdirSync(CAP);
 (async()=>{const srv=await serve(8799);const b=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]});
  const VIEW={viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2,locale:"es-CL"};
- /* 1 · tal como está en la rama: GPUB=false → no se lista, pero el enlace directo funciona */
- {const ctx=await b.newContext(VIEW);const p=await ctx.newPage();await env(p);const errs=[];p.on("pageerror",e=>errs.push(e.message));
+ /* 1 · sin publicar (GPUB=false, forzado si la rama ya la encendió): no se lista, pero el enlace directo funciona */
+ {const ctx=await b.newContext(VIEW);await ctx.route("**/index.html*",async r=>{const x=await r.fetch();await r.fulfill({response:x,body:(await x.text()).replace("const GPUB=true;","const GPUB=false;")})});const p=await ctx.newPage();await env(p);const errs=[];p.on("pageerror",e=>errs.push(e.message));
   await p.goto("http://127.0.0.1:8799/index.html");await p.waitForTimeout(2500);
   const home=await p.evaluate(()=>document.body.innerText);
   await p.goto("http://127.0.0.1:8799/index.html?reel=18");await p.waitForTimeout(2000);const h18=await p.evaluate(()=>location.hash);
@@ -18,7 +18,8 @@ const fs=require("fs"),path=require("path");const CAP=path.join(__dirname,"..","
   await p.goto("http://127.0.0.1:8799/index.html?caso=gps");await p.waitForSelector("#play");await p.waitForTimeout(1200);
   ok("Sin publicar, el enlace directo ?caso=gps abre el laboratorio",await p.evaluate(()=>location.hash)==="#gps",await p.evaluate(()=>location.hash));
   ok("Sin errores de página (GPUB=false)",errs.length===0,errs.slice(0,3));await ctx.close()}
- /* 2 · publicado (GPUB=true forzado) */
+ /* 2 · publicado (GPUB=true, forzado si la rama la tiene apagada) */
+ const GPUB_RAMA=/const GPUB=true;/.test(require("fs").readFileSync(require("path").join(__dirname,"..","index.html"),"utf8"));ok("Bandera en el index.html de la rama: GPUB="+GPUB_RAMA,true);
  const ctx=await b.newContext(VIEW);
  await ctx.route("**/index.html*",async r=>{const x=await r.fetch();await r.fulfill({response:x,body:(await x.text()).replace("const GPUB=false;","const GPUB=true;")})});
  const p=await ctx.newPage();await env(p);const errs=[];p.on("pageerror",e=>errs.push(e.message));
@@ -86,6 +87,7 @@ const fs=require("fs"),path=require("path");const CAP=path.join(__dirname,"..","
  ok("Sin empresas ni apps nombradas en el laboratorio ni en sus fuentes",!/amazon|google|waze|\bups\b|fedex|dhl|uber|rappi|mercado ?libre/i.test(marcas),(marcas.match(/amazon|google|waze|\bups\b|fedex|dhl|uber|rappi|mercado ?libre/i)||[])[0]);
  await p.goto("http://127.0.0.1:8799/index.html?reel=18");await p.waitForTimeout(2000);ok("Publicado: ?reel=18 abre #gps",await p.evaluate(()=>location.hash)==="#gps");
  await p.evaluate(()=>{location.hash="biblioteca"});await p.waitForTimeout(800);
+ await p.evaluate(()=>ECAPP.openSheet("gps","reels"));await p.waitForTimeout(700);{const lst=await p.evaluate(()=>[...document.querySelectorAll("#sheet-body .mrow")].map(e=>e.textContent.replace(/\s+/g," ").trim()));ok("Publicado: aparece primero en la lista de reels: «#18 ¿Quién arma mejor la ruta: el GPS o el conductor?»",/^#18 ?¿Quién arma mejor la ruta: el GPS o el conductor\?/.test(lst[0]||""),lst.slice(0,3));await p.screenshot({path:path.join(CAP,"gps_lista_reels.png")});await p.evaluate(()=>ECAPP.closeSheet());await p.waitForTimeout(400);await p.evaluate(()=>{location.hash="biblioteca"});await p.waitForTimeout(800)}
  {const ti=await p.textContent("#libintro"),pp=await p.evaluate(()=>!!ECAPP.dev.PUBLICADO.aire&&!!ECAPP.dev.PUBLICADO.locker);ok(pp?"Publicado: la biblioteca pasa de 43 a 45 fuentes, de quince reels":"Publicado: la biblioteca suma 2 fuentes",pp?/Cuarenta y cinco fuentes de quince reels/.test(ti):true,ti.slice(0,48))}
  ok("Publicado: la biblioteca trae Cook, Held y Helsgaun y el cálculo propio de En Camino",await p.evaluate(()=>!!document.querySelector(`#v-biblioteca [data-book="cook2021"]`)&&!!document.querySelector(`#v-biblioteca [data-book="encamino_r018"]`)));
  await p.evaluate(()=>ECAPP.openBook("cook2021"));await p.waitForTimeout(600);await p.screenshot({path:path.join(CAP,"gps_libro.png")});
