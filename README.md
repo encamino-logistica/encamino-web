@@ -12,6 +12,7 @@ bilingüe (ES/EN), pensada para abrirse desde reels de Instagram en el celular.
 - `tests/locker.js` — reel 14: ¿cuándo conviene el locker? (Hovi y Bø 2024): 63 y 132 paquetes por turno con la tabla 3.3, 5,63–5,64 y 2,76 € por paquete, distancias, ruta mixta, casos tontos, barrido, enlaces y 390/1280 px (`LPUB` en `src/game.js` publica u oculta el laboratorio).
 - `tests/aire.js` — reel 17: pagas por el aire (peso volumétrico), cifras del reel, todas las posiciones de los controles, entradas inválidas, barrido, enlaces y biblioteca (`APUB` en `src/game.js` publica u oculta el laboratorio).
 - `tests/gps.js` — reel 18: el GPS contra el conductor (la más corta contra barrio por barrio), números del estudio de Cook, Held y Helsgaun y del cálculo propio del empate, barrido de todas las combinaciones, corrida a 390 px y enlaces (`GPUB` en `src/game.js` publica u oculta el laboratorio).
+- `tests/inventario.js` — reel 15: inventario fantasma (réplica de Kang y Gershwin), el número del reel contra el paper y contra la réplica de Python, las 710 combinaciones de los controles con sus 500 años cada una, textos ES/EN, corrida a 390 px, biblioteca y enlaces (`IPUB` en `src/game.js` publica u oculta el laboratorio).
 - `capturas/` — capturas de pantalla que dejan las pruebas.
 
 Enlaces profundos por número de reel: `?reel=1` giros UPS, `?reel=2` pasillo de Amazon, `?reel=3` entregas IKEA, `?reel=4` andenes, `?reel=5` nivel de servicio, `?reel=6` fila, `?reel=7` quédatelo;
