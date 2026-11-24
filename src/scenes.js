@@ -582,6 +582,41 @@ function sceneVecino(st){const M=24,W=M+5,D=M+5;const{scene,g}=diorama(W,D,P.asp
  S.ff=st2=>S.apply(st2);
  build();at(0);return S}
 
+/* ---------------- INVENTARIO FANTASMA · la pantalla contra el estante (reel 15) ----------------
+   Un año típico de los 500 (la corrida mediana): cada contenedor del estante es una unidad. Los sólidos están de verdad; los
+   translúcidos solo existen en la pantalla (registro − físico). Arriba, el año en dos líneas: lo que dice el sistema y lo que hay. */
+function sceneInventario(st){const W=11,D=5;const{scene,g}=diorama(W,D,P.slabTop);
+ const COLS=10,ROWS=2,LV=5,CAP=COLS*ROWS*LV,SW=0.56,XC=1.1,X0=XC-((COLS-1)*SW)/2,LY=[0.12,0.9,1.68,2.46,3.24];
+ for(const y of LY)rb(g,COLS*SW+0.3,0.07,ROWS*0.55+0.25,P.wood,XC,y-0.07,0,0.02);
+ for(const x of [X0-0.42,X0+(COLS-1)*SW+0.42])for(const z of [-0.62,0.62])rb(g,0.1,3.75,0.1,0x8A6440,x,0,z,0.02);
+ const U1=rboxG(0.46,0.4,0.46,0.06),real=inst(g,U1,mat(P.sky),CAP),ghost=inst(g,U1,mat(P.white,{op:0.4}),CAP,false);
+ const XM=-4.4;rb(g,0.12,1.6,0.12,P.dark,XM,0,0,0.03);rb(g,2.0,1.3,0.16,0x10151F,XM,1.6,0,0.06);const face=put(g,rboxG(1.7,1.0,0.02,0.01),mat(P.mint,{basic:true}),XM,2.25,0.1,false);
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,6.2,D/2)),{root:g,long:"z",az:0.32,azP:0.3,el:0.4});
+ let cur=Object.assign({},st),r=EC.inventario(cur),ms=0;const dur=9000,R=EC.INV.R;
+ const slot=i=>{const lv=Math.floor(i/(COLS*ROWS)),k=i%(COLS*ROWS),row=Math.floor(k/COLS),col=k%COLS;return[X0+col*SW,LY[lv]+0.2,row===0?0.28:-0.28]};
+ function chart(d){const T_=r.tipico,w=240,h=74,mx=Math.max(100,...T_.xr.map(v=>Math.max(0,v)),...T_.x),X=i=>(i/364*w).toFixed(1),Y=v=>(h-Math.max(0,v)/mx*h).toFixed(1);
+  const pts=a=>a.slice(0,d).map((v,i)=>X(i)+","+Y(v)).join(" "),pl=(a,c)=>`<polyline fill="none" stroke="${c}" stroke-width="1.3" points="${pts(a)}"/>`,area=a=>`<polygon fill="rgba(75,227,138,.55)" points="0,${h} ${pts(a)} ${X(d-1)},${h}"/>`;
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" style="display:block;background:rgba(16,21,31,.72);border-radius:6px"><line x1="0" x2="${w}" y1="${Y(R)}" y2="${Y(R)}" stroke="#FFC726" stroke-dasharray="3 3" stroke-width="1"/>${area(T_.x)}${pl(T_.xr,"#FAFAF5")}</svg><div style="font-size:11px;line-height:1.3"><span style="color:#FAFAF5">— ${T("pantalla","screen")}</span> · <span style="color:#4BE38A">■ ${T("estante","shelf")}</span> · <span style="color:#FFC726">- - ${T("punto de pedido","reorder point")} 41</span></div>`}
+ function at(){const u=Math.min(1,ms/dur),T_=r.tipico,d=Math.max(1,Math.min(365,Math.ceil(u*365))),i=d-1,x=Math.round(T_.x[i]),xs=Math.max(0,Math.round(T_.xr[i]));
+  let lost=0,vac=0;for(let k=0;k<d;k++){lost+=T_.lost[k];if(T_.lost[k]>0)vac++}
+  const nr=Math.min(CAP,x),ng=Math.max(0,Math.min(CAP,xs)-nr);
+  for(let k=0;k<CAP;k++){const[px,py,pz]=slot(k);if(k<nr)setI(real,k,px,py,pz,1,1,1);else setI(real,k,0,-9,0,0.01,0.01,0.01);
+   if(k>=nr&&k<nr+ng)setI(ghost,k,px,py,pz,1,1,1);else setI(ghost,k,0,-9,0,0.01,0.01,0.01)}
+  real.instanceMatrix.needsUpdate=true;ghost.instanceMatrix.needsUpdate=true;
+  const cong=x<=0&&xs>R;face.material=mat(cong?P.red:P.mint,{basic:true});
+  S.clock=T(`día ${d} de 365`,`day ${d} of 365`);
+  S.labels=[{x:XM,y:3.2,z:0,html:`${T("Pantalla","Screen")}: <span class="${cong?"y":"g"}">${nf(xs)}</span>`},{x:XC,y:4.05,z:0,html:`${T("Estante","Shelf")}: <span class="${x>0?"g":"y"}">${nf(x)}</span>`},{x:0,y:6.0,z:0,html:chart(d)}];
+  S.cap=u>=1?T(`Un año típico: ${B_(nf(r.tq*100,1)+" %")} de ventas perdidas y ${B_(nf(r.tvac)+" días")} con el estante vacío · promedio de 500 años: ${B_(nf(r.q*100,1)+" %")}`,`A typical year: ${B_(nf(r.tq*100,1)+" %")} of sales lost and ${B_(nf(r.tvac)+" days")} with an empty shelf · average of 500 years: ${B_(nf(r.q*100,1)+" %")}`)
+   :T_.cuenta[i]?T(`Día ${d}: se cuenta el estante y la pantalla vuelve a decir la verdad: ${B_(nf(x))}`,`Day ${d}: the shelf is counted and the screen tells the truth again: ${B_(nf(x))}`)
+   :cong?T(`La pantalla dice ${B_(nf(xs))} y el estante está vacío: como 41 o más «hay», ${B_("el sistema no pide")}`,`The screen says ${B_(nf(xs))} and the shelf is empty: since 41 or more “are there”, ${B_("the system doesn't order")}`)
+   :ng>0?T(`Los contenedores translúcidos solo existen en la pantalla: ${B_(nf(xs-x))} · ${nf(lost)} ventas perdidas hasta hoy`,`The see-through containers only exist on the screen: ${B_(nf(xs-x))} · ${nf(lost)} sales lost so far`)
+   :T(`Pantalla y estante coinciden · ${nf(lost)} ventas perdidas hasta hoy`,`Screen and shelf match · ${nf(lost)} sales lost so far`);return true}
+ S.info=()=>null;
+ S.apply=st2=>{cur=Object.assign({},st2);r=EC.inventario(cur);ms=0;at()};S.prewarm=()=>{r=EC.inventario(cur);ms=dur*0.5;at()};S.startRun=()=>{r=EC.inventario(cur);ms=0;S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=()=>({v:nf(r.tq*100,1)+" %",l:T("en este año típico","in this typical year")})}return at()};
+ S.ff=st2=>S.apply(st2);
+ at();return S}
+
 /* ---------------- GPS · la más corta contra barrio por barrio (reel 18) ---------------- */
 function sceneGps(st){const M=24,W=M+5,D=M+5;const{scene,g}=diorama(W,D,P.asphalt);
  const XZ=q=>[(q[0]-0.5)*M,(0.5-q[1])*M],BCOL=[0xF1E8D6,0xCFE0F5,0xFFD9B8,0xD8F0D5,0xE3DAF5,0xF5D6DE,0xD6EEF0,0xEFE7C4];
