@@ -1,5 +1,5 @@
 // Reel 20 · FedEx, más lejos a propósito: cifras de la hoja de cifras del reel (reels/R020/hoja_cifras.json) y cálculo propio
-// (300 / 24 / 7,75), barrido de TODAS las combinaciones de controles, entradas inválidas, corrida en el teléfono (390 px) con capturas,
+// (300 / 24; 7,44 por ciudad como en el reel y 7,75 por conexión con el centro; Memphis cuenta como una de las 25 ciudades), barrido de TODAS las combinaciones de controles, entradas inválidas, corrida en el teléfono (390 px) con capturas,
 // bandera sin publicar y publicada, biblioteca.
 // Uso: node tests/fedex.js   (prueba FPUB=false tal como está y además fuerza FPUB=true para probar la versión publicada)
 // HOJA=<ruta a hoja_cifras.json> para cambiar la hoja (por omisión, la de la oficina).
@@ -66,23 +66,27 @@ const HOJA=process.env.HOJA||path.join(os.homedir(),"encamino/oficina/repo/ofici
   await p.tap("#play");await p.waitForFunction(()=>ECAPP.mode==="done",null,{timeout:90000});await p.waitForTimeout(500);if(f)await p.screenshot({path:path.join(CAP,f+"_fin.png")});return(await p.textContent("#rv"))};
  const rv1=await run("caso=fedex&ciudades=25&paquetes=186&caben=10&regla=directo","fedex_directo");
  ok("Enlace con parámetros: 25 ciudades, 186 paquetes, ciudad con ciudad",/25 ciudades.*186 paquetes.*Ciudad con ciudad/.test(SIT),SIT);
- const m1=await p.evaluate(()=>ECAPP.metrics("fedex"));ok("Ciudad con ciudad en el teléfono: 300 conexiones y 0,62 por conexión (= el modelo)",rv1==="300"&&m1[0].v==="300"&&/^0,62 paquetes por conexión/.test(m1[0].l),[rv1,m1[0].l]);
+ const m1=await p.evaluate(()=>ECAPP.metrics("fedex"));ok("Ciudad con ciudad en el teléfono: 300 conexiones, 0,62 por conexión y 7,44 por ciudad (= el modelo)",rv1==="300"&&m1[0].v==="300"&&/^0,62 paquetes por conexión, en promedio · 7,44 por ciudad/.test(m1[0].l),[rv1,m1[0].l]);
  ok("Ciudad con ciudad: 300 de 300 aviones casi vacíos (supuesto de 10 por avión, marcado)",m1[1].v==="300"&&/de 300 · 0 llenos · caben 10 paquetes \(supuesto\)/.test(m1[1].l),m1[1]);
  const lbl=await p.evaluate(()=>document.body.innerText);ok("El mapa se rotula «mapa ilustrativo»",/mapa ilustrativo/.test(lbl));
  const rv2=await run("caso=fedex&ciudades=25&paquetes=186&caben=10&regla=centro","fedex_centro");
- const m2=await p.evaluate(()=>ECAPP.metrics("fedex"));ok("Con un centro en el teléfono: 24 conexiones y 7,75 por conexión, sumar una ciudad: 1 nueva",rv2==="24"&&/^7,75 paquetes por conexión, en promedio · sumar una ciudad: 1 nueva/.test(m2[0].l),[rv2,m2[0].l]);
+ const m2=await p.evaluate(()=>ECAPP.metrics("fedex"));ok("Con un centro en el teléfono: 24 conexiones, 7,75 por conexión CON EL CENTRO y 7,44 por ciudad (como el reel), sumar una ciudad: 1 nueva",rv2==="24"&&/^7,75 paquetes por conexión con el centro, en promedio · 7,44 por ciudad · sumar una ciudad: 1 nueva/.test(m2[0].l),[rv2,m2[0].l]);
  ok("Con un centro: el desvío se ve como distancia extra (+ %), 0 aviones casi vacíos",/\+\d+ % de distancia por el desvío/.test(m2[1].l)&&m2[1].v==="0",m2[1]);
  const rv3=await run("caso=fedex&ciudades=50&paquetes=186&caben=10&regla=directo","fedex_50_directo");ok("50 ciudades ciudad con ciudad: 1.225 conexiones",rv3==="1.225",rv3);
  const rv4=await run("caso=fedex&ciudades=50&paquetes=186&caben=10&regla=centro","fedex_50_centro");ok("50 ciudades con un centro: 49 conexiones",rv4==="49",rv4);
  await p.evaluate(()=>document.getElementById("lang-en").click());await p.waitForTimeout(600);
  const rv5=await run("caso=fedex&ciudades=25&paquetes=186&caben=10&regla=centro","fedex_en_centro");const m5=await p.evaluate(()=>ECAPP.metrics("fedex"));
- ok("En inglés: 24 connections, 7.75 packages per connection",rv5==="24"&&/^7\.75 packages per connection/.test(m5[0].l),[rv5,m5[0].l]);
+ ok("En inglés: 24 connections, 7.75 packages per connection with the hub, 7.44 per city",rv5==="24"&&/^7\.75 packages per connection with the hub, on average · 7\.44 per city/.test(m5[0].l),[rv5,m5[0].l]);
  await p.evaluate(()=>document.getElementById("lang-es").click());await p.waitForTimeout(400);
  ok("Sin desborde horizontal a 390 px",await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await run("caso=fedex&ciudades=25&paquetes=186&caben=10&regla=directo");
  await p.evaluate(()=>ECAPP.openSheet("fedex","ciencia"));await p.waitForTimeout(600);
  const sh=(await p.textContent("#sheet")).replace(/ /g," ");
  ok("«Por qué pasa» trae 300, 24, 7,75 (cálculo propio), 25 contra 1 y a Hendricks, Piccione y Tan",["300 conexiones","24 conexiones","7,75","Nuestra cuenta","la ciudad 26 agrega 25","Hendricks, Piccione y Tan"].every(x=>sh.includes(x)),sh.slice(0,160));
+ ok("«Por qué pasa» trae 7,44 por ciudad (la cifra del reel, 186 ÷ 25) y el supuesto «Memphis cuenta como una de las 25 ciudades»",["poco más de 7 paquetes por ciudad","7,44","Memphis cuenta como una de las 25 ciudades"].every(x=>sh.includes(x)),sh.slice(0,160));
+ {const todo=sh+" "+await p.evaluate(()=>{const L=ECAPP.LAB.fedex,r=EC.fedex(L.def);return [L.refLine(r),...ECAPP.SOURCES.filter(x=>x.labs&&x.labs.includes("fedex")).map(x=>x.idea.es+" "+x.idea.en),ECAPP.metrics("fedex").map(m=>m.l).join(" ")].join(" ")}),mal=[];
+  for(const m of todo.matchAll(/7[,.]75/g)){const v=todo.slice(Math.max(0,m.index-60),m.index+60);if(!/con el centro|with the hub/.test(v))mal.push(v)}
+  ok("Cada 7,75 se rotula «por conexión con el centro» (nunca «por ciudad»), en la hoja, el reporte, las fichas y las métricas",mal.length===0,mal.slice(0,2))}
  ok("«Por qué pasa» deja los supuestos a la vista (mapa ilustrativo, desvío supuesto, avión supuesto, sin plata, 484.000 es capacidad)",["El mapa es ilustrativo","es un supuesto","son supuestos","no dinero","son capacidad"].every(x=>sh.includes(x)));
  await p.screenshot({path:path.join(CAP,"fedex_porque.png")});
  ok("«Por qué pasa» sin desborde a 390 px",await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
@@ -105,7 +109,7 @@ const HOJA=process.env.HOJA||path.join(os.homedir(),"encamino/oficina/repo/ofici
  await p.evaluate(()=>{const x=document.querySelector(".bk-x");x&&x.click()});await p.waitForTimeout(300);
  await p.evaluate(()=>ECAPP.openBook("fedex1973"));await p.waitForTimeout(600);await p.screenshot({path:path.join(CAP,"fedex_libro_fedex1973.png")});
  {const bk=await p.evaluate(()=>{const pg=document.querySelector(".bk-page");return{stat:!!pg.querySelector(".bigstat"),story:!!pg.querySelector(".pstory"),link:pg.querySelector(".plink").href,t:pg.textContent}});
-  ok("Libro de FedEx 1973: 186 paquetes, 25 ciudades, 14 aviones, enlace al comunicado de 2013",bk.stat&&bk.story&&/186 paquetes/.test(bk.t)&&/14 aviones/.test(bk.t)&&bk.link==="https://newsroom.fedex.com/newsroom/fedex-marks-40th-anniversary",bk.link)}
+  ok("Libro de FedEx 1973: 186 paquetes, 25 ciudades, 14 aviones (con la copia del Internet Archive como respaldo), 7,44 por ciudad, enlace al comunicado de 2013",bk.stat&&bk.story&&/186 paquetes/.test(bk.t)&&/14 aviones/.test(bk.t)&&/Internet Archive del 29-10-2026/.test(bk.t)&&/Internet Archive del 29-10-2026 \(web\.archive\.org\)/.test(bk.t)&&await p.evaluate(()=>{const g=document.querySelector(".bk-page");return g.scrollWidth<=g.clientWidth+1&&document.documentElement.scrollWidth<=innerWidth})&&/7,44/.test(bk.t)&&bk.link==="https://newsroom.fedex.com/newsroom/fedex-marks-40th-anniversary",[bk.link,bk.t.slice(-300)])}
  ok("La capacidad de Memphis se dice con «puede procesar hasta» (condición de la hoja)",await p.evaluate(()=>{const s=ECAPP.SOURCES.find(x=>x.id==="fedex2024");return /puede procesar hasta 484\.000/.test(s.idea.es)&&/puede procesar hasta 484\.000/.test(ECAPP.LAB.fedex.refLine(EC.fedex(ECAPP.LAB.fedex.def)))}));
  ok("Sin errores de página (FPUB=true)",errs.length===0,errs.slice(0,3));
  console.log(`${checks.filter(Boolean).length}/${checks.length}`);await b.close();srv.close&&srv.close();process.exit(checks.every(Boolean)?0:1)})().catch(e=>{console.error(e);process.exit(1)});

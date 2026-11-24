@@ -183,9 +183,10 @@ function locker(o){const k=Math.max(1,Math.min(50,Math.round(+o.k||LK.PROM))),di
  return{k,dist,u,pol,acc,p,MIN,tH,tHpar,tHv,tL,tLpar:L.par,tLv:L.viaje,kmL:L.km,entL:L.ent,nH,nL,nM,nHt,nLt,nMt,capH,capL,capM,cH,cL,cM,costM,n,c,lleno,
   veces:cH/c,usoL:nL*LK.VOLL/LK.VAN,ref,you:c,score:score(ref,c),valid:true}}
 /* ---------- FEDEX · más lejos a propósito (reel 20). Cifras de la hoja de cifras del reel (reels/R020/hoja_cifras.json):
-   Según FedEx, la primera noche (17-04-1973) 14 aviones llevaron 186 paquetes a 25 ciudades (historia corporativa; Newsroom 17-04-2013);
+   Según FedEx, la primera noche (17-04-1973) 14 aviones llevaron 186 paquetes a 25 ciudades (historia corporativa, copia del Internet Archive 29-10-2026; Newsroom 17-04-2013);
    hoy el centro de Memphis puede procesar hasta 484.000 paquetes por hora (capacidad, no volumen; Newsroom 30-10-2024).
-   Cálculo propio: ciudad con ciudad n(n−1)/2 = 300 conexiones; con un centro n−1 = 24; 186 ÷ 24 = 7,75 paquetes por conexión en promedio;
+   Cálculo propio (Memphis cuenta como una de las 25 ciudades): ciudad con ciudad n(n−1)/2 = 300 conexiones; con un centro n−1 = 24;
+   186 ÷ 25 = 7,44 paquetes por ciudad (la cifra del reel) y 186 ÷ 24 = 7,75 por conexión con el centro, en promedio;
    sumar la ciudad 26: 25 conexiones nuevas contra 1. Teoría: Hendricks, Piccione y Tan (1995), la red más chica que une n ciudades tiene n−1 conexiones.
    Supuestos ilustrativos (marcados en la página): mapa inventado, distancias en línea recta, un avión por conexión cada noche,
    paquetes repartidos parejo entre conexiones y entre pares de ciudades, y cuántos paquetes caben en un avión. ---------- */
