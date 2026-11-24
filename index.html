@@ -2088,7 +2088,10 @@ const IPUB=true;
 const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8,bodegas:9,vecino:10,ordenar:12,co2:13,inventario:15,locker:14,aire:17,gps:18};
 /* reels published so far: labs with a higher number stay reachable by direct link but are not listed */
 const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB,bodegas:BPUB,vecino:VPUB,ordenar:OPUB,co2:XPUB,locker:LPUB,aire:APUB,gps:GPUB,inventario:IPUB};
-const listedLabs=()=>LABS.filter(l=>PUBLICADO[l.id]!==false).sort((a,b)=>(REELNUM[b.id]||0)-(REELNUM[a.id]||0));
+/* el último laboratorio publicado sale PRIMERO (portada, «Cambiar de reel», biblioteca); el resto, por número de reel descendente.
+   Cuando salga fedex, DESTACADO pasa a "fedex". */
+const DESTACADO="inventario";
+const listedLabs=()=>LABS.filter(l=>PUBLICADO[l.id]!==false).sort((a,b)=>((b.id===DESTACADO)-(a.id===DESTACADO))||((REELNUM[b.id]||0)-(REELNUM[a.id]||0)));
 const REEL2LAB={};for(const k in REELNUM)if(PUBLICADO[k]!==false)REEL2LAB[REELNUM[k]]=k;
 const pub=id=>PUBLICADO[id]!==false;/* a source shows in the library only if one of its labs is published */
 const visSources=()=>SOURCES.filter(s=>s.labs.some(pub));
@@ -2709,7 +2712,7 @@ $("cta-play").addEventListener("click",()=>{const el=$("labs");if(el)el.scrollIn
 window.addEventListener("hashchange",route);let rsT=0;window.addEventListener("resize",()=>{setTimeout(sizeStage,80);clearTimeout(rsT);rsT=setTimeout(()=>{if(!$("v-biblioteca").hidden)renderLib()},200)});
 const deep=readURL();if(deep){history.replaceState(null,"",location.pathname+"#"+deep)}
 setLang(lang);route();
-window.ECAPP={get mode(){return V.mode},get running(){return V.running},play:()=>play(V.id),skip:()=>{V.skip=true},tap:(x,y)=>tapScene(V.id,x,y),get coach(){const c=$("coach");return !!c&&!c.hidden},get S(){return V.S},get cam(){return V.S?V.S.cam.position.toArray().map(x=>+x.toFixed(3)):null},get top(){return V.top},get elT(){return V.elT},LAB,STATE,SOURCES,INTRO,set:(id,o)=>onCtl(id,o,{force:true}),has3:HAS3,get renders(){return V.renders},get obs(){return V.res&&V.res.obs},shareURL,shareText,openBook,openSheet,closeSheet,metrics:id=>LAB[id].game.metrics(eff(id)),/* for the tests: the code paths behind the texts, and the language without re-rendering */dev:{get lang(){return lang},set lang(v){lang=v},LAB,EQ,SRC,BIB,readURL,resultNow,verdict,cmpBig,PUBLICADO,libSections:()=>libSections()}};
+window.ECAPP={get mode(){return V.mode},get running(){return V.running},play:()=>play(V.id),skip:()=>{V.skip=true},tap:(x,y)=>tapScene(V.id,x,y),get coach(){const c=$("coach");return !!c&&!c.hidden},get S(){return V.S},get cam(){return V.S?V.S.cam.position.toArray().map(x=>+x.toFixed(3)):null},get top(){return V.top},get elT(){return V.elT},LAB,STATE,SOURCES,INTRO,set:(id,o)=>onCtl(id,o,{force:true}),has3:HAS3,get renders(){return V.renders},get obs(){return V.res&&V.res.obs},shareURL,shareText,openBook,openSheet,closeSheet,metrics:id=>LAB[id].game.metrics(eff(id)),/* for the tests: the code paths behind the texts, and the language without re-rendering */dev:{get lang(){return lang},set lang(v){lang=v},LAB,EQ,SRC,BIB,readURL,resultNow,verdict,cmpBig,PUBLICADO,DESTACADO,libSections:()=>libSections()}};
 
 const st=document.getElementById("sitetop");const onS=()=>st.classList.toggle("solid",window.scrollY>40||!$("v-biblioteca").hidden);window.addEventListener("scroll",onS,{passive:true});window.addEventListener("hashchange",()=>setTimeout(onS,30));onS();
 })();

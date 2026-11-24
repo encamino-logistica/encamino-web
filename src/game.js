@@ -26,7 +26,10 @@ const IPUB=true;
 const REELNUM={ups:1,amazon:2,ikea:3,bailey:4,nivel:5,fila:6,quedatelo:7,cadena:8,bodegas:9,vecino:10,ordenar:12,co2:13,inventario:15,locker:14,aire:17,gps:18};
 /* reels published so far: labs with a higher number stay reachable by direct link but are not listed */
 const PUBLICADO={ups:true,amazon:true,ikea:true,bailey:true,nivel:true,fila:true,quedatelo:QPUB,cadena:CPUB,bodegas:BPUB,vecino:VPUB,ordenar:OPUB,co2:XPUB,locker:LPUB,aire:APUB,gps:GPUB,inventario:IPUB};
-const listedLabs=()=>LABS.filter(l=>PUBLICADO[l.id]!==false).sort((a,b)=>(REELNUM[b.id]||0)-(REELNUM[a.id]||0));
+/* el último laboratorio publicado sale PRIMERO (portada, «Cambiar de reel», biblioteca); el resto, por número de reel descendente.
+   Cuando salga fedex, DESTACADO pasa a "fedex". */
+const DESTACADO="inventario";
+const listedLabs=()=>LABS.filter(l=>PUBLICADO[l.id]!==false).sort((a,b)=>((b.id===DESTACADO)-(a.id===DESTACADO))||((REELNUM[b.id]||0)-(REELNUM[a.id]||0)));
 const REEL2LAB={};for(const k in REELNUM)if(PUBLICADO[k]!==false)REEL2LAB[REELNUM[k]]=k;
 const pub=id=>PUBLICADO[id]!==false;/* a source shows in the library only if one of its labs is published */
 const visSources=()=>SOURCES.filter(s=>s.labs.some(pub));
