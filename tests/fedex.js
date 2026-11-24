@@ -1,6 +1,7 @@
 // Reel 20 · FedEx, más lejos a propósito: cifras de la hoja de cifras del reel (reels/R020/hoja_cifras.json) y cálculo propio
 // (300 / 24; 7,44 por ciudad como en el reel y 7,75 por conexión con el centro; Memphis cuenta como una de las 25 ciudades), barrido de TODAS las combinaciones de controles, entradas inválidas, corrida en el teléfono (390 px) con capturas,
-// bandera sin publicar y publicada, biblioteca.
+// bandera sin publicar y publicada, biblioteca. Mapa: contorno de EE. UU. y ciudades reales de ejemplo (Memphis, el centro); nombres sin
+// taparse a 390 px y en escritorio con 5 a 50 ciudades; la ciudad que se suma se nombra y late.
 // Uso: node tests/fedex.js   (prueba FPUB=false tal como está y además fuerza FPUB=true para probar la versión publicada)
 // HOJA=<ruta a hoja_cifras.json> para cambiar la hoja (por omisión, la de la oficina).
 const {chromium}=require(process.env.PW||"playwright");const serve=require("./serve.js"),env=require("./env.js");
@@ -70,7 +71,7 @@ const HOJA=process.env.HOJA||path.join(os.homedir(),"encamino/oficina/repo/ofici
  ok("Ciudad con ciudad: 300 de 300 aviones casi vacíos (supuesto de 10 por avión, marcado)",m1[1].v==="300"&&/de 300 · 0 llenos · caben 10 paquetes \(supuesto\)/.test(m1[1].l),m1[1]);
  const lbl=await p.evaluate(()=>document.body.innerText);ok("El mapa se rotula «mapa ilustrativo»",/mapa ilustrativo/.test(lbl));
  const rv2=await run("caso=fedex&ciudades=25&paquetes=186&caben=10&regla=centro","fedex_centro");
- const m2=await p.evaluate(()=>ECAPP.metrics("fedex"));ok("Con un centro en el teléfono: 24 conexiones, 7,75 por conexión CON EL CENTRO y 7,44 por ciudad (como el reel), sumar una ciudad: 1 nueva",rv2==="24"&&/^7,75 paquetes por conexión con el centro, en promedio · 7,44 por ciudad · sumar una ciudad: 1 nueva/.test(m2[0].l),[rv2,m2[0].l]);
+ const m2=await p.evaluate(()=>ECAPP.metrics("fedex"));ok("Con un centro en el teléfono: 24 conexiones, 7,75 por conexión CON EL CENTRO y 7,44 por ciudad (como el reel), sumar una ciudad: 1 nueva",rv2==="24"&&/^7,75 paquetes por conexión con el centro, en promedio · 7,44 por ciudad · sumar una ciudad \(San Antonio\): 1 nueva/.test(m2[0].l),[rv2,m2[0].l]);
  ok("Con un centro: el desvío se ve como distancia extra (+ %), 0 aviones casi vacíos",/\+\d+ % de distancia por el desvío/.test(m2[1].l)&&m2[1].v==="0",m2[1]);
  const rv3=await run("caso=fedex&ciudades=50&paquetes=186&caben=10&regla=directo","fedex_50_directo");ok("50 ciudades ciudad con ciudad: 1.225 conexiones",rv3==="1.225",rv3);
  const rv4=await run("caso=fedex&ciudades=50&paquetes=186&caben=10&regla=centro","fedex_50_centro");ok("50 ciudades con un centro: 49 conexiones",rv4==="49",rv4);
@@ -111,5 +112,42 @@ const HOJA=process.env.HOJA||path.join(os.homedir(),"encamino/oficina/repo/ofici
  {const bk=await p.evaluate(()=>{const pg=document.querySelector(".bk-page");return{stat:!!pg.querySelector(".bigstat"),story:!!pg.querySelector(".pstory"),link:pg.querySelector(".plink").href,t:pg.textContent}});
   ok("Libro de FedEx 1973: 186 paquetes, 25 ciudades, 14 aviones (con la copia del Internet Archive como respaldo), 7,44 por ciudad, enlace al comunicado de 2013",bk.stat&&bk.story&&/186 paquetes/.test(bk.t)&&/14 aviones/.test(bk.t)&&/Internet Archive del 29-10-2026/.test(bk.t)&&/Internet Archive del 29-10-2026 \(web\.archive\.org\)/.test(bk.t)&&await p.evaluate(()=>{const g=document.querySelector(".bk-page");return g.scrollWidth<=g.clientWidth+1&&document.documentElement.scrollWidth<=innerWidth})&&/7,44/.test(bk.t)&&bk.link==="https://newsroom.fedex.com/newsroom/fedex-marks-40th-anniversary",[bk.link,bk.t.slice(-300)])}
  ok("La capacidad de Memphis se dice con «puede procesar hasta» (condición de la hoja)",await p.evaluate(()=>{const s=ECAPP.SOURCES.find(x=>x.id==="fedex2024");return /puede procesar hasta 484\.000/.test(s.idea.es)&&/puede procesar hasta 484\.000/.test(ECAPP.LAB.fedex.refLine(EC.fedex(ECAPP.LAB.fedex.def)))}));
+
+ /* mapa con ciudades reales: nombres sin taparse a 390 px y en escritorio, con 5 a 50 ciudades y las dos reglas */
+ {const NOM=await p.evaluate(()=>EC.FXMAP.ciudades.map(c=>c[0]));
+  ok("Ciudades reales en orden fijo por tamaño: Memphis (el centro) y luego Chicago, Dallas, Atlanta, Houston, Kansas City, Detroit, Nueva Orleans, Denver, Nueva York, Los Ángeles, Miami, Seattle…",NOM.slice(0,13).join()==="Memphis,Chicago,Dallas,Atlanta,Houston,Kansas City,Detroit,Nueva Orleans,Denver,Nueva York,Los Ángeles,Miami,Seattle",NOM.slice(0,13));
+  ok("51 ciudades distintas: las 50 del control y la que se suma con 50",NOM.length===51&&new Set(NOM).size===51,NOM.length);
+  ok("Las posiciones son las del mapa (Memphis en EC.fedex().pos[0]) y el contorno de EE. UU. está en el modelo",await p.evaluate(()=>{const r=EC.fedex({n:25,P:186,cap:10,pol:"centro"}),M=EC.FXMAP;return r.pos[0][0]===M.ciudades[0][2]&&r.pos[0][1]===M.ciudades[0][3]&&M.us.length>150&&M.lagos.length===5&&r.nombres[24][0]==="Charlotte"&&r.sig[0]==="San Antonio"}));
+  const VWS=[["390 px",VIEW,"fedex_mapa_390"],["escritorio 1280 × 800",{viewport:{width:1280,height:800},locale:"es-CL"},"fedex_mapa_escritorio"]];
+  for(const[vn,vw,cap]of VWS){const cx=await b.newContext(vw);const q=await cx.newPage();await env(q);const er=[];q.on("pageerror",e=>er.push(e.message));
+   await q.goto(U+"?caso=fedex&ciudades=25&paquetes=186&caben=10&regla=centro");await q.waitForSelector("#play");await q.waitForTimeout(1800);
+   const bad=[],cnt=[];let nconf=0;
+   for(const pol of["directo","centro"])for(let n=5;n<=50;n++){nconf++;
+    await q.evaluate(([n,pol])=>ECAPP.set("fedex",{n,pol}),[n,pol]);
+    await q.waitForFunction(([n,g,m])=>{const lb=[...document.querySelectorAll(".labels")].find(x=>x.offsetParent&&x.children.length);if(!lb)return false;const L=[...lb.querySelectorAll(".lbl.c")];return L.length===n&&L.some(e=>e.textContent===g)&&[...lb.querySelectorAll(".lbl")].some(e=>e.textContent===m)},[n,"+ "+NOM[n],"Memphis"],{timeout:8000}).catch(()=>{});await q.waitForTimeout(60);
+    const R=await q.evaluate(()=>{const lb=[...document.querySelectorAll(".labels")].find(x=>x.offsetParent&&x.children.length);if(!lb)return null;const hr=lb.getBoundingClientRect(),pn=document.getElementById("panel"),P=pn&&pn.offsetParent?pn.getBoundingClientRect():null,rr=r=>({l:r.left,t:r.top,R:r.right,b:r.bottom});
+     return{L:[...lb.querySelectorAll(".lbl")].map(e=>({t:e.textContent,c:e.classList.contains("c"),p:e.dataset.p,hid:getComputedStyle(e).visibility==="hidden",fs:parseFloat(getComputedStyle(e).fontSize),r:rr(e.getBoundingClientRect())})),
+      B:{l:Math.max(0,hr.left),t:Math.max(0,hr.top),R:Math.min(innerWidth,hr.right),b:Math.min(innerHeight,hr.bottom)},P:P&&rr(P),D:(lb._dots||[]).map(d=>({l:d.left,t:d.top,R:d.right,b:d.bottom})),r:(()=>{const x=EC.fedex(ECAPP.STATE.fedex);return{n:x.n,pol:x.pol}})()}});
+    const st={n,pol};if(!R){bad.push(["sin rótulos",st]);continue}if(R.r.n!==n||R.r.pol!==pol){bad.push(["estado",st,R.r]);continue}
+    const ov=(a,c,m)=>a.l<c.R+m&&c.l<a.R+m&&a.t<c.b+m&&c.t<a.b+m,V_=R.L.filter(l=>!l.hid),out=x=>x.l<R.B.l-1||x.R>R.B.R+1||x.t<R.B.t-1||x.b>R.B.b+1;
+    for(let i=0;i<V_.length;i++)for(let j=i+1;j<V_.length;j++)if(ov(V_[i].r,V_[j].r,-0.5))bad.push(["se tapan",st,V_[i].t,V_[j].t]);
+    V_.forEach(l=>{if(out(l.r))bad.push(["fuera del escenario",st,l.t]);if(l.c&&R.P&&ov(l.r,R.P,-0.5))bad.push(["bajo el panel",st,l.t]);if(l.c&&l.fs<11)bad.push(["letra chica",st,l.t,l.fs])});
+    const cs=R.L.filter(l=>l.c&&l.p!=="99");if(cs.map(l=>l.t).join()!==NOM.slice(1,n).join())bad.push(["nombres",st,cs.length]);
+    const gh=R.L.find(l=>l.p==="99");if(!gh||gh.t!=="+ "+NOM[n])bad.push(["ciudad que se suma",st,gh&&gh.t]);
+    if(!V_.some(l=>/^Memphis/.test(l.t))||!V_.some(l=>l.t==="mapa ilustrativo")||!V_.some(l=>l.t==="ciudades de ejemplo: no son las 25 de 1973"))bad.push(["rótulos fijos",st]);
+    /* si un nombre se oculta es porque taparía otro rótulo que se muestra, el centro, el panel o el borde: se muestran primero los de las ciudades más grandes */
+    R.L.filter(l=>l.hid&&l.c).forEach(l=>{if(!(out(l.r)||V_.some(v=>ov(l.r,v.r,2))||(R.P&&ov(l.r,R.P,2))||R.D.some(d=>ov(l.r,d,2))))bad.push(["oculto sin motivo",st,l.t])});
+    cnt.push(V_.filter(l=>l.c&&l.p!=="99").length)}
+   ok(`Mapa en ${vn}: nombres sin taparse entre sí, dentro del escenario, fuera del panel y con letra ≥ 11 px; las ${nconf} configuraciones (5–50 ciudades × 2 reglas) con los nombres reales en orden, la que se suma rotulada, Memphis y «ciudades de ejemplo: no son las 25 de 1973» a la vista`,bad.length===0,bad.slice(0,4));
+   console.log(`   nombres a la vista en ${vn}: entre ${Math.min(...cnt)} y ${Math.max(...cnt)} (de 4 a 49 ciudades sin contar el centro)`);
+   for(const[nn,pp]of[[5,"centro"],[25,"centro"],[50,"directo"]]){await q.goto(U+`?caso=fedex&ciudades=${nn}&paquetes=186&caben=10&regla=${pp}`);await q.waitForSelector("#play");await q.waitForTimeout(1500);await q.click("#play");await q.waitForFunction(()=>ECAPP.mode==="done",null,{timeout:90000});await q.waitForTimeout(700);await q.screenshot({path:path.join(CAP,`${cap}_${nn}_${pp}.png`)})}
+   ok(`Mapa en ${vn}: sin errores de página y sin desborde horizontal`,er.length===0&&await q.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),er.slice(0,2));
+   if(vn==="390 px"){await q.goto(U+"?caso=fedex&ciudades=25&paquetes=186&caben=10&regla=centro");await q.waitForSelector("#play");await q.waitForTimeout(1500);
+    await q.evaluate(()=>ECAPP.set("fedex",{n:26}));await q.waitForTimeout(400);
+    const a=await q.evaluate(()=>{const lb=[...document.querySelectorAll(".labels")].find(x=>x.offsetParent&&x.children.length);return[...lb.querySelectorAll(".lbl")].map(e=>[e.textContent,!!e.querySelector(".r"),e.dataset.p,getComputedStyle(e).visibility!=="hidden"])});await q.screenshot({path:path.join(CAP,"fedex_suma_ciudad.png")});
+    await q.waitForTimeout(3600);const z=await q.evaluate(()=>{const lb=[...document.querySelectorAll(".labels")].find(x=>x.offsetParent&&x.children.length);return[...lb.querySelectorAll(".lbl")].filter(e=>e.textContent==="San Antonio").map(e=>!!e.querySelector(".r"))[0]});
+    const m=await q.evaluate(()=>ECAPP.metrics("fedex")[0].l);
+    ok("Sumar una ciudad: con 26, la nueva es San Antonio (la siguiente de la lista), se nombra a la vista y late en coral, y después vuelve a su color; la próxima que se sumaría es Portland",a.some(x=>x[0]==="San Antonio"&&x[1])&&a.some(x=>x[2]==="99"&&x[0]==="+ Portland")&&a.some(x=>x[0]==="San Antonio"&&x[2]==="0"&&x[3])&&z===false&&/sumar una ciudad \(Portland\): 1 nueva/.test(m),[a.filter(x=>/San Antonio|Portland/.test(x[0])),z,m])}
+   await cx.close()}}
  ok("Sin errores de página (FPUB=true)",errs.length===0,errs.slice(0,3));
  console.log(`${checks.filter(Boolean).length}/${checks.length}`);await b.close();srv.close&&srv.close();process.exit(checks.every(Boolean)?0:1)})().catch(e=>{console.error(e);process.exit(1)});

@@ -34,15 +34,24 @@ function sizeStage(){if(!V.S||!RND||!V.host)return;const w=V.host.clientWidth,h=
 function measurePad(){if(!V.id){V.pad={t:0,b:0};return}const top=document.querySelector(".g-top"),pan=$("panel"),host=V.host;if(!top||!pan||!host)return;const hr=host.getBoundingClientRect(),a=top.getBoundingClientRect(),d=pan.getBoundingClientRect();const side=window.innerWidth>=960;V.pad={t:a.bottom-hr.top+(side?20:10),b:side?24:hr.bottom-d.top+10}}
 function attach(host,S){if(V.S&&V.S!==S)disposeScene(V.S);V.S=S;V.host=host;V.cap=V.lbl="";const lb=host.querySelector(".labels"),cp=host.querySelector(".caption");if(lb)lb.innerHTML="";if(cp){cp.innerHTML="";cp.classList.remove("on")}/* no labels left over from the previous scene */const R=renderer();if(!R)return;host.prepend(R.domElement);if(RO){RO.disconnect();RO.observe(host)}V.vis=true;if(VIS){VIS.disconnect();VIS.observe(host)}V.el=V.top?1.5:S.el;sizeStage()}
 function detach(){if(V.S)disposeScene(V.S);V.S=null;V.host=null;if(RND&&RND.domElement.parentNode)RND.domElement.remove()}
+/* labels with a priority (data-p) are optional: shown only if they fit without covering another label, a city dot or the edge of the stage */
+const panelKey=()=>{const pn=$("panel");if(!pn||!pn.offsetParent)return"";const r=pn.getBoundingClientRect();return[r.left,r.top,r.width,r.height].map(Math.round).join()};
+function declutter(lb,S,w,hh){const hr=lb.getBoundingClientRect(),els=[...lb.children],keep=[],M=2,ov=(a,b)=>a.left<b.right+M&&b.left<a.right+M&&a.top<b.bottom+M&&b.top<a.bottom+M;
+ const top=Math.max(hr.top,0)+(V.pad&&V.pad.t||0),bot=Math.min(hr.bottom,innerHeight)-(V.pad&&V.pad.b||0),lef=Math.max(hr.left,0),rig=Math.min(hr.right,innerWidth);
+ const dots=(S.dots||[]).map(d=>{_v.set(d[0],d[1],d[2]);if(S.root)S.root.localToWorld(_v);_v.project(S.cam);const x=hr.left+(_v.x+1)/2*w,y=hr.top+(1-_v.y)/2*hh;return{i:d[3],left:x-4,right:x+4,top:y-4,bottom:y+4}});lb._dots=dots;
+ els.forEach(e=>{e.classList.remove("hid");if(e.dataset.p===undefined)keep.push(e.getBoundingClientRect())});const pn=$("panel");if(pn&&pn.offsetParent)keep.push(pn.getBoundingClientRect());/* the result panel floats over the stage on wide screens */
+ els.filter(e=>e.dataset.p!==undefined).sort((a,b)=>a.dataset.p-b.dataset.p).forEach(e=>{const r=e.getBoundingClientRect(),i=+e.dataset.i,out=r.left<lef||r.right>rig||r.top<top||r.bottom>bot;
+  if(out||keep.some(k=>ov(r,k))||dots.some(d=>d.i!==i&&ov(r,d)))e.classList.add("hid");else keep.push(r)})}
 function hud(){const S=V.S,host=V.host;if(!S||!host)return;const cap=host.querySelector(".caption"),lb=host.querySelector(".labels");
  const clk=$("clk");if(clk){const c=V.running?S.clock||"":"";if(clk.textContent!==c){clk.textContent=c;clk.classList.toggle("on",!!c)}}
  if(cap&&S.cap!==V.cap&&!V.ahaOn){V.cap=S.cap;cap.innerHTML=S.cap?`<span>${S.cap}</span>`:"";cap.classList.toggle("on",!!S.cap)}
  const w=host.clientWidth,hh=host.clientHeight;
- if(lb){let h="";(S.labels||[]).forEach(l=>{_v.set(l.x,l.y,l.z);if(S.root)S.root.localToWorld(_v);_v.project(S.cam);h+=`<div class="lbl" style="left:${((_v.x+1)/2*w).toFixed(0)}px;top:${((1-_v.y)/2*hh).toFixed(0)}px">${l.html}</div>`});if(h!==V.lbl){V.lbl=h;lb.innerHTML=h}}
+ if(lb){let h="";(S.labels||[]).forEach(l=>{_v.set(l.x,l.y,l.z);if(S.root)S.root.localToWorld(_v);_v.project(S.cam);h+=`<div class="lbl${l.cls?" "+l.cls:""}"${l.p!=null?` data-p="${l.p}"`:""}${l.i!=null?` data-i="${l.i}"`:""} style="left:${((_v.x+1)/2*w).toFixed(0)}px;top:${((1-_v.y)/2*hh).toFixed(0)}px">${l.html}</div>`});const pk=S.declutter?panelKey():"";if(h!==V.lbl||pk!==V.pk){V.pk=pk;if(h!==V.lbl){V.lbl=h;lb.innerHTML=h}if(S.declutter)declutter(lb,S,w,hh)}}
  const bu=$("bubble");if(bu&&V.bubble){const now=performance.now();if(now>V.bubble.until||!S.fleet.on[V.bubble.i]){bu.hidden=true;V.bubble=null}else{const F=S.fleet,i=V.bubble.i;_v.set(F.cx[i],2.4*F.sc,F.cz[i]);if(S.root)S.root.localToWorld(_v);_v.project(S.cam);const html=S.info(i);if(html&&html!==V.bubble.html){V.bubble.html=html;bu.innerHTML=html}bu.style.transform=`translate(${((_v.x+1)/2*w).toFixed(0)}px,${((1-_v.y)/2*hh).toFixed(0)}px) translate(-50%,-100%)`}}}
 function loop(now){requestAnimationFrame(loop);if(!V.S||!RND||V.lost||document.hidden||V.vis===false){V.last=now;return}const raw=Math.min(0.5,Math.max(0,(now-(V.last||now))/1000)),dt=Math.min(0.1,raw);V.last=now;
  const hero=!V.id&&V.S.tick;let draw=V.dirty>0||hero||!!V.bubble;
  if(hero)V.S.tick(dt,1);
+ if(V.S.pulse&&V.S.pulse(dt))draw=true;
  /* the run follows real elapsed time (capped at 0.5 s) so a slow phone still finishes in ~5 s */
  if(V.running){V.S.tick(Math.min(0.5,raw),(V.runSp||1)*(V.skip?14:1));draw=true;const pr=$("prog");if(pr)pr.style.width=Math.min(100,V.S.progress()*100).toFixed(1)+"%";if(V.S.done)finishRun()}
  if(Math.abs(V.el-V.elT)>0.002&&V.host){V.el+=(V.elT-V.el)*(1-Math.exp(-6*dt));fitFree();draw=true}
