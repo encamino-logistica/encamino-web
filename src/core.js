@@ -106,6 +106,39 @@ function ordenar(o){const n=o.n,k=Math.max(1,o.k||10),gr=oGrupos(n,o.pol,k),tot=
    · m min con motor encendido · furgón 247 g/km (Gutenschwager 2024) · s % vuelve el mismo día: desvío 2·d km · el resto al día siguiente: +0,29 km (GPS de nuestra operación, n=6).
    Regla "vecino": si no hay nadie, se deja con un vecino; las fallidas que vuelven bajan 37,5 % (Ofcom 2012 §4.3: 12 % → 7,5 %).
    Reel: 10.000 pedidos/día · 5 % no están · 2 min · d 0,6 km · 80 % → 346 g por fallida · 63,2 t al año · 2.870 árboles (22 kg EEA) · 27,3 % esperando. ---------- */
+/* reel 15 · inventario fantasma. Réplica del modelo de Kang y Gershwin (working paper del MIT, 2004, §2.2, p. 8–10; IIE Transactions
+   37(9), 2005), la misma lógica y parámetros de salidas/R015/replica_kang_gershwin.py: un producto, política (Q, R) revisada cada día con
+   el REGISTRO (si registro + pedido en camino ≤ R se pide Q), Q = 50, R = 41, plazo L = 3, demanda normal truncada media 10 y desviación 2
+   (se descartan las negativas; redondeada a la unidad), pérdida Poisson de media λ = pérdida % × 10 / 100, ventas perdidas, 365 días,
+   inicio R + Q − μL = 61 con registro = físico. Orden del día (p. 9): 1) revisión y pedido; 2) llega lo pedido; 3) ventas y pérdida,
+   repartidas en proporción si no alcanza (ec. 3, la venta redondeada al entero, mitades al par como numpy.rint). El registro suma lo
+   recibido y resta lo vendido; la pérdida no entra (ec. 4 y 5). «Restar» baja el registro λ cada día (§3.1.4, p. 16); «contar cada N
+   días» iguala registro = físico al final de los días N, 2N… (§3.1.2, p. 15–16). 500 corridas con semilla fija; la demanda y la pérdida
+   salen de dos generadores distintos, así todas las posiciones de los controles ven la misma demanda. */
+const INV={MU:10,SIG:2,L:3,Q:50,R:41,DIAS:365,CORR:500,SEED:20261117,CONTEOS:[0,182,91,30,7]};
+function iRint(x){const f=Math.floor(x),d=x-f;return d>0.5?f+1:d<0.5?f:(f%2===0?f:f+1)}
+function iPois(r,lam){if(!(lam>0))return 0;const e=Math.exp(-lam);let k=0,p=r();while(p>e){k++;p*=r()}return k}
+function iDem(r){let w;do{w=INV.MU+INV.SIG*normS(r)}while(w<0);return iRint(w)}
+function iSeed(k){return(INV.SEED+Math.imul(k+1,0x9E3779B1))>>>0}
+function invAnio(lam,N,restar,k,traza){const L=INV.L,Q=INV.Q,R=INV.R,rD=rngFrom(iSeed(k)),rV=rngFrom(iSeed(k)^0x5BD1E995);
+ let x=R+Q-INV.MU*L,xr=x,dem=0,pv=0,pr=0,st=0,sr=0,vac=0,cong=0;const cam=new Array(L+1).fill(0),T=traza?{xr:[],x:[],lost:[],pide:[],cuenta:[]}:null;
+ for(let dia=1;dia<=INV.DIAS;dia++){let enc=0;for(let j=0;j<=L;j++)enc+=cam[j];const pide=xr+enc<=R;if(pide)cam[L]+=Q;
+  const h=cam[0];for(let j=0;j<L;j++)cam[j]=cam[j+1];cam[L]=0;const disp=x+h,w=iDem(rD),v=iPois(rV,lam);
+  let a=w,p=v;if(w+v>disp){a=iRint(disp*w/(w+v));p=Math.min(v,disp-a)}
+  xr=xr+h-a;x=disp-a-p;dem+=w;pv+=w-a;pr+=p;st+=x;if(w>a)vac++;if(x<=0&&xr>R&&!pide&&enc===0)cong++;
+  if(restar)xr-=lam;/* como en el paper: con «restar» el registro es una estimación y puede bajar de cero; la pantalla muestra máx(0, registro) */const cu=N>0&&dia%N===0;if(cu)xr=x;sr+=xr;
+  if(T){T.xr.push(xr);T.x.push(x);T.lost.push(w-a);T.pide.push(pide);T.cuenta.push(cu)}}
+ return{q:dem>0?pv/dem:0,dem,pv,pr,st:st/INV.DIAS,sr:sr/INV.DIAS,vac,cong,xr,x,T}}
+const ICACHE={};
+function inventario(o){const pp=Math.max(0,Math.min(7,Math.round((+o.p||0)*10)/10)),N=INV.CONTEOS.includes(+o.N)?+o.N:0,restar=o.pol==="restar",lam=INV.MU*pp/100,key=pp+"|"+N+"|"+restar;
+ let b=ICACHE[key];if(!b){const C=INV.CORR,qs=[];let dem=0,pv=0,pr=0,st=0,sr=0,vac=0,cong=0,fx=0,fxr=0,anyLost=0;
+  for(let k=0;k<C;k++){const y=invAnio(lam,N,restar,k,false);qs.push(y.q);dem+=y.dem;pv+=y.pv;pr+=y.pr;st+=y.st;sr+=y.sr;vac+=y.vac;cong+=y.cong;fx+=y.x;fxr+=y.xr;if(y.pv>0)anyLost++}
+  const ord=qs.map((q,k)=>[q,k]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]),pc=f=>{const i=(C-1)*f,lo=Math.floor(i),hi=Math.ceil(i);return ord[lo][0]+(ord[hi][0]-ord[lo][0])*(i-lo)};
+  const q=qs.reduce((s,v)=>s+v,0)/C,med=ord[Math.floor(C/2)][1],tipico=invAnio(lam,N,restar,med,true);
+  b=ICACHE[key]={p:pp,N,restar,lam,q,p10:pc(0.1),p90:pc(0.9),perdReal:pr/dem,mult:pr>0?pv/pr:null,vacio:vac/C,cong:cong/C,stock:st/C,registro:sr/C,finX:fx/C,finXr:fxr/C,
+   demAnio:dem/C,perdidasAnio:pv/C,unidadesPerdidas:pr/C,anyLost,tipico:tipico.T,tq:tipico.q,tvac:tipico.vac,corridas:C}}
+ const ref=inventario0();return Object.assign({},b,{ref:ref.q,you:b.q,score:score(ref.q,b.q),valid:true})}
+function inventario0(){const k="0|0|false";if(!ICACHE[k])inventario({p:0,N:0,pol:"nada"});return ICACHE[k]}
 /* reel 18 · el GPS contra el conductor. Datos del estudio: Cook, Held y Helsgaun (2021), arXiv 2112.15192 v2, tablas 1 y 3:
    ruta óptima por tiempo de viaje (ATSP) 10.853,3 s, la del conductor 12.250,0 s, la que termina cada zona antes de la siguiente
    11.235,1 s; unas 20 zonas por ruta (§4.2). El empate por barrio es cálculo propio (calculo_R018): (12.250,0 − 10.853,3) ÷ 20 ÷ 60. */
@@ -182,7 +215,7 @@ function locker(o){const k=Math.max(1,Math.min(50,Math.round(+o.k||LK.PROM))),di
  const L5=lkMinL(LK.PROM),ref=LK.CL/Math.floor(MIN/(L5.par+L5.viaje)+1e-9);
  return{k,dist,u,pol,acc,p,MIN,tH,tHpar,tHv,tL,tLpar:L.par,tLv:L.viaje,kmL:L.km,entL:L.ent,nH,nL,nM,nHt,nLt,nMt,capH,capL,capM,cH,cL,cM,costM,n,c,lleno,
   veces:cH/c,usoL:nL*LK.VOLL/LK.VAN,ref,you:c,score:score(ref,c),valid:true}}
-return{gps,gpsEstudio,GPSD,gPts,aire,aKg,AI,locker,LK,lkInterp,co2,C2,ordenar,oGrupos,VCAP,bodegas,vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
+return{inventario,invAnio,INV,iRint,gps,gpsEstudio,GPSD,gPts,aire,aKg,AI,locker,LK,lkInterp,co2,C2,ordenar,oGrupos,VCAP,bodegas,vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
 })();
 /* </core> */
 if(typeof module!=="undefined")module.exports=EC;
