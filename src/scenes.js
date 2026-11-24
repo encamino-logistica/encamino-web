@@ -620,6 +620,47 @@ function sceneGps(st){const M=24,W=M+5,D=M+5;const{scene,g}=diorama(W,D,P.asphal
  S.ff=st2=>S.apply(st2);
  build();at(0);return S}
 
+/* ---------------- FEDEX · más lejos a propósito (reel 20) ----------------
+   Mapa ilustrativo (sin fronteras ni geografía real): las ciudades como edificios, la del medio es el centro (amarillo).
+   Se trazan las conexiones de la red elegida; el color dice qué tan cargado va el avión de cada una (coral casi vacío, amarillo a medias,
+   verde lleno, gris sin paquetes) y al final un paquete recorre cada conexión con carga. */
+function sceneFedex(st){const M=22,W=M+4,D=M+4;const{scene,g}=diorama(W,D,P.slabTop);
+ const XZ=q=>[(q[0]-0.5)*M,(q[1]-0.5)*M],NX=EC.FX.NMAX,EMAX=NX*(NX-1)/2;
+ const city=inst(g,rboxG(0.62,0.7,0.62,0.1),new THREE.MeshLambertMaterial({color:0xffffff}),NX);city.material.userData.own=true;
+ const hub=new THREE.Group(),hubM=new THREE.MeshLambertMaterial({color:P.yellow});hubM.userData.own=true;rb(hub,1.3,1.1,1.3,hubM,0,0,0,0.16);g.add(hub);
+ const ln=inst(g,rboxG(1,0.05,0.07,0.02),new THREE.MeshBasicMaterial({color:0xffffff}),EMAX,false);ln.material.userData.own=true;
+ const pk=inst(g,rboxG(0.26,0.2,0.26,0.05),new THREE.MeshLambertMaterial({color:P.carton||0xC79A5B}),EMAX,false);pk.material.userData.own=true;
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-M/2,0,-M/2),new THREE.Vector3(M/2,2,M/2)),{root:g,az:0.62,azP:0.4,el:1.0});
+ let cur=Object.assign({},st),r=EC.fedex(cur),ms=0,E=[];const dur=6500;const COL={vac:P.coral,med:P.yellow,lle:P.mint,sin:0x5A6788};
+ function build(){r=EC.fedex(cur);const p=r.pos,n=r.n,cap=r.cap;E=[];
+  if(r.cen){for(let i=1;i<n;i++)E.push([0,i])}else{for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)E.push([i,j])}
+  /* las conexiones que llevan un paquete más (reparto parejo), repartidas por el mapa */
+  const C=E.length,b=Math.floor(r.P/C),x=r.P-b*C,rr=EC.rngFrom(97+n*13+r.P),ord=E.map((e,k)=>[rr(),k]).sort((a,c)=>a[0]-c[0]).map(a=>a[1]),q=new Array(C).fill(b);for(let k=0;k<x;k++)q[ord[k]]++;
+  E=E.map((e,k)=>{const a=XZ(p[e[0]]),c=XZ(p[e[1]]),l=Math.hypot(c[0]-a[0],c[1]-a[1]),av=Math.max(1,Math.ceil(q[k]/cap)),f=q[k]/(av*cap);return{a,c,l,q:q[k],k:q[k]===0?"sin":f<EC.FX.VACIO?"vac":f>=EC.FX.LLENO?"lle":"med",ord:rr()}});
+  for(let i=0;i<NX;i++){if(i>0&&i<n){const[cx,cz]=XZ(p[i]);setI(city,i,cx,0,cz,1,1,1);city.setColorAt(i,_c.setHex(0xF1E8D6))}else setI(city,i,0,-9,0,0.01,0.01,0.01)}
+  city.instanceMatrix.needsUpdate=true;if(city.instanceColor)city.instanceColor.needsUpdate=true;const[hx,hz]=XZ(p[0]);hub.position.set(hx,0,hz);/* en ciudad con ciudad es una ciudad más; con centro, el centro */hubM.color.setHex(r.cen?P.yellow:0xF1E8D6);hub.scale.setScalar(r.cen?1:0.62)}
+ function at(){const u=Math.min(1,ms/dur),dr=Math.min(1,u/0.55),C=E.length;let vis=0;
+  for(let i=0;i<EMAX;i++){if(i<C){const e=E[i];
+    if(dr>=1||i<dr*C){const f=dr>=1?1:Math.min(1,dr*C-i),mx=e.a[0]+(e.c[0]-e.a[0])*f/2,mz=e.a[1]+(e.c[1]-e.a[1])*f/2,ang=Math.atan2(-(e.c[1]-e.a[1]),e.c[0]-e.a[0]);
+     setI(ln,i,mx,0.08+(i%7)*0.004,mz,Math.max(0.01,e.l*f),1,1,ang);ln.setColorAt(i,_c.setHex(COL[e.k]));vis++}else setI(ln,i,0,-9,0,0.01,1,1)}
+   else setI(ln,i,0,-9,0,0.01,1,1)}
+  ln.instanceMatrix.needsUpdate=true;if(ln.instanceColor)ln.instanceColor.needsUpdate=true;
+  const pu=u<0.6?-1:Math.min(1,(u-0.6)/0.36);
+  for(let i=0;i<EMAX;i++){if(i<C&&pu>=0&&E[i].q>0){const e=E[i],f=ease(pu);setI(pk,i,e.a[0]+(e.c[0]-e.a[0])*f,0.18,e.a[1]+(e.c[1]-e.a[1])*f,1,1,1)}else setI(pk,i,0,-9,0,0.01,0.01,0.01)}
+  pk.instanceMatrix.needsUpdate=true;
+  const a=r.a;S.clock=`${nf(vis)} ${vis===1?T("conexión","connection"):T("conexiones","connections")}`;
+  const lab=[{x:-M/2+2.2,y:0.2,z:M/2+1.6,html:`<span style="opacity:.8">${T("mapa ilustrativo","illustrative map")}</span>`}];
+  S.labels=lab;
+  S.cap=u>=1?(r.cen?T(`Con un centro: ${B_(pl(r.C,"conexión","conexiones"))}, ${B_(nf(r.q,2))} paquetes por conexión en promedio · ${nf(a.lle)} aviones llenos · ${B_("+"+nf(r.des*100)+" %")} de distancia por el desvío`,`With a hub: ${B_(r.C+(r.C===1?" connection":" connections"))}, ${B_(nf(r.q,2))} packages per connection on average · ${nf(a.lle)} full aircraft · ${B_("+"+nf(r.des*100)+" %")} distance from the detour`)
+    :T(`Ciudad con ciudad: ${B_(nf(r.C)+" conexiones")}, ${B_(nf(r.q,2))} paquetes por conexión en promedio · ${B_(nf(a.vac))} de ${nf(a.av)} aviones casi vacíos`,`City to city: ${B_(nf(r.C)+" connections")}, ${B_(nf(r.q,2))} packages per connection on average · ${B_(nf(a.vac))} of ${nf(a.av)} aircraft almost empty`))
+   :u<0.55?(r.cen?T(`Cada ciudad se une solo con el centro (amarillo): ${B_(nf(r.n-1))} conexiones`,`Each city joins only the hub (yellow): ${B_(nf(r.n-1))} connections`):T(`Cada ciudad se une con todas las demás: ${r.n} × ${r.n-1} ÷ 2 = ${B_(nf(r.CD))} conexiones`,`Each city joins all the others: ${r.n} × ${r.n-1} ÷ 2 = ${B_(nf(r.CD))} connections`))
+   :T(`${nf(r.P)} paquetes repartidos parejo: coral casi vacío, amarillo a medias, verde lleno, gris sin paquetes`,`${nf(r.P)} packages spread evenly: coral almost empty, yellow half full, green full, grey no packages`);return true}
+ S.info=()=>null;
+ S.apply=st2=>{cur=Object.assign({},st2);build();ms=0;at()};S.prewarm=()=>{build();ms=dur*0.5;at()};S.startRun=()=>{build();ms=0;S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=null}return at()};
+ S.ff=st2=>S.apply(st2);
+ build();at();return S}
+
 /* ---------------- UPS · the race repeats ---------------- */
 function sceneUps(st){const a=st.X/40,b=st.X/40;const W=Math.max(32,2*(a+6)),D=Math.max(32,2*(b+6));const{scene,g}=diorama(W,D,P.grass);
  roadZ(g,D/2-0.4,-D/2+0.4,0,3.0);roadX(g,-W/2+0.4,W/2-0.4,0,3.0);for(let i=-3;i<=3;i++){flat(g,0.32,1.6,P.line,i*0.42,0.022,2.4);flat(g,1.6,0.32,P.line,-2.4,0.022,i*0.42)}

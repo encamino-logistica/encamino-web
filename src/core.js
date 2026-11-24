@@ -182,7 +182,34 @@ function locker(o){const k=Math.max(1,Math.min(50,Math.round(+o.k||LK.PROM))),di
  const L5=lkMinL(LK.PROM),ref=LK.CL/Math.floor(MIN/(L5.par+L5.viaje)+1e-9);
  return{k,dist,u,pol,acc,p,MIN,tH,tHpar,tHv,tL,tLpar:L.par,tLv:L.viaje,kmL:L.km,entL:L.ent,nH,nL,nM,nHt,nLt,nMt,capH,capL,capM,cH,cL,cM,costM,n,c,lleno,
   veces:cH/c,usoL:nL*LK.VOLL/LK.VAN,ref,you:c,score:score(ref,c),valid:true}}
-return{gps,gpsEstudio,GPSD,gPts,aire,aKg,AI,locker,LK,lkInterp,co2,C2,ordenar,oGrupos,VCAP,bodegas,vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
+/* ---------- FEDEX · más lejos a propósito (reel 20). Cifras de la hoja de cifras del reel (reels/R020/hoja_cifras.json):
+   Según FedEx, la primera noche (17-04-1973) 14 aviones llevaron 186 paquetes a 25 ciudades (historia corporativa; Newsroom 17-04-2013);
+   hoy el centro de Memphis puede procesar hasta 484.000 paquetes por hora (capacidad, no volumen; Newsroom 30-10-2024).
+   Cálculo propio: ciudad con ciudad n(n−1)/2 = 300 conexiones; con un centro n−1 = 24; 186 ÷ 24 = 7,75 paquetes por conexión en promedio;
+   sumar la ciudad 26: 25 conexiones nuevas contra 1. Teoría: Hendricks, Piccione y Tan (1995), la red más chica que une n ciudades tiene n−1 conexiones.
+   Supuestos ilustrativos (marcados en la página): mapa inventado, distancias en línea recta, un avión por conexión cada noche,
+   paquetes repartidos parejo entre conexiones y entre pares de ciudades, y cuántos paquetes caben en un avión. ---------- */
+const FX={N0:25,P0:186,AV0:14,AN0:1973,HUB:484000,NMIN:5,NMAX:50,PMIN:10,PMAX:1000,CMIN:5,CMAX:50,CAP0:10,VACIO:0.25,LLENO:0.75};
+let FXPOS=null;
+function fxPos(){if(FXPOS)return FXPOS;const r=rngFrom(20201973),p=[[0.5,0.52]];let t=0;/* la ciudad 1 es el centro; las demás, al azar con separación mínima (mapa ilustrativo) */
+ while(p.length<FX.NMAX&&t<20000){t++;const x=0.06+r()*0.88,y=0.1+r()*0.82;if(p.every(q=>Math.hypot(q[0]-x,q[1]-y)>(t<8000?0.085:0.06)))p.push([x,y])}
+ return FXPOS=p}
+const fxClamp=(v,a,b,d)=>{v=Math.round(+v);return isFinite(v)?Math.max(a,Math.min(b,v)):d};
+const fxConD=n=>n*(n-1)/2,fxConH=n=>n-1;
+function fxCarga(P,C,cap){/* P paquetes parejos en C conexiones: unas llevan ⌊P/C⌋ y otras uno más; un avión por conexión (más si no cabe) */
+ const b=Math.floor(P/C),x=P-b*C,grupos=[[C-x,b],[x,b+1]].filter(g=>g[0]>0);let av=0,vac=0,med=0,lle=0,sin=0;
+ for(const[k,q]of grupos){const a=Math.max(1,Math.ceil(q/cap)),f=q/(a*cap);av+=k*a;if(q===0)sin+=k;if(f<FX.VACIO)vac+=k*a;else if(f>=FX.LLENO)lle+=k*a;else med+=k*a}
+ return{av,vac,med,lle,sin,occ:P/(av*cap),b,x}}
+const FXDES={};
+function fxDesvio(n){if(FXDES[n]!==undefined)return FXDES[n];const p=fxPos(),d=(a,b)=>Math.hypot(p[a][0]-p[b][0],p[a][1]-p[b][1]);let dir=0,cen=0;
+ for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){dir+=d(i,j);cen+=(i===0||j===0)?d(i,j):d(i,0)+d(0,j)}return FXDES[n]=cen/dir-1}
+function fedex(o){const n=fxClamp(o.n,FX.NMIN,FX.NMAX,FX.N0),P=fxClamp(o.P,FX.PMIN,FX.PMAX,FX.P0),cap=fxClamp(o.cap,FX.CMIN,FX.CMAX,FX.CAP0),cen=o.pol==="centro";
+ const CD=fxConD(n),CH=fxConH(n),C=cen?CH:CD,qD=P/CD,qH=P/CH,q=cen?qH:qD,aD=fxCarga(P,CD,cap),aH=fxCarga(P,CH,cap),a=cen?aH:aD;
+ const des=fxDesvio(n),pares=fxConD(n),porPar=P/pares,pos=fxPos().slice(0,n);
+ return{n,P,cap,pol:cen?"centro":"directo",cen,C,CD,CH,q,qD,qH,veces:CD/CH,nuevasD:n,nuevasH:1,llegoD:n-1,llegoH:1,a,aD,aH,des:cen?des:0,desC:des,pares,porPar,porCiudad:P/n,pos,
+  E:{av:FX.AV0,P:FX.P0,n:FX.N0,anio:FX.AN0,hub:FX.HUB,CD:fxConD(FX.N0),CH:fxConH(FX.N0),q:FX.P0/fxConH(FX.N0),nuevas:fxConD(FX.N0+1)-fxConD(FX.N0)},
+  ref:CH,you:C,score:score(CH,C),valid:true}}
+return{fedex,FX,fxPos,fxCarga,fxDesvio,fxConD,fxConH,gps,gpsEstudio,GPSD,gPts,aire,aKg,AI,locker,LK,lkInterp,co2,C2,ordenar,oGrupos,VCAP,bodegas,vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
 })();
 /* </core> */
 if(typeof module!=="undefined")module.exports=EC;
