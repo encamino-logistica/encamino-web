@@ -655,6 +655,68 @@ function sceneGps(st){const M=24,W=M+5,D=M+5;const{scene,g}=diorama(W,D,P.asphal
  S.ff=st2=>S.apply(st2);
  build();at(0);return S}
 
+/* ---------------- FEDEX · más lejos a propósito (reel 20) ----------------
+   Mapa ilustrativo (sin fronteras ni geografía real): las ciudades como edificios, la del medio es el centro (amarillo).
+   Se trazan las conexiones de la red elegida; el color dice qué tan cargado va el avión de cada una (coral casi vacío, amarillo a medias,
+   verde lleno, gris sin paquetes) y al final un paquete recorre cada conexión con carga. */
+/* la escena se vuelve a montar con cada cambio de los controles: el número de ciudades anterior vive afuera, para que la recién sumada lata */
+let FXN_ANT=null;
+function sceneFedex(st){const MAP=EC.FXMAP,ASP=MAP.asp,MW=30,MD=MW*ASP,W=MW+1.6,D=MD+3.4;const{scene,g}=diorama(W,D,0x24314F);
+ /* mapa ilustrativo: contorno de EE. UU. sin fronteras estatales (Natural Earth lowres) y lagos como en el reel R020 */
+ const XZ=q=>[(q[0]-0.5)*MW,(q[1]-ASP/2)*MW],NX=EC.FX.NMAX,EMAX=NX*(NX-1)/2,Y0=0.14;
+ const shp=pts=>new THREE.Shape(pts.map(q=>{const[x,z]=XZ(q);return new THREE.Vector2(x,-z)}));
+ const land=new THREE.Mesh(new THREE.ExtrudeGeometry(shp(MAP.us),{depth:Y0,bevelEnabled:false}),new THREE.MeshLambertMaterial({color:0x4A5C8C}));land.rotation.x=-Math.PI/2;land.position.y=0;land.receiveShadow=true;land.material.userData.own=true;g.add(land);
+ const lagoM=new THREE.MeshLambertMaterial({color:0x24314F});lagoM.userData.own=true;MAP.lagos.forEach(l=>{const m=new THREE.Mesh(new THREE.ExtrudeGeometry(shp(l),{depth:0.02,bevelEnabled:false}),lagoM);m.rotation.x=-Math.PI/2;m.position.y=Y0;g.add(m)});
+ const city=inst(g,rboxG(0.42,0.5,0.42,0.08),new THREE.MeshLambertMaterial({color:0xffffff}),NX);city.material.userData.own=true;
+ const hub=new THREE.Group(),hubM=new THREE.MeshLambertMaterial({color:P.yellow});hubM.userData.own=true;rb(hub,0.95,0.8,0.95,hubM,0,0,0,0.12);g.add(hub);
+ const nueM=new THREE.MeshLambertMaterial({color:P.coral,transparent:true,opacity:0.95});nueM.userData.own=true;const nue=new THREE.Group();rb(nue,0.5,0.55,0.5,nueM,0,0,0,0.1);g.add(nue);
+ const ln=inst(g,rboxG(1,0.05,0.07,0.02),new THREE.MeshBasicMaterial({color:0xffffff}),EMAX,false);ln.material.userData.own=true;
+ const gl=inst(g,rboxG(1,0.03,0.05,0.01),new THREE.MeshBasicMaterial({color:P.coral,transparent:true,opacity:0.8}),NX,false);gl.material.userData.own=true;
+ const pk=inst(g,rboxG(0.22,0.17,0.22,0.04),new THREE.MeshLambertMaterial({color:P.carton||0xC79A5B}),EMAX,false);pk.material.userData.own=true;
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2,0,-D/2),new THREE.Vector3(W/2,1.2,D/2)),{root:g,az:0.0,azP:0.0,el:1.12,long:"z"});
+ let cur=Object.assign({},st),r=EC.fedex(cur),ms=0,E=[],tp=0,late=0,lateI=-1;const dur=6500;const COL={vac:P.coral,med:P.yellow,lle:P.mint,sin:0x5A6788};
+ const nom=x=>x?T(x[0],x[1]):"";
+ function build(){r=EC.fedex(cur);const p=r.pos,n=r.n,cap=r.cap;E=[];
+  if(r.cen){for(let i=1;i<n;i++)E.push([0,i])}else{for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)E.push([i,j])}
+  /* las conexiones que llevan un paquete más (reparto parejo), repartidas por el mapa */
+  const C=E.length,b=Math.floor(r.P/C),x=r.P-b*C,rr=EC.rngFrom(97+n*13+r.P),ord=E.map((e,k)=>[rr(),k]).sort((a,c)=>a[0]-c[0]).map(a=>a[1]),q=new Array(C).fill(b);for(let k=0;k<x;k++)q[ord[k]]++;
+  E=E.map((e,k)=>{const a=XZ(p[e[0]]),c=XZ(p[e[1]]),l=Math.hypot(c[0]-a[0],c[1]-a[1]),av=Math.max(1,Math.ceil(q[k]/cap)),f=q[k]/(av*cap);return{a,c,l,q:q[k],k:q[k]===0?"sin":f<EC.FX.VACIO?"vac":f>=EC.FX.LLENO?"lle":"med",ord:rr()}});
+  for(let i=0;i<NX;i++){if(i>0&&i<n){const[cx,cz]=XZ(p[i]);setI(city,i,cx,Y0,cz,1,1,1);city.setColorAt(i,_c.setHex(0xF1E8D6))}else setI(city,i,0,-9,0,0.01,0.01,0.01)}
+  city.instanceMatrix.needsUpdate=true;if(city.instanceColor)city.instanceColor.needsUpdate=true;const[hx,hz]=XZ(p[0]);hub.position.set(hx,Y0,hz);/* en ciudad con ciudad es una ciudad más; con centro, el centro */hubM.color.setHex(r.cen?P.yellow:0xF1E8D6);hub.scale.setScalar(r.cen?1:0.5);
+  /* la ciudad que se suma (la siguiente de la lista): late, y al final muestra lo que costaría unirla */
+  const sp=EC.fxPos()[n];nue.visible=!!sp;if(nue.visible){const[sx,sz]=XZ(sp);nue.position.set(sx,Y0,sz)}
+  for(let i=0;i<NX;i++)setI(gl,i,0,-9,0,0.01,1,1);gl.instanceMatrix.needsUpdate=true;
+  /* los nombres no tapan el centro ni la ciudad que se suma */S.dots=[[hx,Y0+0.5,hz,0]];if(nue.visible)S.dots.push([nue.position.x,Y0+0.3,nue.position.z,n])}
+ function nueLines(on){const n=r.n;if(!nue.visible)return;const sx=nue.position.x,sz=nue.position.z,tg=r.cen?[0]:Array.from({length:n},(_,i)=>i);
+  for(let i=0;i<NX;i++){if(on&&i<tg.length){const[cx,cz]=XZ(r.pos[tg[i]]),l=Math.hypot(cx-sx,cz-sz),ang=Math.atan2(-(cz-sz),cx-sx);setI(gl,i,(sx+cx)/2,Y0+0.06,(sz+cz)/2,Math.max(0.01,l),1,1,ang)}else setI(gl,i,0,-9,0,0.01,1,1)}gl.instanceMatrix.needsUpdate=true}
+ function labels(){const L=[{x:0,y:0.2,z:-MD/2-0.7,html:`<span style="opacity:.85">${T("mapa ilustrativo","illustrative map")}</span>`},{x:0,y:0.2,z:MD/2+1.0,html:`<span style="opacity:.85">${T("ciudades de ejemplo: no son las 25 de 1973","example cities: not the 25 of 1973")}</span>`}];
+  const[hx,hz]=XZ(r.pos[0]);L.push({x:hx,y:Y0+1.1,z:hz,html:r.cen?`<span class="y">Memphis</span>`:"Memphis"});
+  if(nue.visible)L.push({x:nue.position.x,y:Y0+0.75,z:nue.position.z,cls:"c",p:99,i:r.n,html:`<span class="r">+ ${nom(r.sig)}</span>`});
+  r.pos.forEach((q,i)=>{if(i===0)return;const[cx,cz]=XZ(q);L.push({x:cx,y:Y0+0.62,z:cz,cls:"c",p:i===lateI&&late>0?0:i,i,html:i===lateI&&late>0?`<span class="r">${nom(r.nombres[i])}</span>`:nom(r.nombres[i])})});return L}
+ function at(){const u=Math.min(1,ms/dur),dr=Math.min(1,u/0.55),C=E.length;let vis=0;
+  for(let i=0;i<EMAX;i++){if(i<C){const e=E[i];
+    if(dr>=1||i<dr*C){const f=dr>=1?1:Math.min(1,dr*C-i),mx=e.a[0]+(e.c[0]-e.a[0])*f/2,mz=e.a[1]+(e.c[1]-e.a[1])*f/2,ang=Math.atan2(-(e.c[1]-e.a[1]),e.c[0]-e.a[0]);
+     setI(ln,i,mx,Y0+0.08+(i%7)*0.004,mz,Math.max(0.01,e.l*f),1,1,ang);ln.setColorAt(i,_c.setHex(COL[e.k]));vis++}else setI(ln,i,0,-9,0,0.01,1,1)}
+   else setI(ln,i,0,-9,0,0.01,1,1)}
+  ln.instanceMatrix.needsUpdate=true;if(ln.instanceColor)ln.instanceColor.needsUpdate=true;
+  const pu=u<0.6?-1:Math.min(1,(u-0.6)/0.36);
+  for(let i=0;i<EMAX;i++){if(i<C&&pu>=0&&E[i].q>0){const e=E[i],f=ease(pu);setI(pk,i,e.a[0]+(e.c[0]-e.a[0])*f,Y0+0.18,e.a[1]+(e.c[1]-e.a[1])*f,1,1,1)}else setI(pk,i,0,-9,0,0.01,0.01,0.01)}
+  pk.instanceMatrix.needsUpdate=true;nueLines(u>=1);
+  const a=r.a,sg=nom(r.sig);S.clock=`${nf(vis)} ${vis===1?T("conexión","connection"):T("conexiones","connections")}`;
+  S.labels=labels();
+  S.cap=u>=1?(r.cen?T(`Con un centro: ${B_(pl(r.C,"conexión","conexiones"))}, ${B_(nf(r.q,2))} paquetes por conexión con el centro, en promedio · ${nf(a.lle)} aviones llenos · ${B_("+"+nf(r.des*100)+" %")} de distancia por el desvío${sg?` · sumar ${sg}: ${B_("1 conexión nueva")}`:""}`,`With a hub: ${B_(r.C+(r.C===1?" connection":" connections"))}, ${B_(nf(r.q,2))} packages per connection with the hub, on average · ${nf(a.lle)} full aircraft · ${B_("+"+nf(r.des*100)+" %")} distance from the detour${sg?` · adding ${sg}: ${B_("1 new connection")}`:""}`)
+    :T(`Ciudad con ciudad: ${B_(nf(r.C)+" conexiones")}, ${B_(nf(r.q,2))} paquetes por conexión en promedio · ${B_(nf(a.vac))} de ${nf(a.av)} aviones casi vacíos${sg?` · sumar ${sg}: ${B_(nf(r.nuevasD)+" conexiones nuevas")}`:""}`,`City to city: ${B_(nf(r.C)+" connections")}, ${B_(nf(r.q,2))} packages per connection on average · ${B_(nf(a.vac))} of ${nf(a.av)} aircraft almost empty${sg?` · adding ${sg}: ${B_(nf(r.nuevasD)+" new connections")}`:""}`))
+   :u<0.55?(r.cen?T(`Cada ciudad se une solo con el centro, Memphis (amarillo): ${B_(nf(r.n-1))} conexiones`,`Each city joins only the hub, Memphis (yellow): ${B_(nf(r.n-1))} connections`):T(`Cada ciudad se une con todas las demás: ${r.n} × ${r.n-1} ÷ 2 = ${B_(nf(r.CD))} conexiones`,`Each city joins all the others: ${r.n} × ${r.n-1} ÷ 2 = ${B_(nf(r.CD))} connections`))
+   :T(`${nf(r.P)} paquetes repartidos parejo: coral casi vacío, amarillo a medias, verde lleno, gris sin paquetes`,`${nf(r.P)} packages spread evenly: coral almost empty, yellow half full, green full, grey no packages`);return true}
+ S.info=()=>null;S.declutter=true;
+ /* late la ciudad que se suma; si se acaba de agregar una con el control, también late un rato */
+ S.pulse=dt=>{tp+=dt;const k=1+0.28*Math.sin(tp*5.2);nue.scale.set(k,1+0.5*(k-1),k);nueM.opacity=0.65+0.3*(0.5+0.5*Math.sin(tp*5.2));
+  if(late>0){late=Math.max(0,late-dt);if(lateI>0&&lateI<r.n){const[cx,cz]=XZ(r.pos[lateI]),s=1+0.45*Math.abs(Math.sin(tp*6));setI(city,lateI,cx,Y0,cz,s,s,s);city.setColorAt(lateI,_c.setHex(late>0?P.coral:0xF1E8D6));city.instanceMatrix.needsUpdate=true;if(city.instanceColor)city.instanceColor.needsUpdate=true}if(late===0){lateI=-1;S.labels=labels()}}return true};
+ S.apply=st2=>{cur=Object.assign({},st2);build();if(FXN_ANT!==null&&r.n>FXN_ANT){lateI=r.n-1;late=2.6}FXN_ANT=r.n;ms=0;at()};S.prewarm=()=>{build();ms=dur*0.5;at()};S.startRun=()=>{build();ms=0;S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true;S.obs=null}return at()};
+ S.ff=st2=>S.apply(st2);
+ build();at();return S}
+
 /* ---------------- UPS · the race repeats ---------------- */
 function sceneUps(st){const a=st.X/40,b=st.X/40;const W=Math.max(32,2*(a+6)),D=Math.max(32,2*(b+6));const{scene,g}=diorama(W,D,P.grass);
  roadZ(g,D/2-0.4,-D/2+0.4,0,3.0);roadX(g,-W/2+0.4,W/2-0.4,0,3.0);for(let i=-3;i<=3;i++){flat(g,0.32,1.6,P.line,i*0.42,0.022,2.4);flat(g,1.6,0.32,P.line,-2.4,0.022,i*0.42)}
