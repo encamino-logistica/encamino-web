@@ -22,7 +22,7 @@ const HOJA=process.env.HOJA||path.join(os.homedir(),"encamino/oficina/repo/ofici
   ok("Sin publicar, el enlace directo ?caso=fedex abre el laboratorio",await p.evaluate(()=>location.hash)==="#fedex",await p.evaluate(()=>location.hash));
   ok("Sin errores de página (FPUB=false)",errs.length===0,errs.slice(0,3));await ctx.close()}
  /* 2 · publicado (FPUB=true, forzado si la rama la tiene apagada) */
- const FPUB_RAMA=/const FPUB=true;/.test(fs.readFileSync(path.join(__dirname,"..","index.html"),"utf8"));ok("Bandera en el index.html de la rama: FPUB="+FPUB_RAMA+" y REELNUM fedex:20",/fedex:20\}/.test(fs.readFileSync(path.join(__dirname,"..","index.html"),"utf8")));
+ const FPUB_RAMA=/const FPUB=true;/.test(fs.readFileSync(path.join(__dirname,"..","index.html"),"utf8"));ok("Bandera en el index.html de la rama: FPUB="+FPUB_RAMA+" y REELNUM fedex:20",/fedex:20[,}]/.test(fs.readFileSync(path.join(__dirname,"..","index.html"),"utf8")));
  const ctx=await b.newContext(VIEW);
  await ctx.route("**/index.html*",async r=>{const x=await r.fetch();await r.fulfill({response:x,body:(await x.text()).replace("const FPUB=false;","const FPUB=true;")})});
  const p=await ctx.newPage();await env(p);const errs=[];p.on("pageerror",e=>errs.push(e.message));

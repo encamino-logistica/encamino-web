@@ -244,7 +244,39 @@ function fedex(o){const n=fxClamp(o.n,FX.NMIN,FX.NMAX,FX.N0),P=fxClamp(o.P,FX.PM
  return{n,P,cap,pol:cen?"centro":"directo",cen,C,CD,CH,q,qD,qH,veces:CD/CH,nuevasD:n,nuevasH:1,llegoD:n-1,llegoH:1,a,aD,aH,des:cen?des:0,desC:des,pares,porPar,porCiudad:P/n,pos,nombres,sig,
   E:{av:FX.AV0,P:FX.P0,n:FX.N0,anio:FX.AN0,hub:FX.HUB,CD:fxConD(FX.N0),CH:fxConH(FX.N0),q:FX.P0/fxConH(FX.N0),nuevas:fxConD(FX.N0+1)-fxConD(FX.N0)},
   ref:CH,you:C,score:score(CH,C),valid:true}}
-return{fedex,FX,FXMAP,fxNom,fxPos,fxCarga,fxDesvio,fxConD,fxConH,inventario,invAnio,INV,iRint,gps,gpsEstudio,GPSD,gPts,aire,aKg,AI,locker,LK,lkInterp,co2,C2,ordenar,oGrupos,VCAP,bodegas,vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
+/* ---------- CROSSDOCK · una sola compra, tres furgones (reel 21). Guion aprobado y tabla de cifras del encargo R021:
+   El largo de una ruta por n paradas repartidas al azar en un área A crece con √(n·A) (Beardwood, Halton y Hammersley 1959:
+   L ≈ k·√(n·A), k ≈ 0,7124 asintótico y ≈ 0,765 en rutas reales; Daganzo 1984, aproximación de continuo, como respaldo).
+   Juntar en una ruta las paradas de k orígenes: k·√(m·A) contra √(k·m·A) → por parada baja 1 − 1/√k (con 3: 42,3 %, cálculo propio;
+   el área y la constante se cancelan). Londres: McLeod et al. 2020 (Transportation Research Record 2674(8):384–393), cinco empresas
+   de paquetería en 3,7 km² del centro pasarían de 33 a 13 furgones (modelación con datos reales). 100 USD por ruta: EJEMPLO.
+   El laboratorio MIDE: paradas al azar con semilla en un barrio de ejemplo de 2 × 2 km y cada ruta como una vuelta cerrada por sus
+   paradas, calculada con vecino más cercano + 2-opt (vNN y v2opt del reel 10). Como en la fórmula, sin la ida desde la bodega ni la vuelta.
+   Barrio por defecto: la semilla 20, la que más se acerca al promedio de las 21 (0–20) con 3 × 6 paradas: 44,7 % contra 44,8 % (rango 38,2–51,6 %). ---------- */
+const CD={KMIN:1,KMAX:5,K0:3,MMIN:5,MMAX:40,M0:6,SMIN:0,SMAX:20,S0:20,LADO:2,AREA:4,KA:0.7124,KP:0.765,A0:33,D0:13,USD0:100,FMIN:1,FMAX:100,UMIN:10,UMAX:500,APUESTAS:["10","25","42","60"]};
+const cdClamp=(v,a,b,d)=>{v=Math.round(+v);return isFinite(v)?Math.max(a,Math.min(b,v)):d};
+/* las paradas de cada origen salen de su propia serie: sumar paradas o sumar un origen no mueve las que ya estaban */
+function cdPts(i,m,seed){const r=rngFrom(seed*1000003+i*7919+11),p=[];for(let j=0;j<m;j++)p.push([0.04+0.92*r(),0.06+0.9*r()]);return p}
+/* una ruta cerrada por las paradas (la vuelta completa, como en la fórmula): vecino más cercano + 2-opt; devuelve el orden y los km */
+function cdRuta(pts){const q=pts,o=v2opt(q,vNN(q));let s=0;for(let i=0;i<o.length;i++){const a=q[o[i]],b=q[o[(i+1)%o.length]];s+=Math.hypot(a[0]-b[0],a[1]-b[1])}return{q,o,km:s*CD.LADO}}
+const CDC={};
+function cdBase(k,m,seed){const key=k+"|"+m+"|"+seed;if(CDC[key])return CDC[key];
+ const por=[];for(let i=0;i<k;i++)por.push(cdPts(i,m,seed));const sep=por.map(cdRuta),todas=[].concat(...por),org=[].concat(...por.map((p,i)=>p.map(()=>i))),junta=cdRuta(todas);
+ return CDC[key]={por,sep,todas,org,junta}}
+function crossdock(o){const k=cdClamp(o.k,CD.KMIN,CD.KMAX,CD.K0),m=cdClamp(o.m,CD.MMIN,CD.MMAX,CD.M0),seed=cdClamp(o.seed,CD.SMIN,CD.SMAX,CD.S0);
+ const A=cdClamp(o.A,CD.FMIN,CD.FMAX,CD.A0),D=Math.min(A,cdClamp(o.D,CD.FMIN,CD.FMAX,CD.D0)),usd=cdClamp(o.usd,CD.UMIN,CD.UMAX,CD.USD0);
+ const b=cdBase(k,m,seed),n=k*m,kmA=b.sep.reduce((s,r)=>s+r.km,0),kmC=k===1?kmA:b.junta.km;/* con 1 origen las dos son la misma ruta */
+ const ppA=kmA/n,ppC=kmC/n,red=1-kmC/kmA,form=1-1/Math.sqrt(k);
+ const bhA=k*CD.KP*Math.sqrt(m*CD.AREA),bhC=CD.KP*Math.sqrt(n*CD.AREA);
+ const g=CD.APUESTAS.includes(String(o.pol))?String(o.pol):"",gv=g?+g:null,pm=red*100;
+ const cerca=CD.APUESTAS.map(Number).reduce((a,x)=>Math.abs(x-pm)<Math.abs(a-pm)?x:a,10);
+ const score=g?(gv===cerca?100:Math.max(0,Math.min(95,100-2*Math.abs(gv-pm)))):0;
+ const menos=A-D;
+ return{k,m,seed,n,A,D,usd,kmA,kmC,ppA,ppC,red,form,dif:Math.abs(red-form),bhA,bhC,bhRed:1-bhC/bhA,
+  rutas:b.sep.map((r,i)=>({q:r.q,o:r.o,km:r.km,i})),junta:k===1?{q:b.sep[0].q,o:b.sep[0].o,km:kmC}:{q:b.junta.q,o:b.junta.o,km:kmC},org:b.org,
+  menos,ahorro:menos*usd,pol:g,apuesta:gv,cerca,score,valid:!!g,
+  E:{k:3,form3:1-1/Math.sqrt(3),A:CD.A0,D:CD.D0,usd:CD.USD0,ahorro:(CD.A0-CD.D0)*CD.USD0,empresas:5,km2:3.7}}}
+return{crossdock,CD,cdPts,cdRuta,fedex,FX,FXMAP,fxNom,fxPos,fxCarga,fxDesvio,fxConD,fxConH,inventario,invAnio,INV,iRint,gps,gpsEstudio,GPSD,gPts,aire,aKg,AI,locker,LK,lkInterp,co2,C2,ordenar,oGrupos,VCAP,bodegas,vecino,vPts,vLen,vNN,v2opt,vCruces,cadena,quedatelo,fTheory,fJsq,fHours,rngFrom,score,citas,bDay,bStats,bailey,fGen,fSim,erlangC,fPolicies,fila,okDay,fmaxOf,pPass,nivel,nMonth,amazon,aCurve,IP,ikea,iBatch,ups};
 })();
 /* </core> */
 if(typeof module!=="undefined")module.exports=EC;
