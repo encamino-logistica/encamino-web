@@ -717,6 +717,60 @@ function sceneFedex(st){const MAP=EC.FXMAP,ASP=MAP.asp,MW=30,MD=MW*ASP,W=MW+1.6,
  S.ff=st2=>S.apply(st2);
  build();at();return S}
 
+/* ---------------- CROSSDOCK · una sola compra, tres furgones (reel 21) ----------------
+   Dos barrios iguales lado a lado: ANTES (cada origen con su furgón y su color) y CON CROSSDOCK (una sola ruta dorada por todas las
+   paradas). Las rutas son las del modelo (vecino más cercano + 2-opt); con ▶ se dibujan y los furgones las recorren a la par.
+   En el teléfono la interfaz gira el diorama 90°: la escena lo nota (pulse) y deja ANTES arriba y CON CROSSDOCK abajo. */
+const CDCOL=[0x6EC1FF,0xFF7A59,0x4BE38A,0xB79CFF,0xFF8FC8],CDORO=0xE9B23A;
+const CDCSS=["#6EC1FF","#FF7A59","#4BE38A","#B79CFF","#FF8FC8"];
+function sceneCrossdock(st){const M=20,GAP=10,OFF=(M+GAP)/2,W=2*M+GAP+16,D=M+12;const{scene,g}=diorama(W,D,P.asphalt);
+ const NMAX=200,mapa=()=>{const h=new THREE.Group();g.add(h);rb(h,M+1,0.05,M+1,0x2B3858,0,0,0,0.2,{noCast:true});
+   const nb=5,pb=M/nb;for(let i=0;i<nb;i++)for(let j=0;j<nb;j++)rb(h,pb*0.84,0.05,pb*0.84,0x46527A,-M/2+pb*(i+0.5),0.05,-M/2+pb*(j+0.5),0.05,{noCast:true});
+   const casa=inst(h,rboxG(0.5,0.38,0.5,0.07),new THREE.MeshLambertMaterial({color:0xffffff}),NMAX);casa.material.userData.own=true;
+   const techo=inst(h,GEO().pyr,new THREE.MeshLambertMaterial({color:0xffffff,flatShading:true}),NMAX);techo.material.userData.own=true;
+   const tr=inst(h,rboxG(1,0.07,0.24,0.02),new THREE.MeshBasicMaterial({color:0xffffff}),NMAX+5,false);tr.material.userData.own=true;return{h,casa,techo,tr}};
+ const A=mapa(),C=mapa();const FA=new Fleet(A.h,5,0.42,{van:true}),FC=new Fleet(C.h,1,0.42,{van:true});FC.col[0]=CDORO;CDCOL.forEach((c,i)=>FA.col[i]=c);
+ /* el encuadre deja lugar a los rótulos (título y cifras, arriba de cada barrio). En pantallas anchas el panel de resultado flota a la
+    derecha (~420 px): el encuadre reserva ese ancho para que no tape el barrio CON CROSSDOCK */
+ const ANCHO=typeof innerWidth==="number"&&innerWidth>=960,ext=ANCHO?(W-2)*Math.min(0.6,440/Math.max(1,innerWidth-440)):0;
+ const S=mkS(scene,new THREE.Box3(new THREE.Vector3(-W/2+1,0,-M/2-7.5),new THREE.Vector3(W/2-1+ext,2.5,M/2+1.5)),{root:g,az:0,azP:0,el:1.2});
+ const XZ=q=>[(q[0]-0.5)*M,(0.5-q[1])*M];
+ let cur=Object.assign({},st),r=EC.crossdock(cur),ms=0,rot=false;const dur=6500;let RA=[],RC=null;
+ /* una ruta del modelo → tramos con su largo acumulado */
+ const tramos=(q,o)=>{const s=[];let t=0;for(let i=0;i<o.length;i++){const a=XZ(q[o[i]]),b=XZ(q[o[(i+1)%o.length]]),l=Math.hypot(b[0]-a[0],b[1]-a[1]);s.push([a,b,l,t]);t+=l}return{s,tot:t}};
+ /* posición de un punto de «pantalla» (X a la derecha, Z hacia abajo) en el diorama, girado o no */
+ const loc=(X,Z)=>rot?[-Z,X]:[X,Z];
+ /* centro de cada barrio en «pantalla»: sin girar, ANTES a la izquierda; girado, ANTES arriba. El barrio se contragira: se ve igual en los dos */
+ const cen=w=>rot?[0,w*OFF]:[w*OFF,0];
+ function layout(){const a=loc(...cen(-1)),c=loc(...cen(1));A.h.position.set(a[0],0,a[1]);C.h.position.set(c[0],0,c[1]);A.h.rotation.y=C.h.rotation.y=rot?-Math.PI/2:0}
+ function casas(T,col){const n=r.n;for(let k=0;k<NMAX;k++){if(k<n){const[x,z]=XZ(r.junta.q[k]);setI(T.casa,k,x,0.1,z,1,1,1,Math.PI/4);setI(T.techo,k,x,0.1+0.38+0.15,z,0.56,0.36,0.56,Math.PI/4);T.techo.setColorAt(k,_c.setHex(col(k)));T.casa.setColorAt(k,_c.setHex(0xF4EFE4))}else{setI(T.casa,k,0,-9,0,0.01,0.01,0.01);setI(T.techo,k,0,-9,0,0.01,0.01,0.01)}}
+  T.casa.instanceMatrix.needsUpdate=T.techo.instanceMatrix.needsUpdate=true;if(T.techo.instanceColor)T.techo.instanceColor.needsUpdate=true;if(T.casa.instanceColor)T.casa.instanceColor.needsUpdate=true}
+ function build(){r=EC.crossdock(cur);RA=r.rutas.map(x=>tramos(x.q,x.o));RC=tramos(r.junta.q,r.junta.o);
+  /* las casas de los dos barrios son las mismas paradas: el techo lleva el color de su origen */
+  casas(A,k=>CDCOL[r.org[k]]);casas(C,k=>CDCOL[r.org[k]]);
+  for(let i=0;i<5;i++)if(i>=r.k)FA.hide(i);layout()}
+ function dibuja(T,F,rutas,cols,u){let j=0;const pos=[];rutas.forEach((R,ri)=>{const d=u*R.tot;let vx=0,vz=0,va=0;
+   for(const[a,b,l,t]of R.s){const f=Math.max(0,Math.min(1,(d-t)/(l||1)));if(f>0){const mx=a[0]+(b[0]-a[0])*f/2,mz=a[1]+(b[1]-a[1])*f/2,ang=Math.atan2(-(b[1]-a[1]),b[0]-a[0]);setI(T.tr,j,mx,0.2,mz,Math.max(0.01,l*f),1,1,ang);T.tr.setColorAt(j,_c.setHex(cols[ri]));if(f<1||d>=R.tot-1e-9){vx=a[0]+(b[0]-a[0])*f;vz=a[1]+(b[1]-a[1])*f;va=ang}}else setI(T.tr,j,0,-9,0,0.01,1,1);j++}
+   if(u<=0){const a=R.s[0][0];vx=a[0];vz=a[1];va=Math.atan2(-(R.s[0][1][1]-a[1]),R.s[0][1][0]-a[0])}F.go(ri,vx,vz,va,true);F.snap(ri)});
+  for(;j<NMAX+5;j++)setI(T.tr,j,0,-9,0,0.01,1,1);T.tr.instanceMatrix.needsUpdate=true;if(T.tr.instanceColor)T.tr.instanceColor.needsUpdate=true;F.commit()}
+ const fs=(px,w)=>`font-size:${px}px;font-weight:${w||800}`,dos=(a,b)=>`<div style="text-align:center;line-height:1.2">${a}<br>${b}</div>`;
+ function rotulos(u){const fin=u>=1,L=[],Y=2.2,top=-M/2-0.6;
+  const pon=(w,dz,html)=>{const[X,Z]=cen(w),[x,z]=loc(X,Z+dz);L.push({x,y:Y,z,html})};
+  /* antes de ▶: el título y cuántos furgones; al final, el título y sus cifras (en amarillo). El rótulo crece hacia arriba: no tapa rutas */
+  const cif=(km,pp)=>`<span class="y" style="${fs(18)}">${nf(km,1)} km</span><br><span class="y" style="${fs(12.5,700)}">${nf(pp,2)} km ${T("por parada","per stop")}</span>`;
+  pon(-1,top,dos(`<span style="${fs(15)}">${T("ANTES","BEFORE")}</span>`,fin?cif(r.kmA,r.ppA):`<span style="${fs(12.5,600)}">${pl(r.k,"furgón","furgones","van","vans")}</span>`));
+  pon(1,top,dos(`<span style="${fs(15)};color:#E9B23A">${T("CON CROSSDOCK","WITH A CROSSDOCK")}</span>`,fin?cif(r.kmC,r.ppC):`<span style="${fs(12.5,600)}">${T("1 furgón","1 van")}</span>`));
+  S.labels=L}
+ function at(){const u=Math.min(1,ms/(dur*0.92));dibuja(A,FA,RA,CDCOL,u);dibuja(C,FC,[RC],[CDORO],u);rotulos(u);
+  /* sin subtítulo: en el teléfono taparía el rótulo ANTES; los rótulos de cada barrio ya dicen qué es cada uno */
+  S.clock=T(`antes ${nf(u*r.kmA,1)} km · crossdock ${nf(u*r.kmC,1)} km`,`before ${nf(u*r.kmA,1)} km · crossdock ${nf(u*r.kmC,1)} km`);S.cap="";return true}
+ S.info=()=>null;
+ S.pulse=()=>{const R=Math.abs(g.rotation.y)>0.1;if(R===rot)return false;rot=R;layout();at();return true};
+ S.apply=st2=>{cur=Object.assign({},st2);build();ms=0;at()};S.prewarm=()=>{build();ms=dur*0.4;at()};S.startRun=()=>{build();ms=0;S.done=false;S.obs=null};S.progress=()=>ms/dur;
+ S.tick=(dt,sp_)=>{ms+=dt*1000*sp_;if(ms>=dur){ms=dur;S.done=true}return at()};
+ S.ff=st2=>S.apply(st2);
+ build();at();return S}
+
 /* ---------------- UPS · the race repeats ---------------- */
 function sceneUps(st){const a=st.X/40,b=st.X/40;const W=Math.max(32,2*(a+6)),D=Math.max(32,2*(b+6));const{scene,g}=diorama(W,D,P.grass);
  roadZ(g,D/2-0.4,-D/2+0.4,0,3.0);roadX(g,-W/2+0.4,W/2-0.4,0,3.0);for(let i=-3;i<=3;i++){flat(g,0.32,1.6,P.line,i*0.42,0.022,2.4);flat(g,1.6,0.32,P.line,-2.4,0.022,i*0.42)}
